@@ -1,0 +1,503 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* =============================================
+   CSS Variables - Socrative Design System
+   ============================================= */
+:root {
+  /* Colors */
+  --color-primary: #03A9F4;
+  --color-primary-dark: #0288D1;
+  --color-primary-light: #B3E5FC;
+  --color-primary-lighter: #E1F5FE;
+  
+  --color-success: #4CAF50;
+  --color-success-light: #C8E6C9;
+  --color-error: #F44336;
+  --color-error-light: #FFCDD2;
+  --color-warning: #FF9800;
+  --color-warning-light: #FFE0B2;
+  --color-info: #2196F3;
+  --color-info-light: #BBDEFB;
+  
+  --color-text-primary: #212121;
+  --color-text-secondary: #757575;
+  --color-text-disabled: #BDBDBD;
+  --color-text-inverse: #FFFFFF;
+  
+  --color-background: #FAFAFA;
+  --color-surface: #FFFFFF;
+  --color-surface-variant: #F5F5F5;
+  --color-border: #E0E0E0;
+  --color-divider: #BDBDBD;
+  
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.12);
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  
+  /* Border Radius */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  
+  /* Transitions */
+  --transition-fast: 150ms;
+  --transition-normal: 250ms;
+  --transition-slow: 350ms;
+  --transition-slower: 500ms;
+  
+  /* Spacing Scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  
+  /* Font Sizes */
+  --font-xs: 12px;
+  --font-sm: 14px;
+  --font-base: 16px;
+  --font-lg: 18px;
+  --font-xl: 20px;
+  --font-2xl: 24px;
+  --font-3xl: 30px;
+  --font-4xl: 36px;
+  --font-5xl: 48px;
+  
+  /* Z-Index Scale */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+  --z-toast: 1080;
+}
+
+/* Dark Mode Variables */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text-primary: #FAFAFA;
+    --color-text-secondary: #B0B0B0;
+    --color-background: #121212;
+    --color-surface: #1E1E1E;
+    --color-surface-variant: #2C2C2C;
+    --color-border: #404040;
+    --color-divider: #555555;
+  }
+}
+
+/* =============================================
+   Font Configuration - Inter
+   ============================================= */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2') format('woff2');
+}
+
+/* =============================================
+   Base Styles
+   ============================================= */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    @apply scroll-smooth;
+    -webkit-tap-highlight-color: transparent;
+    font-size: 16px;
+  }
+  
+  body {
+    @apply bg-background text-text-primary font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  ::selection {
+    @apply bg-primary/20 text-primary-dark;
+  }
+  
+  /* Focus Styles - Accessibility */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+  
+  /* Scrollbar Styles */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-surface-variant rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full hover:bg-text-secondary/30;
+  }
+  
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+  
+  h1 { @apply text-4xl md:text-5xl; }
+  h2 { @apply text-3xl md:text-4xl; }
+  h3 { @apply text-2xl md:text-3xl; }
+  h4 { @apply text-xl md:text-2xl; }
+  h5 { @apply text-lg md:text-xl; }
+  h6 { @apply text-base md:text-lg; }
+}
+
+/* =============================================
+   Component Classes
+   ============================================= */
+@layer components {
+  /* Button Base */
+  .btn {
+    @apply inline-flex items-center justify-center font-medium rounded-md;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply select-none;
+  }
+  
+  /* Button Variants */
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-dark;
+    @apply focus-visible:ring-primary;
+    @apply active:scale-[0.98];
+  }
+  
+  .btn-secondary {
+    @apply bg-transparent text-primary border-2 border-primary;
+    @apply hover:bg-primary hover:text-white;
+    @apply focus-visible:ring-primary;
+  }
+  
+  .btn-success {
+    @apply bg-success text-white hover:bg-success/90;
+    @apply focus-visible:ring-success;
+  }
+  
+  .btn-danger {
+    @apply bg-error text-white hover:bg-error/90;
+    @apply focus-visible:ring-error;
+  }
+  
+  .btn-ghost {
+    @apply bg-transparent text-text-primary hover:bg-surface-variant;
+    @apply focus-visible:ring-text-secondary;
+  }
+  
+  /* Button Sizes */
+  .btn-sm {
+    @apply text-sm px-3 py-1.5 h-8;
+  }
+  
+  .btn-md {
+    @apply text-base px-4 py-2 h-10;
+  }
+  
+  .btn-lg {
+    @apply text-lg px-6 py-3 h-12;
+  }
+  
+  .btn-xl {
+    @apply text-xl px-8 py-4 h-14;
+  }
+  
+  /* Input Base */
+  .input {
+    @apply w-full px-3 py-2 bg-surface border border-border rounded-md;
+    @apply text-text-primary placeholder-text-secondary;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+    @apply disabled:bg-surface-variant disabled:cursor-not-allowed;
+  }
+  
+  .input-error {
+    @apply border-error focus:ring-error;
+  }
+  
+  .input-success {
+    @apply border-success focus:ring-success;
+  }
+  
+  /* Card */
+  .card {
+    @apply bg-surface rounded-lg shadow-sm border border-border/50;
+    @apply transition-all duration-200;
+  }
+  
+  .card-hover {
+    @apply hover:shadow-md hover:-translate-y-0.5;
+  }
+  
+  .card-interactive {
+    @apply cursor-pointer hover:shadow-lg hover:-translate-y-1;
+    @apply active:scale-[0.99] active:shadow-sm;
+  }
+  
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-primary {
+    @apply bg-primary-lighter text-primary-dark;
+  }
+  
+  .badge-success {
+    @apply bg-success-light text-success/90;
+  }
+  
+  .badge-warning {
+    @apply bg-warning-light text-warning/90;
+  }
+  
+  .badge-error {
+    @apply bg-error-light text-error;
+  }
+  
+  /* Skeleton Loading */
+  .skeleton {
+    @apply animate-pulse bg-gradient-to-r from-surface-variant via-border/30 to-surface-variant;
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  
+  /* Quiz Option Card */
+  .quiz-option {
+    @apply p-4 bg-surface border-2 border-border rounded-lg;
+    @apply cursor-pointer transition-all duration-normal;
+    @apply hover:border-primary hover:bg-primary-lighter/10;
+    @apply active:scale-[0.98];
+  }
+  
+  .quiz-option-selected {
+    @apply border-primary bg-primary-lighter/20;
+    @apply ring-2 ring-primary/30;
+  }
+  
+  .quiz-option-correct {
+    @apply border-success bg-success-light/30;
+    @apply ring-2 ring-success/30;
+  }
+  
+  .quiz-option-incorrect {
+    @apply border-error bg-error-light/30;
+    @apply ring-2 ring-error/30;
+  }
+}
+
+/* =============================================
+   Animations
+   ============================================= */
+@layer utilities {
+  /* Keyframes */
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  
+  @keyframes bounce {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  @keyframes ping {
+    75%, 100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+  
+  /* Animation Classes */
+  .animate-slide-in {
+    animation: slideIn 0.3s ease-out;
+  }
+  
+  .animate-slide-in-left {
+    animation: slideInLeft 0.3s ease-out;
+  }
+  
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-in;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .animate-bounce-slow {
+    animation: bounce 2s ease-in-out infinite;
+  }
+  
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+  
+  /* Stagger Animation Delays */
+  .stagger-1 { animation-delay: 50ms; }
+  .stagger-2 { animation-delay: 100ms; }
+  .stagger-3 { animation-delay: 150ms; }
+  .stagger-4 { animation-delay: 200ms; }
+  .stagger-5 { animation-delay: 250ms; }
+  
+  /* Transition Utilities */
+  .transition-fast { transition-duration: var(--transition-fast); }
+  .transition-normal { transition-duration: var(--transition-normal); }
+  .transition-slow { transition-duration: var(--transition-slow); }
+  .transition-slower { transition-duration: var(--transition-slower); }
+}
+
+/* =============================================
+   Responsive Utilities
+   ============================================= */
+@layer utilities {
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Safe area insets for mobile */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* =============================================
+   Print Styles
+   ============================================= */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white;
+    color: black;
+  }
+}

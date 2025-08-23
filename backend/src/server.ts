@@ -1,0 +1,127 @@
+/**
+ * Quiz App Backend Server
+ * 
+ * Main entry point for the Quiz application backend.
+ * Handles HTTP requests, WebSocket connections, and database interactions.
+ * 
+ * @author Samuel Quiroz
+ * @version 1.0.0
+ */
+
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import morgan from 'morgan';
+import { createServer } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
+import path from 'path';
+
+import { env, isDevelopment } from './config/environment';
+import { connectDatabase } from './config/database';
+import { setupAssociations } from './models/associations';
+import logger, { stream } from './utils/logger';
+import { errorHandler, notFoundHandler } from './middleware/error.middleware';
+import { generalRateLimiter } from './middleware/rateLimiter.middleware';
+import routes from './routes';
+import { setupSocketServer } from './socket/socket.server';
+
+// Create Express app
+const app = express();
+const httpServer = createServer(app);
+
+// Setup Socket.IO
+const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: env.SOCKET_CORS_ORIGIN,
+    credentials: true,
+  },
+  transports: ['websocket', 'polling'],
+});
+
+// Middleware
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
+app.use(cors({
+  origin: env.CORS_ORIGIN,
+  credentials: env.CORS_CREDENTIALS,
+}));
+app.use(compression());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(morgan(isDevelopment ? 'dev' : 'combined', { stream }));
+
+// Rate limiting
+app.use(generalRateLimiter);
+
+// Static files
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Health check
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: env.NODE_ENV,
+  });
+});
+
+// API routes
+app.use(env.API_PREFIX, routes);
+
+// Error handling
+app.use(notFoundHandler);
+app.use(errorHandler);
+
+// Setup Socket.IO handlers
+setupSocketServer(io);
+
+// Start server
+const startServer = async () => {
+  try {
+    // Connect to database
+    await connectDatabase();
+    
+    // Start HTTP server
+    httpServer.listen(env.PORT, env.HOST, () => {
+      logger.info(`
+        🚀 Server is running!
+        🔊 Listening on http://${env.HOST}:${env.PORT}
+        📝 API Prefix: ${env.API_PREFIX}
+        🌍 Environment: ${env.NODE_ENV}
+        🔌 Socket.IO enabled
+      `);
+    });
+  } catch (error) {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error: Error) => {
+  logger.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason: any) => {
+  logger.error('Unhandled Rejection:', reason);
+  process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received. Shutting down gracefully...');
+  httpServer.close(() => {
+    logger.info('Server closed');
+    process.exit(0);
+  });
+});
+
+// Start the server
+startServer();
+
+export { app, httpServer, io };
