@@ -169,25 +169,47 @@ export default function PublicQuizTake() {
     try {
       const participantData = JSON.parse(sessionStorage.getItem('publicQuizParticipant') || '{}');
       
-      // Calculate score (mock calculation)
-      const totalPoints = questions.reduce((sum, q) => sum + q.points, 0);
-      const earnedPoints = Object.keys(answers).length * 10; // Mock scoring
-      const score = Math.round((earnedPoints / totalPoints) * 100);
+      // Calculate time spent in seconds
+      const startTime = new Date(participantData.startTime || Date.now()).getTime();
+      const endTime = Date.now();
+      const timeSpentSeconds = Math.floor((endTime - startTime) / 1000);
       
-      // Save results to session storage
-      sessionStorage.setItem('publicQuizResults', JSON.stringify({
-        quizId: id,
-        sessionId: session?.id,
-        participant: participantData,
-        answers,
-        score,
-        totalQuestions: questions.length,
-        answeredQuestions: Object.keys(answers).length,
-        completedAt: new Date().toISOString()
-      }));
+      // Send answers to backend for grading
+      const response = await fetch(buildApiUrl('/grading/submit-public'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          quizId: id,
+          sessionId: session?.id,
+          participant: participantData,
+          answers,
+          timeSpent: timeSpentSeconds,
+          startedAt: participantData.startTime
+        })
+      });
       
-      setQuizCompleted(true);
-      toast.success(t('publicQuiz.quizCompleted'));
+      if (!response.ok) {
+        throw new Error('Failed to submit quiz');
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Save graded results
+        sessionStorage.setItem('publicQuizResults', JSON.stringify({
+          ...result.data,
+          quizId: id,
+          participant: participantData,
+          completedAt: new Date().toISOString()
+        }));
+        
+        setQuizCompleted(true);
+        toast.success(t('publicQuiz.quizCompleted'));
+      } else {
+        throw new Error(result.error || 'Failed to grade quiz');
+      }
       
     } catch (error) {
       console.error('Error submitting quiz:', error);
@@ -214,35 +236,62 @@ export default function PublicQuizTake() {
 
   if (quizCompleted) {
     const results = JSON.parse(sessionStorage.getItem('publicQuizResults') || '{}');
+    const passed = parseFloat(results.score) >= 70;
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 py-12 px-4">
         <div className="max-w-2xl mx-auto">
           <Card className="p-8 text-center">
-            <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <FiCheckCircle className="text-success" size={40} />
+            <div className={`w-20 h-20 ${passed ? 'bg-success/10' : 'bg-warning/10'} rounded-full flex items-center justify-center mx-auto mb-6`}>
+              <FiCheckCircle className={passed ? 'text-success' : 'text-warning'} size={40} />
             </div>
             
             <h2 className="text-2xl font-bold text-primary mb-4">
-              {t('publicQuiz.congratulations')}
+              {passed ? t('publicQuiz.congratulations') : t('publicQuiz.quizCompletedTitle')}
             </h2>
             
             <p className="text-text-secondary mb-6">
-              {t('publicQuiz.quizCompletedDesc')}
+              {passed ? t('publicQuiz.passedMessage') : t('publicQuiz.failedMessage')}
             </p>
             
             <div className="bg-background rounded-lg p-6 mb-6">
-              <div className="grid grid-cols-2 gap-4 text-left">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
                   <p className="text-sm text-text-secondary">{t('publicQuiz.yourScore')}</p>
-                  <p className="text-2xl font-bold text-primary">{results.score}%</p>
+                  <p className={`text-2xl font-bold ${passed ? 'text-success' : 'text-warning'}`}>
+                    {parseFloat(results.score || 0).toFixed(1)}%
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-text-secondary">{t('publicQuiz.questionsAnswered')}</p>
+                  <p className="text-sm text-text-secondary">{t('publicQuiz.correctAnswers')}</p>
                   <p className="text-2xl font-bold text-primary">
-                    {results.answeredQuestions}/{results.totalQuestions}
+                    {results.correctAnswers || 0}/{results.totalQuestions || 0}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-text-secondary">{t('publicQuiz.pointsEarned')}</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {results.earnedPoints || 0}/{results.totalPoints || 0}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-text-secondary">{t('publicQuiz.timeSpent')}</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {formatTime(results.timeSpent || 0)}
                   </p>
                 </div>
               </div>
+            </div>
+            
+            {/* Pass/Fail Badge */}
+            <div className="mb-6">
+              <span className={`inline-block px-6 py-3 rounded-full text-lg font-semibold ${
+                passed 
+                  ? 'bg-success/10 text-success border-2 border-success' 
+                  : 'bg-warning/10 text-warning border-2 border-warning'
+              }`}>
+                {passed ? t('publicQuiz.passed') : t('publicQuiz.needsImprovement')}
+              </span>
             </div>
             
             <div className="flex gap-4">

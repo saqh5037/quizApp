@@ -452,6 +452,14 @@
     "answered": "Respondida",
     "notAnswered": "Sin responder",
     "submit": "Enviar",
-    "questionNavigator": "Navegador de preguntas"
+    "questionNavigator": "Navegador de preguntas",
+    "quizCompletedTitle": "Evaluación Completada",
+    "passedMessage": "¡Felicidades! Has aprobado la evaluación exitosamente.",
+    "failedMessage": "Has completado la evaluación. Necesitas más práctica para mejorar tu puntuación.",
+    "correctAnswers": "Respuestas Correctas",
+    "pointsEarned": "Puntos Obtenidos",
+    "timeSpent": "Tiempo Empleado",
+    "passed": "APROBADO",
+    "needsImprovement": "NECESITAS MEJORAR"
   }
 }

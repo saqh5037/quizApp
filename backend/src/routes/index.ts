@@ -4,6 +4,7 @@ import quizRoutes from './quiz.routes';
 import sessionRoutes from './session.routes';
 import userRoutes from './user.routes';
 import dashboardRoutes from './dashboard.routes';
+import gradingRoutes from './grading.routes';
 
 const router = Router();
 
@@ -27,5 +28,6 @@ router.use('/quizzes', quizRoutes);
 router.use('/sessions', sessionRoutes);
 router.use('/users', userRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/grading', gradingRoutes);
 
 export default router;

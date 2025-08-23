@@ -452,6 +452,14 @@
     "answered": "Answered",
     "notAnswered": "Not answered",
     "submit": "Submit",
-    "questionNavigator": "Question navigator"
+    "questionNavigator": "Question navigator",
+    "quizCompletedTitle": "Assessment Completed",
+    "passedMessage": "Congratulations! You have successfully passed the assessment.",
+    "failedMessage": "You have completed the assessment. You need more practice to improve your score.",
+    "correctAnswers": "Correct Answers",
+    "pointsEarned": "Points Earned",
+    "timeSpent": "Time Spent",
+    "passed": "PASSED",
+    "needsImprovement": "NEEDS IMPROVEMENT"
   }
 }
