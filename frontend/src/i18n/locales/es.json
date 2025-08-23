@@ -193,7 +193,11 @@
         "isPublicHint": "Permitir que cualquiera tome esta evaluación",
         "randomizeQuestionsHint": "Mostrar preguntas en orden aleatorio",
         "allowReviewHint": "Permitir a los estudiantes revisar sus respuestas después de enviar",
-        "showCorrectAnswersHint": "Mostrar respuestas correctas después de completar la evaluación"
+        "showCorrectAnswersHint": "Mostrar respuestas correctas después de completar la evaluación",
+        "correctAnswer": "Respuesta Correcta",
+        "acceptableAnswers": "Respuesta(s) Aceptable(s)",
+        "acceptableAnswersPlaceholder": "Ingresa la(s) respuesta(s) aceptable(s)",
+        "acceptableAnswersHint": "Separa múltiples respuestas aceptables con comas"
       }
     }
   },

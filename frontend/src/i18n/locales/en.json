@@ -193,7 +193,11 @@
         "isPublicHint": "Allow anyone to take this quiz",
         "randomizeQuestionsHint": "Show questions in random order",
         "allowReviewHint": "Let students review their answers after submission",
-        "showCorrectAnswersHint": "Display correct answers after quiz completion"
+        "showCorrectAnswersHint": "Display correct answers after quiz completion",
+        "correctAnswer": "Correct Answer",
+        "acceptableAnswers": "Acceptable Answer(s)",
+        "acceptableAnswersPlaceholder": "Enter acceptable answer(s)",
+        "acceptableAnswersHint": "Separate multiple acceptable answers with commas"
       }
     }
   },

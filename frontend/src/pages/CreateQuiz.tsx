@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Plus, Trash2, GripVertical, Save, ArrowLeft, Copy, Eye } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Save, ArrowLeft, Copy, Eye, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../stores/authStore';
 
@@ -165,13 +165,50 @@ export default function CreateQuiz() {
     }
     
     try {
+      // Format questions for backend
+      const formattedQuestions = quiz.questions.map(q => {
+        let correctAnswers;
+        
+        if (q.type === 'multiple_choice') {
+          // For multiple choice, correctAnswer is the index of the correct option
+          correctAnswers = [q.correctAnswer];
+        } else if (q.type === 'true_false') {
+          // For true/false, 0 = true, 1 = false
+          correctAnswers = [q.correctAnswer === 0];
+        } else if (q.type === 'short_answer') {
+          // For short answer, split by comma for multiple acceptable answers
+          const answers = (q.correctAnswer as string || '').split(',').map(a => a.trim()).filter(a => a);
+          correctAnswers = answers;
+        }
+        
+        return {
+          question: q.question,
+          questionText: q.question,
+          type: q.type,
+          questionType: q.type,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          correctAnswers: correctAnswers,
+          points: q.points,
+          timeLimit: q.timeLimit,
+          explanation: q.explanation
+        };
+      });
+      
+      const quizData = {
+        ...quiz,
+        questions: formattedQuestions,
+        isPublic: quiz.settings.isPublic,
+        settings: quiz.settings
+      };
+      
       const response = await fetch('http://localhost:3001/api/v1/quizzes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify(quiz)
+        body: JSON.stringify(quizData)
       });
       
       if (response.ok) {
@@ -508,20 +545,23 @@ export default function CreateQuiz() {
                 {currentQuestion.type === 'true_false' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Correct Answer
+                      {t('quizzes.create.form.correctAnswer')}
                     </label>
                     <div className="flex space-x-3">
-                      {['True', 'False'].map((option, index) => (
+                      {[t('publicQuiz.true'), t('publicQuiz.false')].map((option, index) => (
                         <button
                           key={option}
                           onClick={() => updateQuestion(currentQuestionIndex, { correctAnswer: index })}
-                          className={`px-6 py-2 rounded-lg transition-colors ${
+                          className={`px-6 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
                             currentQuestion.correctAnswer === index
                               ? 'bg-green-500 text-white'
                               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                           }`}
                         >
-                          {option}
+                          {currentQuestion.correctAnswer === index && (
+                            <CheckCircle className="w-4 h-4" />
+                          )}
+                          <span>{option}</span>
                         </button>
                       ))}
                     </div>
@@ -531,16 +571,16 @@ export default function CreateQuiz() {
                 {currentQuestion.type === 'short_answer' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Acceptable Answer(s)
+                      {t('quizzes.create.form.acceptableAnswers')}
                     </label>
                     <input
                       type="text"
                       value={currentQuestion.correctAnswer as string}
                       onChange={e => updateQuestion(currentQuestionIndex, { correctAnswer: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="Enter acceptable answer(s)"
+                      placeholder={t('quizzes.create.form.acceptableAnswersPlaceholder')}
                     />
-                    <p className="text-xs text-gray-500 mt-1">Separate multiple acceptable answers with commas</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('quizzes.create.form.acceptableAnswersHint')}</p>
                   </div>
                 )}
 
