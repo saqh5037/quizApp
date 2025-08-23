@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Plus, Trash2, GripVertical, Save, ArrowLeft, Copy, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../stores/authStore';
@@ -31,6 +32,7 @@ interface QuizForm {
 
 export default function CreateQuiz() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { accessToken } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'details' | 'questions' | 'settings'>('details');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
@@ -201,8 +203,8 @@ export default function CreateQuiz() {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Create New Quiz</h1>
-              <p className="text-sm text-gray-500 mt-1">Design your quiz with multiple question types</p>
+              <h1 className="text-2xl font-bold text-gray-900">{t('quizzes.create.title')}</h1>
+              <p className="text-sm text-gray-500 mt-1">{t('quizzes.create.subtitle')}</p>
             </div>
           </div>
           <div className="flex items-center space-x-3">
@@ -211,14 +213,14 @@ export default function CreateQuiz() {
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2"
             >
               <Eye className="w-4 h-4" />
-              <span>Preview</span>
+              <span>{t('quizzes.create.preview')}</span>
             </button>
             <button
               onClick={handleSaveQuiz}
               className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center space-x-2"
             >
               <Save className="w-4 h-4" />
-              <span>Save Quiz</span>
+              <span>{t('quizzes.create.saveQuiz')}</span>
             </button>
           </div>
         </div>
@@ -235,7 +237,7 @@ export default function CreateQuiz() {
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              {tab}
+              {t(`quizzes.create.tabs.${tab}`)}
               {tab === 'questions' && quiz.questions.length > 0 && (
                 <span className="ml-2 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs">
                   {quiz.questions.length}
@@ -252,20 +254,20 @@ export default function CreateQuiz() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Quiz Title *
+                {t('quizzes.create.form.title')} *
               </label>
               <input
                 type="text"
                 value={quiz.title}
                 onChange={e => setQuiz(prev => ({ ...prev, title: e.target.value }))}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="Enter quiz title"
+                placeholder={t('quizzes.create.form.titlePlaceholder')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category
+                {t('quizzes.create.form.category')}
               </label>
               <select
                 value={quiz.category}
@@ -280,20 +282,20 @@ export default function CreateQuiz() {
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
+                {t('quizzes.create.form.description')}
               </label>
               <textarea
                 value={quiz.description}
                 onChange={e => setQuiz(prev => ({ ...prev, description: e.target.value }))}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 rows={3}
-                placeholder="Describe what this quiz is about"
+                placeholder={t('quizzes.create.form.descriptionPlaceholder')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Difficulty Level
+                {t('quizzes.create.form.difficulty')}
               </label>
               <div className="flex space-x-3">
                 {(['easy', 'medium', 'hard'] as const).map(level => (
@@ -393,8 +395,8 @@ export default function CreateQuiz() {
 
               {quiz.questions.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  <p className="text-sm">No questions yet</p>
-                  <p className="text-xs mt-1">Click + to add your first question</p>
+                  <p className="text-sm">{t('quizzes.create.form.noQuestions')}</p>
+                  <p className="text-xs mt-1">{t('quizzes.create.form.noQuestionsHint')}</p>
                 </div>
               )}
             </div>
@@ -405,19 +407,19 @@ export default function CreateQuiz() {
             {currentQuestion ? (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Question {currentQuestionIndex + 1}</h3>
+                  <h3 className="text-lg font-semibold">{t('quizzes.create.form.question')} {currentQuestionIndex + 1}</h3>
                   <div className="flex space-x-2">
                     <button
                       onClick={() => duplicateQuestion(currentQuestionIndex)}
                       className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="Duplicate Question"
+                      title={t('quizzes.create.form.duplicateQuestion')}
                     >
                       <Copy className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => deleteQuestion(currentQuestionIndex)}
                       className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
-                      title="Delete Question"
+                      title={t('quizzes.create.form.deleteQuestion')}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -427,7 +429,7 @@ export default function CreateQuiz() {
                 {/* Question Type */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Question Type
+                    {t('quizzes.create.form.questionType')}
                   </label>
                   <select
                     value={currentQuestion.type}
@@ -450,23 +452,23 @@ export default function CreateQuiz() {
                     }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   >
-                    <option value="multiple_choice">Multiple Choice</option>
-                    <option value="true_false">True/False</option>
-                    <option value="short_answer">Short Answer</option>
+                    <option value="multiple_choice">{t('quizzes.create.form.multipleChoice')}</option>
+                    <option value="true_false">{t('quizzes.create.form.trueFalse')}</option>
+                    <option value="short_answer">{t('quizzes.create.form.shortAnswer')}</option>
                   </select>
                 </div>
 
                 {/* Question Text */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Question Text *
+                    {t('quizzes.create.form.questionText')} *
                   </label>
                   <textarea
                     value={currentQuestion.question}
                     onChange={e => updateQuestion(currentQuestionIndex, { question: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     rows={3}
-                    placeholder="Enter your question here"
+                    placeholder={t('quizzes.create.form.questionPlaceholder')}
                   />
                 </div>
 
@@ -474,7 +476,7 @@ export default function CreateQuiz() {
                 {currentQuestion.type === 'multiple_choice' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Answer Options
+                      {t('quizzes.create.form.answerOptions')}
                     </label>
                     <div className="space-y-3">
                       {currentQuestion.options?.map((option, optIndex) => (
@@ -494,12 +496,12 @@ export default function CreateQuiz() {
                               updateQuestion(currentQuestionIndex, { options: newOptions });
                             }}
                             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                            placeholder={`Option ${optIndex + 1}`}
+                            placeholder={`${t('quizzes.create.form.option')} ${optIndex + 1}`}
                           />
                         </div>
                       ))}
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">Select the correct answer by clicking the radio button</p>
+                    <p className="text-xs text-gray-500 mt-2">{t('quizzes.create.form.correctAnswerHint')}</p>
                   </div>
                 )}
 
@@ -546,7 +548,7 @@ export default function CreateQuiz() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Points
+                      {t('quizzes.create.form.points')}
                     </label>
                     <input
                       type="number"
@@ -558,7 +560,7 @@ export default function CreateQuiz() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Time Limit (seconds)
+                      {t('quizzes.create.form.timeLimitSeconds')}
                     </label>
                     <input
                       type="number"
@@ -574,21 +576,21 @@ export default function CreateQuiz() {
                 {/* Explanation */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Explanation (Optional)
+                    {t('quizzes.create.form.explanation')}
                   </label>
                   <textarea
                     value={currentQuestion.explanation || ''}
                     onChange={e => updateQuestion(currentQuestionIndex, { explanation: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     rows={2}
-                    placeholder="Provide an explanation for the correct answer"
+                    placeholder={t('quizzes.create.form.explanationPlaceholder')}
                   />
                 </div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                <p className="text-lg mb-2">No question selected</p>
-                <p className="text-sm">Add a question or select one from the list</p>
+                <p className="text-lg mb-2">{t('quizzes.create.form.noQuestions')}</p>
+                <p className="text-sm">{t('quizzes.create.form.noQuestionsHint')}</p>
               </div>
             )}
           </div>

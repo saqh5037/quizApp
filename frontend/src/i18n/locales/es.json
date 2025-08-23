@@ -140,20 +140,53 @@
     },
     "create": {
       "title": "Crear Nueva Evaluación",
-      "subtitle": "Configura los detalles de tu evaluación",
+      "subtitle": "Diseña tu evaluación con múltiples tipos de preguntas",
+      "preview": "Vista Previa",
+      "saveQuiz": "Guardar Evaluación",
+      "tabs": {
+        "details": "Detalles",
+        "questions": "Preguntas",
+        "settings": "Configuración"
+      },
       "form": {
-        "title": "Título",
+        "title": "Título de la Evaluación",
         "titlePlaceholder": "Ingresa el título de la evaluación",
         "description": "Descripción",
         "descriptionPlaceholder": "Describe de qué trata esta evaluación",
         "category": "Categoría",
         "categoryPlaceholder": "Selecciona una categoría",
-        "difficulty": "Dificultad",
+        "difficulty": "Nivel de Dificultad",
+        "difficultyLevels": {
+          "easy": "Fácil",
+          "medium": "Medio",
+          "hard": "Difícil"
+        },
         "timeLimit": "Límite de Tiempo (minutos)",
         "passingScore": "Puntuación para Aprobar (%)",
         "isPublic": "Hacer pública esta evaluación",
+        "allowReview": "Permitir revisión después de completar",
+        "randomizeQuestions": "Aleatorizar orden de preguntas",
+        "showCorrectAnswers": "Mostrar respuestas correctas",
         "questions": "Preguntas",
-        "addQuestion": "Agregar Pregunta"
+        "addQuestion": "Agregar Pregunta",
+        "question": "Pregunta",
+        "questionType": "Tipo de Pregunta",
+        "multipleChoice": "Opción Múltiple",
+        "trueFalse": "Verdadero/Falso",
+        "shortAnswer": "Respuesta Corta",
+        "questionText": "Texto de la Pregunta",
+        "questionPlaceholder": "Ingresa tu pregunta aquí",
+        "answerOptions": "Opciones de Respuesta",
+        "option": "Opción",
+        "correctAnswerHint": "Selecciona la respuesta correcta haciendo clic en el botón de radio",
+        "points": "Puntos",
+        "timeLimitSeconds": "Límite de Tiempo (segundos)",
+        "explanation": "Explicación (Opcional)",
+        "explanationPlaceholder": "Proporciona una explicación para la respuesta correcta",
+        "deleteQuestion": "Eliminar Pregunta",
+        "duplicateQuestion": "Duplicar Pregunta",
+        "noQuestions": "No hay preguntas todavía",
+        "noQuestionsHint": "Agrega tu primera pregunta para comenzar a construir tu evaluación"
       }
     }
   },
