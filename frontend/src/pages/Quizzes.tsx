@@ -186,14 +186,14 @@ export default function Quizzes() {
       <div className="mb-8">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-primary">My Quizzes</h1>
+            <h1 className="text-3xl font-bold text-primary">My Assessments</h1>
             <p className="text-text-secondary mt-2">
-              Create and manage your quiz collection
+              Create and manage your assessment collection
             </p>
           </div>
           <Link to="/quizzes/create">
             <Button variant="primary" leftIcon={<FiPlus />}>
-              Create Quiz
+              Create Assessment
             </Button>
           </Link>
         </div>
@@ -203,7 +203,7 @@ export default function Quizzes() {
           <div className="flex-1 max-w-md">
             <Input
               type="text"
-              placeholder="Search quizzes..."
+              placeholder="Search assessments..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               leftIcon={<FiSearch />}
@@ -240,7 +240,7 @@ export default function Quizzes() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-secondary text-sm">Total Quizzes</p>
+              <p className="text-text-secondary text-sm">Total Assessments</p>
               <p className="text-2xl font-bold text-primary">{quizzes.length}</p>
             </div>
             <div className="text-primary bg-primary/10 p-3 rounded-lg">
@@ -280,7 +280,7 @@ export default function Quizzes() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-secondary text-sm">Public Quizzes</p>
+              <p className="text-text-secondary text-sm">Public Assessments</p>
               <p className="text-2xl font-bold text-primary">
                 {quizzes.filter(q => q.isPublic).length}
               </p>
@@ -296,7 +296,7 @@ export default function Quizzes() {
       {loading ? (
         <div className="text-center py-12">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="mt-4 text-text-secondary">Loading quizzes...</p>
+          <p className="mt-4 text-text-secondary">Loading assessments...</p>
         </div>
       ) : filteredQuizzes.length === 0 ? (
         <Card className="text-center py-12">

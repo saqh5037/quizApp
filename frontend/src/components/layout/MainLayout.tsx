@@ -13,7 +13,7 @@ export default function MainLayout() {
 
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-    { path: '/quizzes', label: 'Quizzes', icon: '📝' },
+    { path: '/quizzes', label: 'Assessments', icon: '📝' },
     { path: '/sessions', label: 'Sessions', icon: '🎮' },
     { path: '/results', label: 'Results', icon: '📈' },
     { path: '/profile', label: 'Profile', icon: '👤' },
@@ -26,7 +26,7 @@ export default function MainLayout() {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <Link to="/dashboard" className="flex items-center">
-                <span className="text-2xl font-bold text-primary">Quiz App</span>
+                <span className="text-2xl font-bold text-primary">AristoTest</span>
               </Link>
               <div className="hidden md:ml-10 md:flex md:space-x-4">
                 {navItems.map((item) => (
