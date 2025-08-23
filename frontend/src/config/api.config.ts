@@ -4,9 +4,25 @@
  */
 
 // Get environment variables with fallbacks
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Use dynamic URL detection for production
+const getApiUrl = () => {
+  // If explicitly set in environment, use that
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // In production, use same origin (for when frontend and backend are on same server)
+  if (import.meta.env.PROD) {
+    return window.location.origin;
+  }
+  
+  // Default for development
+  return 'http://localhost:3000';
+};
+
+const API_URL = getApiUrl();
 const API_PREFIX = import.meta.env.VITE_API_PREFIX || '/api/v1';
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || API_URL;
 
 // Export configuration
 export const apiConfig = {

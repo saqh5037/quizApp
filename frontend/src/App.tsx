@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import PrivateRoute from './components/PrivateRoute';
@@ -40,70 +40,125 @@ const queryClient = new QueryClient({
   },
 });
 
+// Create router with future flags enabled
+const router = createBrowserRouter([
+  {
+    path: '/login',
+    element: <Login />,
+  },
+  {
+    path: '/register',
+    element: <Register />,
+  },
+  {
+    path: '/join',
+    element: <JoinSession />,
+  },
+  {
+    path: '/play',
+    element: <PlayQuiz />,
+  },
+  {
+    path: '/sessions/:id/results',
+    element: <SessionResults />,
+  },
+  {
+    path: '/',
+    element: (
+      <PrivateRoute>
+        <MainLayout />
+      </PrivateRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/dashboard" />,
+      },
+      {
+        path: 'dashboard',
+        element: <Dashboard />,
+      },
+      {
+        path: 'quizzes',
+        element: <Quizzes />,
+      },
+      {
+        path: 'quizzes/:id',
+        element: <QuizDetail />,
+      },
+      {
+        path: 'quizzes/create',
+        element: <CreateQuiz />,
+      },
+      {
+        path: 'quizzes/:id/edit',
+        element: <EditQuiz />,
+      },
+      {
+        path: 'sessions',
+        element: <Sessions />,
+      },
+      {
+        path: 'sessions/host',
+        element: <HostSession />,
+      },
+      {
+        path: 'results',
+        element: <Results />,
+      },
+      {
+        path: 'results/:sessionId',
+        element: <Results />,
+      },
+      {
+        path: 'profile',
+        element: <Profile />,
+      },
+      {
+        path: 'docs',
+        element: <Documentation />,
+      },
+    ],
+  },
+  {
+    path: '*',
+    element: <NotFound />,
+  },
+], {
+  future: {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true,
+  },
+});
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#fff',
-              color: '#212121',
-              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#fff',
+            color: '#212121',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          },
+          success: {
+            iconTheme: {
+              primary: '#4CAF50',
+              secondary: '#fff',
             },
-            success: {
-              iconTheme: {
-                primary: '#4CAF50',
-                secondary: '#fff',
-              },
+          },
+          error: {
+            iconTheme: {
+              primary: '#F44336',
+              secondary: '#fff',
             },
-            error: {
-              iconTheme: {
-                primary: '#F44336',
-                secondary: '#fff',
-              },
-            },
-          }}
-        />
-        
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/join" element={<JoinSession />} />
-          <Route path="/play" element={<PlayQuiz />} />
-          <Route path="/sessions/:id/results" element={<SessionResults />} />
-          
-          {/* Private routes */}
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <MainLayout />
-              </PrivateRoute>
-            }
-          >
-            <Route index element={<Navigate to="/dashboard" />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="quizzes" element={<Quizzes />} />
-            <Route path="quizzes/:id" element={<QuizDetail />} />
-            <Route path="quizzes/create" element={<CreateQuiz />} />
-            <Route path="quizzes/:id/edit" element={<EditQuiz />} />
-            <Route path="sessions" element={<Sessions />} />
-            <Route path="sessions/host" element={<HostSession />} />
-            <Route path="results" element={<Results />} />
-            <Route path="results/:sessionId" element={<Results />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="docs" element={<Documentation />} />
-          </Route>
-          
-          {/* 404 */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Router>
+          },
+        }}
+      />
+      
+      <RouterProvider router={router} />
     </QueryClientProvider>
   );
 }
