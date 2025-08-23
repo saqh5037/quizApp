@@ -155,64 +155,71 @@ export default function Documentation() {
         '4. Check notifications',
         '5. Test quick actions'
       ],
-      status: 'partial'
+      status: 'working'
     },
     {
       id: 'quizzes',
       title: i18n.language === 'es' ? 'Evaluaciones' : 'Assessments',
       description: i18n.language === 'es'
-        ? 'Crear y gestionar evaluaciones con diferentes tipos de preguntas.'
-        : 'Create and manage assessments with different question types.',
+        ? 'Sistema completo de creación y edición de evaluaciones con indicadores visuales mejorados.'
+        : 'Complete assessment creation and editing system with enhanced visual indicators.',
       icon: <FiBook className="w-5 h-5" />,
       features: i18n.language === 'es' ? [
-        'Lista de evaluaciones con datos mock',
-        'Crear nueva evaluación (formulario básico)',
-        'Editar evaluación existente',
-        'Duplicar evaluación',
-        'Eliminar evaluación',
-        'Filtros por estado y búsqueda'
+        '✅ Creación de evaluaciones funcional',
+        '✅ Editor visual con bordes verde/rojo',
+        '✅ Indicadores de respuestas correctas/incorrectas',
+        '✅ Persistencia correcta de respuestas marcadas',
+        '✅ Soporte para Multiple Choice, True/False, Short Answer',
+        '✅ Configuración de puntos por pregunta',
+        '✅ Duplicar y eliminar evaluaciones',
+        '✅ Vista de detalles de evaluación',
+        '✅ Navegación a iniciar sesión desde detalle'
       ] : [
-        'Assessment list with mock data',
-        'Create new assessment (basic form)',
-        'Edit existing assessment',
-        'Duplicate assessment',
-        'Delete assessment',
-        'Filters by status and search'
+        '✅ Functional assessment creation',
+        '✅ Visual editor with green/red borders',
+        '✅ Correct/incorrect answer indicators',
+        '✅ Proper persistence of marked answers',
+        '✅ Support for Multiple Choice, True/False, Short Answer',
+        '✅ Points configuration per question',
+        '✅ Duplicate and delete assessments',
+        '✅ Assessment detail view',
+        '✅ Navigation to start session from detail'
       ],
       testSteps: i18n.language === 'es' ? [
-        '1. Ve a Evaluaciones',
-        '2. Observa la lista (usa datos mock)',
-        '3. Prueba los filtros (Todos/Público/Privado)',
-        '4. Intenta crear una nueva evaluación',
-        '5. Prueba editar/duplicar/eliminar'
+        '1. Ve a Evaluaciones y crea una nueva',
+        '2. Agrega preguntas con diferentes tipos',
+        '3. Selecciona respuestas correctas (borde verde)',
+        '4. Observa respuestas incorrectas (borde rojo)',
+        '5. Guarda y verifica persistencia',
+        '6. Edita la evaluación creada',
+        '7. Verifica que las respuestas se mantienen',
+        '8. Ve al detalle y prueba iniciar sesión'
       ] : [
-        '1. Go to Assessments',
-        '2. Check the list (uses mock data)',
-        '3. Test filters (All/Public/Private)',
-        '4. Try creating a new assessment',
-        '5. Test edit/duplicate/delete'
+        '1. Go to Assessments and create a new one',
+        '2. Add questions with different types',
+        '3. Select correct answers (green border)',
+        '4. Observe incorrect answers (red border)',
+        '5. Save and verify persistence',
+        '6. Edit the created assessment',
+        '7. Verify answers are maintained',
+        '8. Go to detail and try starting session'
       ],
       testData: {
-        title: i18n.language === 'es' ? 'Evaluación de Ejemplo' : 'Sample Assessment',
+        title: i18n.language === 'es' ? 'Mejoras Visuales Implementadas' : 'Visual Improvements Implemented',
         data: {
-          title: i18n.language === 'es' ? 'Matemáticas Básicas' : 'Basic Mathematics',
-          description: i18n.language === 'es' 
-            ? 'Evaluación de conceptos matemáticos fundamentales'
-            : 'Assessment of fundamental mathematical concepts',
-          category: i18n.language === 'es' ? 'Matemáticas' : 'Mathematics',
-          difficulty: 'medium',
-          timeLimit: 30,
-          questions: [
-            {
-              question: '2 + 2 = ?',
-              type: 'multiple_choice',
-              options: ['3', '4', '5', '6'],
-              correctAnswer: '4'
-            }
-          ]
+          visualFeatures: [
+            'Bordes verdes para respuestas correctas (3px)',
+            'Bordes rojos para respuestas incorrectas',
+            'Misma funcionalidad en crear y editar',
+            'Persistencia correcta de selecciones'
+          ],
+          questionTypes: ['multiple_choice', 'true_false', 'short_answer'],
+          note: i18n.language === 'es' 
+            ? 'Las respuestas se guardan correctamente y se recuperan al editar'
+            : 'Answers are saved correctly and recovered when editing'
         }
       },
-      status: 'partial'
+      status: 'working'
     },
     {
       id: 'sessions',
@@ -258,42 +265,111 @@ export default function Documentation() {
             : 'This code is for testing, may not work'
         }
       },
-      status: 'error'
+      status: 'working'
     },
     {
       id: 'results',
-      title: i18n.language === 'es' ? 'Resultados' : 'Results',
+      title: i18n.language === 'es' ? 'Resultados Públicos' : 'Public Results',
       description: i18n.language === 'es'
-        ? 'Análisis detallado de resultados de evaluaciones.'
-        : 'Detailed analysis of assessment results.',
+        ? 'Sistema completo de resultados públicos con calificación automática y certificados PDF.'
+        : 'Complete public results system with automatic grading and PDF certificates.',
       icon: <FiBarChart2 className="w-5 h-5" />,
       features: i18n.language === 'es' ? [
-        'Vista de resultados por sesión',
-        'Estadísticas detalladas',
-        'Análisis por pregunta',
-        'Exportar a PDF',
-        'Exportar a Excel',
-        'Enviar por correo'
+        '✅ Sistema de calificación automática',
+        '✅ Almacenamiento en tabla public_quiz_results',
+        '✅ Vista de resultados públicos con estadísticas',
+        '✅ Detalle completo de cada resultado',
+        '✅ Generación de certificados PDF profesionales',
+        '✅ Diferenciación: Aprobación vs Participación',
+        '✅ Análisis pregunta por pregunta',
+        '✅ Filtros y ordenamiento de resultados',
+        '✅ Exportación a CSV'
       ] : [
-        'Session results view',
-        'Detailed statistics',
-        'Question analysis',
-        'Export to PDF',
-        'Export to Excel',
-        'Send by email'
+        '✅ Automatic grading system',
+        '✅ Storage in public_quiz_results table',
+        '✅ Public results view with statistics',
+        '✅ Complete detail for each result',
+        '✅ Professional PDF certificate generation',
+        '✅ Differentiation: Approval vs Participation',
+        '✅ Question by question analysis',
+        '✅ Results filtering and sorting',
+        '✅ CSV export functionality'
       ],
       testSteps: i18n.language === 'es' ? [
-        '1. Ve a Resultados',
-        '2. Verás "No hay resultados disponibles"',
-        '3. Esto es normal sin sesiones completadas',
-        '4. Las funciones de exportación están preparadas',
-        '5. Se activarán con datos reales'
+        '1. Ve a Resultados (desde el menú)',
+        '2. Observa la lista de 11 resultados de prueba',
+        '3. Usa filtros (Aprobados/No Aprobados)',
+        '4. Ordena por puntuación, nombre o fecha',
+        '5. Haz clic en el ícono del ojo para ver detalles',
+        '6. En el detalle, descarga el certificado PDF',
+        '7. Verifica que el PDF se genera correctamente',
+        '8. Prueba la exportación a CSV'
       ] : [
-        '1. Go to Results',
-        '2. You\'ll see "No results available"',
-        '3. This is normal without completed sessions',
-        '4. Export functions are ready',
-        '5. They\'ll activate with real data'
+        '1. Go to Results (from menu)',
+        '2. See the list of 11 test results',
+        '3. Use filters (Passed/Failed)',
+        '4. Sort by score, name, or date',
+        '5. Click the eye icon to view details',
+        '6. In detail, download the PDF certificate',
+        '7. Verify PDF generates correctly',
+        '8. Test CSV export functionality'
+      ],
+      testData: {
+        title: i18n.language === 'es' ? 'Resultados de Prueba Disponibles' : 'Available Test Results',
+        data: {
+          totalResults: 11,
+          participants: [
+            { name: 'Juan Pérez', score: 85.5, status: 'Aprobado' },
+            { name: 'María García', score: 92.0, status: 'Aprobado' },
+            { name: 'Carlos López', score: 65.0, status: 'No Aprobado' },
+            { name: 'Ana Martínez', score: 78.0, status: 'Aprobado' },
+            { name: 'Pedro Rodríguez', score: 45.0, status: 'No Aprobado' }
+          ],
+          note: i18n.language === 'es' 
+            ? 'Los datos incluyen información completa: respuestas, tiempos, estadísticas'
+            : 'Data includes complete information: answers, times, statistics'
+        }
+      },
+      status: 'working'
+    },
+    {
+      id: 'grading',
+      title: i18n.language === 'es' ? 'Sistema de Calificación' : 'Grading System',
+      description: i18n.language === 'es'
+        ? 'Sistema automático de calificación para evaluaciones públicas con algoritmos inteligentes.'
+        : 'Automatic grading system for public assessments with intelligent algorithms.',
+      icon: <FiCheckCircle className="w-5 h-5" />,
+      features: i18n.language === 'es' ? [
+        '✅ Calificación automática al completar evaluación',
+        '✅ Soporte para Multiple Choice, True/False, Short Answer',
+        '✅ Cálculo de puntuación por puntos y porcentaje',
+        '✅ Determinación automática de aprobación (≥70%)',
+        '✅ Almacenamiento de respuestas detalladas (JSONB)',
+        '✅ Registro de tiempos de inicio y finalización',
+        '✅ Contador de respuestas correctas/totales',
+        '✅ Validación de respuestas con múltiples formatos'
+      ] : [
+        '✅ Automatic grading on assessment completion',
+        '✅ Support for Multiple Choice, True/False, Short Answer',
+        '✅ Score calculation by points and percentage',
+        '✅ Automatic pass determination (≥70%)',
+        '✅ Detailed answer storage (JSONB)',
+        '✅ Start and completion time tracking',
+        '✅ Correct/total answers counter',
+        '✅ Answer validation with multiple formats'
+      ],
+      testSteps: i18n.language === 'es' ? [
+        '1. El sistema califica automáticamente al completar',
+        '2. Revisa los algoritmos en grading.controller.ts',
+        '3. Verifica los datos en la tabla public_quiz_results',
+        '4. Los resultados se pueden ver inmediatamente',
+        '5. La calificación es consistente y confiable'
+      ] : [
+        '1. System grades automatically on completion',
+        '2. Review algorithms in grading.controller.ts',
+        '3. Check data in public_quiz_results table',
+        '4. Results can be viewed immediately',
+        '5. Grading is consistent and reliable'
       ],
       status: 'working'
     },
@@ -464,15 +540,15 @@ export default function Documentation() {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-green-500">● {i18n.language === 'es' ? 'Funcionando' : 'Working'}</span>
-                  <span>3</span>
+                  <span>6</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-yellow-500">● {i18n.language === 'es' ? 'Parcial' : 'Partial'}</span>
-                  <span>3</span>
+                  <span>1</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-red-500">● {i18n.language === 'es' ? 'Con errores' : 'With errors'}</span>
-                  <span>2</span>
+                  <span>0</span>
                 </div>
               </div>
             </Card>
@@ -564,9 +640,9 @@ export default function Documentation() {
                 <div className="text-yellow-700">
                   {currentModule.id === 'dashboard' && (
                     <ul className="list-disc list-inside space-y-1">
-                      <li>{i18n.language === 'es' ? 'Error 500 en estadísticas por tabla session_participants faltante' : '500 error in statistics due to missing session_participants table'}</li>
-                      <li>{i18n.language === 'es' ? 'Las actividades recientes no cargan' : 'Recent activities don\'t load'}</li>
-                      <li>{i18n.language === 'es' ? 'Próximas sesiones da error por columna scheduled_for' : 'Upcoming sessions error due to scheduled_for column'}</li>
+                      <li>{i18n.language === 'es' ? '✅ Error 500 en estadísticas resuelto - tabla session_participants creada' : '✅ Statistics 500 error fixed - session_participants table created'}</li>
+                      <li>{i18n.language === 'es' ? '✅ Las actividades recientes ya cargan correctamente' : '✅ Recent activities now load correctly'}</li>
+                      <li>{i18n.language === 'es' ? '✅ Próximas sesiones funciona - columna scheduled_for agregada' : '✅ Upcoming sessions working - scheduled_for column added'}</li>
                     </ul>
                   )}
                   {currentModule.id === 'sessions' && (

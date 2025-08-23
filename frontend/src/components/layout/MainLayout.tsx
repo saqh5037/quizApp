@@ -18,7 +18,7 @@ export default function MainLayout() {
     { path: '/dashboard', label: t('navigation.dashboard'), icon: <FiHome className="w-5 h-5" /> },
     { path: '/quizzes', label: t('navigation.assessments'), icon: <FiBookOpen className="w-5 h-5" /> },
     { path: '/sessions', label: t('navigation.sessions'), icon: <FiUsers className="w-5 h-5" /> },
-    { path: '/results', label: t('navigation.results'), icon: <FiBarChart2 className="w-5 h-5" /> },
+    { path: '/public-results', label: 'Resultados', icon: <FiBarChart2 className="w-5 h-5" /> },
     { path: '/profile', label: t('navigation.profile'), icon: <FiUser className="w-5 h-5" /> },
     { path: '/docs', label: t('navigation.docs', { defaultValue: 'Docs' }), icon: <FiHelpCircle className="w-5 h-5" /> },
   ];

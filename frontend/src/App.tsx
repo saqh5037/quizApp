@@ -27,6 +27,8 @@ import PlayQuiz from './pages/PlayQuiz';
 import SessionResults from './pages/SessionResults';
 import Sessions from './pages/Sessions';
 import Results from './pages/Results';
+import PublicResults from './pages/PublicResults';
+import ResultDetail from './pages/ResultDetail';
 import Profile from './pages/Profile';
 import Documentation from './pages/Documentation';
 import PublicQuizAccess from './pages/PublicQuizAccess';
@@ -123,6 +125,18 @@ const router = createBrowserRouter([
       {
         path: 'results/:sessionId',
         element: <Results />,
+      },
+      {
+        path: 'public-results',
+        element: <PublicResults />,
+      },
+      {
+        path: 'public-results/:quizId',
+        element: <PublicResults />,
+      },
+      {
+        path: 'results/detail/:id',
+        element: <ResultDetail />,
       },
       {
         path: 'profile',

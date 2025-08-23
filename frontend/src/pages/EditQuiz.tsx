@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, Trash2, GripVertical, Save, ArrowLeft, Copy, Eye } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Save, ArrowLeft, Copy, Eye, CheckCircle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../stores/authStore';
 
@@ -9,7 +9,7 @@ interface Question {
   type: 'multiple_choice' | 'true_false' | 'short_answer';
   question: string;
   options?: string[];
-  correctAnswer: string | number;
+  correctAnswer: string | number | null;
   correct_answer?: string;
   points: number;
   timeLimit?: number;
@@ -90,19 +90,49 @@ export default function EditQuiz() {
       const questionsData = await questionsResponse.json();
       
       // Format the data for the form
-      const formattedQuestions = questionsData.data.map((q: any) => ({
-        id: q.id,
-        type: q.type || q.question_type,
-        question: q.question || q.question_text,
-        options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : 
-                 q.type === 'true_false' ? ['True', 'False'] : 
-                 q.type === 'multiple_choice' ? ['', '', '', ''] : undefined,
-        correctAnswer: q.correct_answer !== undefined ? 
-                      (q.type === 'multiple_choice' || q.type === 'true_false' ? 
-                       parseInt(q.correct_answer) : q.correct_answer) : 0,
-        points: q.points || 1,
-        explanation: q.explanation || ''
-      }));
+      const formattedQuestions = questionsData.data.map((q: any) => {
+        let correctAnswer;
+        
+        // Parse correct answer based on question type
+        if (q.question_type === 'multiple_choice' || q.type === 'multiple_choice') {
+          // For multiple choice, correct_answers is an array with the index
+          if (q.correct_answers && Array.isArray(q.correct_answers) && q.correct_answers.length > 0) {
+            correctAnswer = q.correct_answers[0]; // Get the index from the array
+          } else if (q.correct_answer !== undefined) {
+            correctAnswer = parseInt(q.correct_answer);
+          } else {
+            correctAnswer = null;
+          }
+        } else if (q.question_type === 'true_false' || q.type === 'true_false') {
+          // For true/false, correct_answers is [true] or [false]
+          if (q.correct_answers && Array.isArray(q.correct_answers) && q.correct_answers.length > 0) {
+            correctAnswer = q.correct_answers[0] === true ? 0 : 1; // Convert boolean to index
+          } else if (q.correct_answer !== undefined) {
+            correctAnswer = parseInt(q.correct_answer);
+          } else {
+            correctAnswer = null;
+          }
+        } else if (q.question_type === 'short_answer' || q.type === 'short_answer') {
+          // For short answer, join array into comma-separated string
+          if (q.correct_answers && Array.isArray(q.correct_answers)) {
+            correctAnswer = q.correct_answers.join(', ');
+          } else {
+            correctAnswer = q.correct_answer || '';
+          }
+        }
+        
+        return {
+          id: q.id,
+          type: q.type || q.question_type,
+          question: q.question || q.question_text,
+          options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : 
+                   (q.type === 'true_false' || q.question_type === 'true_false') ? ['True', 'False'] : 
+                   (q.type === 'multiple_choice' || q.question_type === 'multiple_choice') ? ['', '', '', ''] : undefined,
+          correctAnswer: correctAnswer,
+          points: q.points || 1,
+          explanation: q.explanation || ''
+        };
+      });
       
       setQuiz({
         title: quizData.data.title || '',
@@ -231,13 +261,54 @@ export default function EditQuiz() {
     }
     
     try {
+      // Format questions with correct answers properly
+      const formattedQuestions = quiz.questions.map(q => {
+        let correctAnswers;
+        
+        if (q.type === 'multiple_choice') {
+          // For multiple choice, correctAnswer is the index of the correct option
+          correctAnswers = q.correctAnswer !== null && q.correctAnswer !== undefined ? [q.correctAnswer] : [];
+        } else if (q.type === 'true_false') {
+          // For true/false, 0 = true, 1 = false
+          correctAnswers = q.correctAnswer !== null && q.correctAnswer !== undefined ? [q.correctAnswer === 0] : [];
+        } else if (q.type === 'short_answer') {
+          // For short answer, split by comma for multiple acceptable answers
+          const answers = (q.correctAnswer as string || '').split(',').map(a => a.trim()).filter(a => a);
+          correctAnswers = answers;
+        }
+        
+        return {
+          id: q.id,
+          question: q.question,
+          questionText: q.question,
+          type: q.type,
+          questionType: q.type,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          correctAnswers: correctAnswers,
+          correct_answers: correctAnswers, // Also send as correct_answers for backend compatibility
+          points: q.points,
+          timeLimit: q.timeLimit,
+          explanation: q.explanation
+        };
+      });
+      
+      const quizData = {
+        ...quiz,
+        questions: formattedQuestions,
+        isPublic: quiz.isPublic,
+        is_public: quiz.isPublic,
+        passingScore: quiz.passingScore,
+        pass_percentage: quiz.passingScore
+      };
+      
       const response = await fetch(`http://localhost:3001/api/v1/quizzes/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify(quiz)
+        body: JSON.stringify(quizData)
       });
       
       if (response.ok) {
@@ -562,51 +633,146 @@ export default function EditQuiz() {
                       Answer Options
                     </label>
                     <div className="space-y-3">
-                      {currentQuestion.options?.map((option, optIndex) => (
-                        <div key={optIndex} className="flex items-center space-x-3">
-                          <input
-                            type="radio"
-                            checked={currentQuestion.correctAnswer === optIndex}
-                            onChange={() => updateQuestion(currentQuestionIndex, { correctAnswer: optIndex })}
-                            className="w-4 h-4 text-primary"
-                          />
-                          <input
-                            type="text"
-                            value={option}
-                            onChange={e => {
-                              const newOptions = [...(currentQuestion.options || [])];
-                              newOptions[optIndex] = e.target.value;
-                              updateQuestion(currentQuestionIndex, { options: newOptions });
+                      {currentQuestion.options?.map((option, optIndex) => {
+                        const isCorrect = currentQuestion.correctAnswer === optIndex;
+                        const hasCorrectAnswer = currentQuestion.correctAnswer !== null && 
+                                                 currentQuestion.correctAnswer !== undefined && 
+                                                 currentQuestion.correctAnswer !== -1;
+                        const isIncorrect = hasCorrectAnswer && !isCorrect;
+                        
+                        return (
+                          <div 
+                            key={optIndex} 
+                            className={`flex items-center space-x-3 p-4 rounded-lg transition-all cursor-pointer border-3 ${
+                              isCorrect 
+                                ? 'bg-green-50 border-green-500 shadow-md' 
+                                : isIncorrect
+                                ? 'bg-red-50 border-red-400 opacity-75'
+                                : 'bg-white border-gray-300 hover:border-gray-400 hover:shadow-sm'
+                            }`}
+                            onClick={() => {
+                              updateQuestion(currentQuestionIndex, { correctAnswer: optIndex });
                             }}
-                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                            placeholder={`Option ${optIndex + 1}`}
-                          />
-                        </div>
-                      ))}
+                          >
+                            <div className={`flex items-center justify-center w-8 h-8 rounded-full transition-all ${
+                              isCorrect
+                                ? 'bg-green-500 text-white scale-110'
+                                : isIncorrect
+                                ? 'bg-red-400 text-white'
+                                : 'bg-gray-200 hover:bg-gray-300'
+                            }`}>
+                              {isCorrect ? (
+                                <CheckCircle className="w-5 h-5" />
+                              ) : isIncorrect ? (
+                                <span className="text-lg font-bold">×</span>
+                              ) : (
+                                <span className="text-gray-400">{optIndex + 1}</span>
+                              )}
+                            </div>
+                            <input
+                              type="text"
+                              value={option}
+                              onChange={e => {
+                                const newOptions = [...(currentQuestion.options || [])];
+                                newOptions[optIndex] = e.target.value;
+                                updateQuestion(currentQuestionIndex, { options: newOptions });
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className={`flex-1 px-4 py-2 rounded-lg transition-all border-2 ${
+                                isCorrect
+                                  ? 'border-green-400 bg-white'
+                                  : isIncorrect
+                                  ? 'border-red-300 bg-white'
+                                  : 'border-gray-300 bg-white focus:ring-2 focus:ring-primary focus:border-transparent'
+                              }`}
+                              placeholder={`Option ${optIndex + 1}`}
+                            />
+                            {isCorrect && (
+                              <div className="flex items-center space-x-2">
+                                <CheckCircle className="w-5 h-5 text-green-600" />
+                                <span className="text-green-600 font-bold text-sm">
+                                  CORRECTA
+                                </span>
+                              </div>
+                            )}
+                            {isIncorrect && (
+                              <span className="text-red-500 font-medium text-sm">
+                                INCORRECTA
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">Select the correct answer by clicking the radio button</p>
+                    <div className="flex items-center space-x-2 mt-3 p-3 bg-blue-50 rounded-lg">
+                      <AlertCircle className="w-4 h-4 text-blue-600" />
+                      <p className="text-sm text-blue-700">
+                        Haz clic en cualquier opción para marcarla como respuesta correcta
+                      </p>
+                    </div>
                   </div>
                 )}
 
                 {currentQuestion.type === 'true_false' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
                       Correct Answer
                     </label>
-                    <div className="flex space-x-3">
-                      {['True', 'False'].map((option, index) => (
-                        <button
-                          key={option}
-                          onClick={() => updateQuestion(currentQuestionIndex, { correctAnswer: index })}
-                          className={`px-6 py-2 rounded-lg transition-colors ${
-                            currentQuestion.correctAnswer === index
-                              ? 'bg-green-500 text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      ))}
+                    <div className="grid grid-cols-2 gap-4">
+                      {['True', 'False'].map((option, index) => {
+                        const isCorrect = currentQuestion.correctAnswer === index;
+                        const hasCorrectAnswer = currentQuestion.correctAnswer !== null && 
+                                                 currentQuestion.correctAnswer !== undefined;
+                        const isIncorrect = hasCorrectAnswer && !isCorrect;
+                        
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => {
+                              updateQuestion(currentQuestionIndex, { correctAnswer: index });
+                            }}
+                            className={`px-6 py-6 rounded-lg transition-all flex flex-col items-center space-y-3 border-3 ${
+                              isCorrect
+                                ? 'bg-green-50 border-green-500 shadow-md scale-105'
+                                : isIncorrect
+                                ? 'bg-red-50 border-red-400 opacity-75'
+                                : 'bg-white border-gray-300 hover:border-gray-400 hover:shadow-sm'
+                            }`}
+                          >
+                            <div className={`flex items-center justify-center w-12 h-12 rounded-full transition-all ${
+                              isCorrect
+                                ? 'bg-green-500 text-white scale-110'
+                                : isIncorrect
+                                ? 'bg-red-400 text-white'
+                                : 'bg-gray-200'
+                            }`}>
+                              {isCorrect ? (
+                                <CheckCircle className="w-7 h-7" />
+                              ) : isIncorrect ? (
+                                <span className="text-2xl font-bold">✗</span>
+                              ) : (
+                                <span className="text-gray-500 text-lg">{index === 0 ? '✓' : '✗'}</span>
+                              )}
+                            </div>
+                            <span className={`font-bold text-lg ${
+                              isCorrect ? 'text-green-700' : isIncorrect ? 'text-red-600' : 'text-gray-700'
+                            }`}>
+                              {option}
+                            </span>
+                            {isCorrect && (
+                              <span className="text-xs text-green-600 font-bold uppercase">
+                                Respuesta Correcta
+                              </span>
+                            )}
+                            {isIncorrect && (
+                              <span className="text-xs text-red-500 font-medium uppercase">
+                                Incorrecta
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -616,14 +782,29 @@ export default function EditQuiz() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Acceptable Answer(s)
                     </label>
-                    <input
-                      type="text"
-                      value={currentQuestion.correctAnswer as string}
-                      onChange={e => updateQuestion(currentQuestionIndex, { correctAnswer: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="Enter acceptable answer(s)"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Separate multiple acceptable answers with commas</p>
+                    <div className="p-5 bg-green-50 border-3 border-green-400 rounded-lg shadow-sm">
+                      <div className="flex items-start space-x-3">
+                        <div className="flex items-center justify-center w-10 h-10 bg-green-500 rounded-full">
+                          <CheckCircle className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-sm font-bold text-green-700 mb-2 block">
+                            RESPUESTAS CORRECTAS ACEPTADAS:
+                          </label>
+                          <input
+                            type="text"
+                            value={currentQuestion.correctAnswer as string}
+                            onChange={e => updateQuestion(currentQuestionIndex, { correctAnswer: e.target.value })}
+                            className="w-full px-4 py-3 border-2 border-green-400 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-600 bg-white text-lg"
+                            placeholder="Enter acceptable answer(s)"
+                          />
+                          <p className="text-sm text-green-700 mt-2 font-medium">
+                            <AlertCircle className="w-4 h-4 inline mr-1" />
+                            Separate multiple acceptable answers with commas
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 

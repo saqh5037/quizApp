@@ -59,6 +59,9 @@ export default {
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
       },
+      borderWidth: {
+        '3': '3px',
+      },
     },
   },
   plugins: [],

@@ -38,7 +38,10 @@ export const authenticate = async (
     req.user = payload;
 
     // Optionally load full user data
+    console.log('Looking for user with ID:', payload.id);
     const user = await User.findByPk(payload.id);
+    console.log('User found:', user ? `${user.email} (active: ${user.isActive})` : 'null');
+    
     if (!user || !user.isActive) {
       throw new AuthenticationError('User not found or inactive');
     }

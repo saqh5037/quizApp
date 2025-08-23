@@ -231,11 +231,11 @@ export default function QuizDetail() {
           </button>
           
           <button
-            onClick={() => toast('Reports coming soon!', { icon: '📊' })}
+            onClick={() => navigate(`/public-results/${id}`)}
             className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
           >
-            <h3 className="font-medium mb-1">View Reports</h3>
-            <p className="text-sm text-gray-500">Analyze quiz performance and results</p>
+            <h3 className="font-medium mb-1">View Results</h3>
+            <p className="text-sm text-gray-500">Ver resultados de evaluaciones públicas (QR)</p>
           </button>
           
           <button

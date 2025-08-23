@@ -33,15 +33,15 @@ router.get('/:id/current-question', sessionController.getCurrentQuestion);
 router.post('/answer', sessionController.submitAnswer);
 
 // Get session results
-router.get('/:id/results', simpleAuth, resultsController.getSessionResults);
+// router.get('/:id/results', simpleAuth, resultsController.getSessionResults);
 
 // Export results as PDF
-router.get('/:id/export/pdf', simpleAuth, resultsController.exportSessionResultsPDF);
+// router.get('/:id/export/pdf', simpleAuth, resultsController.exportSessionResultsPDF);
 
 // Export results as Excel
-router.get('/:id/export/excel', simpleAuth, resultsController.exportSessionResultsExcel);
+// router.get('/:id/export/excel', simpleAuth, resultsController.exportSessionResultsExcel);
 
 // Email results to participants
-router.post('/:id/email-results', simpleAuth, resultsController.emailSessionResults);
+// router.post('/:id/email-results', simpleAuth, resultsController.emailSessionResults);
 
 export default router;

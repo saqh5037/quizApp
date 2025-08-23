@@ -51,7 +51,7 @@ export const submitPublicQuiz = async (req: Request, res: Response) => {
     // Calculate score
     let totalPoints = 0;
     let earnedPoints = 0;
-    let correctAnswers = 0;
+    let correctAnswerCount = 0;
     const gradedAnswers: any = {};
 
     questions.forEach((question: any) => {
@@ -81,17 +81,20 @@ export const submitPublicQuiz = async (req: Request, res: Response) => {
                    (userAnswer === 'false' && correctAnswer === false);
       } else if (question.question_type === 'short_answer') {
         // For short answers, do a case-insensitive comparison
-        const correctAnswers = question.correct_answers || [];
+        const correctAnswersRaw = question.correct_answers || [];
+        // Ensure correctAnswers is an array
+        const correctAnswers = Array.isArray(correctAnswersRaw) ? correctAnswersRaw : [correctAnswersRaw];
         if (userAnswer && correctAnswers.length > 0) {
-          isCorrect = correctAnswers.some((ca: string) => 
-            ca.toLowerCase().trim() === userAnswer.toLowerCase().trim()
-          );
+          isCorrect = correctAnswers.some((ca: any) => {
+            const answer = String(ca || '');
+            return answer.toLowerCase().trim() === userAnswer.toLowerCase().trim();
+          });
         }
       }
       
       if (isCorrect) {
         earnedPoints += question.points || 10;
-        correctAnswers++;
+        correctAnswerCount++;
       }
       
       gradedAnswers[question.id] = {
@@ -189,7 +192,7 @@ export const submitPublicQuiz = async (req: Request, res: Response) => {
           earnedPoints,
           totalQuestions: questions.length,
           answeredQuestions: Object.keys(answers).length,
-          correctAnswers,
+          correctAnswers: correctAnswerCount,
           timeSpent: timeSpent || null,
           startedAt: startedAt || new Date().toISOString(),
           ipAddress: req.ip || null,
@@ -218,7 +221,7 @@ export const submitPublicQuiz = async (req: Request, res: Response) => {
         earnedPoints,
         totalQuestions: questions.length,
         answeredQuestions: Object.keys(answers).length,
-        correctAnswers,
+        correctAnswers: correctAnswerCount,
         timeSpent,
         gradedAnswers
       }

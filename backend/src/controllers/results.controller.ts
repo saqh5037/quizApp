@@ -1,429 +1,341 @@
 import { Request, Response } from 'express';
 import { sequelize } from '../config/database';
 import { QueryTypes } from 'sequelize';
-import { AppError } from '../utils/errorHandler';
-import PDFDocument from 'pdfkit';
-import ExcelJS from 'exceljs';
-import nodemailer from 'nodemailer';
-import { env } from '../config/environment';
 
-export const getSessionResults = async (req: Request, res: Response) => {
-  const { sessionId } = req.params;
-  const userId = req.user?.id;
-
+// Get all public quiz results for authenticated user's quizzes
+export const getPublicQuizResults = async (req: Request, res: Response) => {
   try {
-    // Get session details
-    const [session]: any = await sequelize.query(
-      `SELECT qs.*, q.title as quiz_title, q.total_questions, u.first_name as host_name
-       FROM quiz_sessions qs
-       JOIN quizzes q ON qs.quiz_id = q.id
-       JOIN users u ON qs.host_id = u.id
-       WHERE qs.id = $1`,
-      {
-        bind: [sessionId],
-        type: QueryTypes.SELECT,
-      }
-    );
+    const userId = req.user?.id;
+    const { quizId, startDate, endDate, limit = 50, offset = 0 } = req.query;
 
-    if (!session) {
-      throw new AppError('Session not found', 404);
+    let query = `
+      SELECT 
+        pr.*,
+        q.title as quiz_title,
+        q.category,
+        q.difficulty,
+        q.pass_percentage
+      FROM public_quiz_results pr
+      INNER JOIN quizzes q ON pr.quiz_id = q.id
+      WHERE q.creator_id = :userId
+    `;
+
+    const replacements: any = { userId };
+
+    if (quizId) {
+      query += ' AND pr.quiz_id = :quizId';
+      replacements.quizId = quizId;
     }
 
-    // Check if user has access to results
-    if (session.host_id !== userId && req.user?.role !== 'admin') {
-      throw new AppError('Unauthorized to view these results', 403);
+    if (startDate) {
+      query += ' AND pr.completed_at >= :startDate';
+      replacements.startDate = startDate;
     }
 
-    // Get participants and their responses
-    const participants = await sequelize.query(
-      `SELECT 
-        sp.id,
-        sp.nickname as name,
-        sp.email,
-        sp.score,
-        sp.completed_at,
-        ROUND((sp.score::numeric / q.total_questions) * 100, 1) as percentage,
-        EXTRACT(EPOCH FROM (sp.completed_at - sp.joined_at)) as time_spent
-       FROM session_participants sp
-       JOIN quiz_sessions qs ON sp.session_id = qs.id
-       JOIN quizzes q ON qs.quiz_id = q.id
-       WHERE sp.session_id = $1
-       ORDER BY sp.score DESC, sp.completed_at ASC`,
-      {
-        bind: [sessionId],
-        type: QueryTypes.SELECT,
-      }
-    );
+    if (endDate) {
+      query += ' AND pr.completed_at <= :endDate';
+      replacements.endDate = endDate;
+    }
 
-    // Get all responses with question details
-    const responses = await sequelize.query(
-      `SELECT 
-        sr.participant_id,
-        sr.question_id,
-        sr.question_index,
-        sr.selected_answer,
-        sr.is_correct,
-        sr.time_spent,
-        qq.question_text,
-        qq.correct_answer,
-        qq.options
-       FROM session_responses sr
-       JOIN quiz_questions qq ON sr.question_id = qq.id
-       WHERE sr.session_id = $1
-       ORDER BY sr.participant_id, sr.question_index`,
-      {
-        bind: [sessionId],
-        type: QueryTypes.SELECT,
-      }
-    );
+    query += ' ORDER BY pr.completed_at DESC LIMIT :limit OFFSET :offset';
+    replacements.limit = parseInt(limit as string);
+    replacements.offset = parseInt(offset as string);
 
-    // Get question statistics
-    const questionStats = await sequelize.query(
-      `SELECT 
-        qq.id,
-        qq.question_text as text,
-        qq.question_type as type,
-        qq.correct_answer,
-        qq.options,
-        COUNT(CASE WHEN sr.is_correct = true THEN 1 END) as correct_count,
-        COUNT(CASE WHEN sr.is_correct = false THEN 1 END) as incorrect_count,
-        COUNT(CASE WHEN sr.selected_answer IS NULL THEN 1 END) as skipped_count,
-        AVG(sr.time_spent) as average_time
-       FROM quiz_questions qq
-       LEFT JOIN session_responses sr ON qq.id = sr.question_id AND sr.session_id = $1
-       WHERE qq.quiz_id = $2
-       GROUP BY qq.id, qq.question_order
-       ORDER BY qq.question_order`,
-      {
-        bind: [sessionId, session.quiz_id],
-        type: QueryTypes.SELECT,
-      }
-    );
-
-    // Calculate statistics
-    const scores = (participants as any[]).map(p => p.percentage);
-    const statistics = {
-      averageScore: scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0,
-      highestScore: scores.length > 0 ? Math.max(...scores) : 0,
-      lowestScore: scores.length > 0 ? Math.min(...scores) : 0,
-      totalParticipants: participants.length,
-      completionRate: participants.length > 0 
-        ? ((participants as any[]).filter(p => p.completed_at).length / participants.length) * 100 
-        : 0,
-    };
-
-    // Group responses by participant
-    const participantResponses: any = {};
-    (responses as any[]).forEach(response => {
-      if (!participantResponses[response.participant_id]) {
-        participantResponses[response.participant_id] = [];
-      }
-      participantResponses[response.participant_id].push({
-        questionId: response.question_id,
-        questionIndex: response.question_index,
-        selectedAnswer: response.selected_answer,
-        isCorrect: response.is_correct,
-        timeSpent: response.time_spent,
-      });
+    const results = await sequelize.query(query, {
+      replacements,
+      type: QueryTypes.SELECT
     });
 
-    // Add responses to participants
-    const participantsWithResponses = (participants as any[]).map(participant => ({
-      ...participant,
-      responses: participantResponses[participant.id] || [],
-    }));
+    // Get total count
+    let countQuery = `
+      SELECT COUNT(*) as total
+      FROM public_quiz_results pr
+      INNER JOIN quizzes q ON pr.quiz_id = q.id
+      WHERE q.creator_id = :userId
+    `;
 
-    // Format questions for response
-    const questions = (questionStats as any[]).map((q, index) => ({
-      id: q.id,
-      index,
-      text: q.text,
-      type: q.type,
-      correctAnswer: q.correct_answer,
-      options: q.options,
-      statistics: {
-        correctCount: parseInt(q.correct_count) || 0,
-        incorrectCount: parseInt(q.incorrect_count) || 0,
-        skippedCount: parseInt(q.skipped_count) || 0,
-        averageTime: parseFloat(q.average_time) || 0,
-      },
-    }));
+    if (quizId) {
+      countQuery += ' AND pr.quiz_id = :quizId';
+    }
+
+    const [{ total }] = await sequelize.query(countQuery, {
+      replacements: { userId, quizId },
+      type: QueryTypes.SELECT
+    }) as any;
 
     res.json({
       success: true,
       data: {
-        id: session.id,
-        sessionId: session.id,
-        sessionCode: session.code,
-        quizTitle: session.quiz_title,
-        quizId: session.quiz_id,
-        totalQuestions: session.total_questions,
-        startedAt: session.started_at,
-        completedAt: session.ended_at,
-        participants: participantsWithResponses,
-        questions,
-        statistics,
-      },
+        results,
+        pagination: {
+          total: parseInt(total),
+          limit: parseInt(limit as string),
+          offset: parseInt(offset as string)
+        }
+      }
     });
   } catch (error) {
-    console.error('Error fetching session results:', error);
-    if (error instanceof AppError) {
-      res.status(error.statusCode).json({ success: false, message: error.message });
-    } else {
-      res.status(500).json({ success: false, message: 'Failed to fetch session results' });
-    }
+    console.error('Error fetching public quiz results:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch results'
+    });
   }
 };
 
-export const exportSessionResultsPDF = async (req: Request, res: Response) => {
-  const { sessionId } = req.params;
-  const userId = req.user?.id;
-
+// Get results for a specific quiz
+export const getPublicQuizResultsByQuizId = async (req: Request, res: Response) => {
   try {
-    // Get session and results data (reuse logic from getSessionResults)
-    const [session]: any = await sequelize.query(
-      `SELECT qs.*, q.title as quiz_title, q.total_questions
-       FROM quiz_sessions qs
-       JOIN quizzes q ON qs.quiz_id = q.id
-       WHERE qs.id = $1`,
+    const { quizId } = req.params;
+    const userId = req.user?.id;
+    const { startDate, endDate, minScore, maxScore } = req.query;
+
+    // Verify the quiz belongs to the user
+    const [quiz] = await sequelize.query(
+      'SELECT * FROM quizzes WHERE id = :quizId AND creator_id = :userId',
       {
-        bind: [sessionId],
-        type: QueryTypes.SELECT,
+        replacements: { quizId, userId },
+        type: QueryTypes.SELECT
       }
-    );
+    ) as any;
 
-    if (!session) {
-      throw new AppError('Session not found', 404);
-    }
-
-    if (session.host_id !== userId && req.user?.role !== 'admin') {
-      throw new AppError('Unauthorized', 403);
-    }
-
-    // Create PDF document
-    const doc = new PDFDocument();
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="results-${session.code}.pdf"`);
-    
-    doc.pipe(res);
-    
-    // Add content to PDF
-    doc.fontSize(20).text('AristoTest Session Results', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(16).text(`Quiz: ${session.quiz_title}`, { align: 'center' });
-    doc.fontSize(12).text(`Session Code: ${session.code}`, { align: 'center' });
-    doc.fontSize(10).text(`Date: ${new Date(session.ended_at).toLocaleString()}`, { align: 'center' });
-    doc.moveDown();
-
-    // Get participants
-    const participants = await sequelize.query(
-      `SELECT 
-        sp.nickname as name,
-        sp.score,
-        ROUND((sp.score::numeric / q.total_questions) * 100, 1) as percentage
-       FROM session_participants sp
-       JOIN quiz_sessions qs ON sp.session_id = qs.id
-       JOIN quizzes q ON qs.quiz_id = q.id
-       WHERE sp.session_id = $1
-       ORDER BY sp.score DESC`,
-      {
-        bind: [sessionId],
-        type: QueryTypes.SELECT,
-      }
-    );
-
-    // Add results table
-    doc.fontSize(14).text('Results Summary', { underline: true });
-    doc.moveDown();
-    
-    (participants as any[]).forEach((participant, index) => {
-      doc.fontSize(10).text(
-        `${index + 1}. ${participant.name}: ${participant.score}/${session.total_questions} (${participant.percentage}%)`,
-        { indent: 20 }
-      );
-    });
-
-    doc.end();
-  } catch (error) {
-    console.error('Error exporting PDF:', error);
-    res.status(500).json({ success: false, message: 'Failed to export PDF' });
-  }
-};
-
-export const exportSessionResultsExcel = async (req: Request, res: Response) => {
-  const { sessionId } = req.params;
-  const userId = req.user?.id;
-
-  try {
-    // Get session data
-    const [session]: any = await sequelize.query(
-      `SELECT qs.*, q.title as quiz_title, q.total_questions
-       FROM quiz_sessions qs
-       JOIN quizzes q ON qs.quiz_id = q.id
-       WHERE qs.id = $1`,
-      {
-        bind: [sessionId],
-        type: QueryTypes.SELECT,
-      }
-    );
-
-    if (!session) {
-      throw new AppError('Session not found', 404);
-    }
-
-    if (session.host_id !== userId && req.user?.role !== 'admin') {
-      throw new AppError('Unauthorized', 403);
-    }
-
-    // Create Excel workbook
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Results');
-
-    // Add headers
-    worksheet.columns = [
-      { header: 'Name', key: 'name', width: 20 },
-      { header: 'Email', key: 'email', width: 25 },
-      { header: 'Score', key: 'score', width: 10 },
-      { header: 'Percentage', key: 'percentage', width: 12 },
-      { header: 'Time Spent', key: 'timeSpent', width: 12 },
-    ];
-
-    // Get participants
-    const participants = await sequelize.query(
-      `SELECT 
-        sp.nickname as name,
-        sp.email,
-        sp.score,
-        ROUND((sp.score::numeric / q.total_questions) * 100, 1) as percentage,
-        EXTRACT(EPOCH FROM (sp.completed_at - sp.joined_at)) as time_spent
-       FROM session_participants sp
-       JOIN quiz_sessions qs ON sp.session_id = qs.id
-       JOIN quizzes q ON qs.quiz_id = q.id
-       WHERE sp.session_id = $1
-       ORDER BY sp.score DESC`,
-      {
-        bind: [sessionId],
-        type: QueryTypes.SELECT,
-      }
-    );
-
-    // Add data
-    (participants as any[]).forEach(participant => {
-      worksheet.addRow({
-        name: participant.name,
-        email: participant.email || '-',
-        score: `${participant.score}/${session.total_questions}`,
-        percentage: `${participant.percentage}%`,
-        timeSpent: `${Math.floor(participant.time_spent / 60)}:${Math.floor(participant.time_spent % 60).toString().padStart(2, '0')}`,
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        error: 'Quiz not found or you do not have permission'
       });
-    });
-
-    // Style the header row
-    worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(1).fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFE0E0E0' },
-    };
-
-    // Set response headers
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="results-${session.code}.xlsx"`);
-
-    // Write to response
-    await workbook.xlsx.write(res);
-    res.end();
-  } catch (error) {
-    console.error('Error exporting Excel:', error);
-    res.status(500).json({ success: false, message: 'Failed to export Excel' });
-  }
-};
-
-export const emailSessionResults = async (req: Request, res: Response) => {
-  const { sessionId } = req.params;
-  const userId = req.user?.id;
-
-  try {
-    // Get session data
-    const [session]: any = await sequelize.query(
-      `SELECT qs.*, q.title as quiz_title
-       FROM quiz_sessions qs
-       JOIN quizzes q ON qs.quiz_id = q.id
-       WHERE qs.id = $1`,
-      {
-        bind: [sessionId],
-        type: QueryTypes.SELECT,
-      }
-    );
-
-    if (!session) {
-      throw new AppError('Session not found', 404);
     }
 
-    if (session.host_id !== userId && req.user?.role !== 'admin') {
-      throw new AppError('Unauthorized', 403);
+    let query = `
+      SELECT 
+        pr.*,
+        ROUND(AVG(pr.score) OVER (), 2) as avg_score,
+        COUNT(*) OVER () as total_attempts
+      FROM public_quiz_results pr
+      WHERE pr.quiz_id = :quizId
+    `;
+
+    const replacements: any = { quizId };
+
+    if (startDate) {
+      query += ' AND pr.completed_at >= :startDate';
+      replacements.startDate = startDate;
     }
 
-    // Get participants with email
-    const participants = await sequelize.query(
-      `SELECT 
-        sp.nickname as name,
-        sp.email,
-        sp.score,
-        ROUND((sp.score::numeric / q.total_questions) * 100, 1) as percentage
-       FROM session_participants sp
-       JOIN quiz_sessions qs ON sp.session_id = qs.id
-       JOIN quizzes q ON qs.quiz_id = q.id
-       WHERE sp.session_id = $1 AND sp.email IS NOT NULL`,
-      {
-        bind: [sessionId],
-        type: QueryTypes.SELECT,
-      }
-    );
+    if (endDate) {
+      query += ' AND pr.completed_at <= :endDate';
+      replacements.endDate = endDate;
+    }
 
-    // Create transporter (you'll need to configure this with your email service)
-    const transporter = nodemailer.createTransport({
-      host: env.EMAIL_HOST || 'smtp.gmail.com',
-      port: env.EMAIL_PORT || 587,
-      secure: false,
-      auth: {
-        user: env.EMAIL_USER,
-        pass: env.EMAIL_PASS,
-      },
+    if (minScore !== undefined) {
+      query += ' AND pr.score >= :minScore';
+      replacements.minScore = minScore;
+    }
+
+    if (maxScore !== undefined) {
+      query += ' AND pr.score <= :maxScore';
+      replacements.maxScore = maxScore;
+    }
+
+    query += ' ORDER BY pr.completed_at DESC';
+
+    const results = await sequelize.query(query, {
+      replacements,
+      type: QueryTypes.SELECT
     });
-
-    // Send email to each participant
-    const emailPromises = (participants as any[]).map(participant => {
-      const mailOptions = {
-        from: env.EMAIL_FROM || 'noreply@aristotest.com',
-        to: participant.email,
-        subject: `Your Results: ${session.quiz_title}`,
-        html: `
-          <h2>AristoTest Quiz Results</h2>
-          <h3>${session.quiz_title}</h3>
-          <p>Dear ${participant.name},</p>
-          <p>Here are your results from the quiz session:</p>
-          <ul>
-            <li><strong>Score:</strong> ${participant.score}/${session.total_questions}</li>
-            <li><strong>Percentage:</strong> ${participant.percentage}%</li>
-          </ul>
-          <p>Thank you for participating!</p>
-          <hr>
-          <p><small>This is an automated email from AristoTest.</small></p>
-        `,
-      };
-
-      return transporter.sendMail(mailOptions);
-    });
-
-    await Promise.all(emailPromises);
 
     res.json({
       success: true,
-      message: `Results sent to ${participants.length} participant(s)`,
+      data: {
+        quiz,
+        results
+      }
     });
   } catch (error) {
-    console.error('Error sending emails:', error);
-    res.status(500).json({ success: false, message: 'Failed to send emails' });
+    console.error('Error fetching quiz results:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch quiz results'
+    });
+  }
+};
+
+// Get detailed result
+export const getPublicQuizResultDetail = async (req: Request, res: Response) => {
+  try {
+    const { resultId } = req.params;
+    const userId = req.user?.id;
+
+    // Get result with quiz verification
+    const [result] = await sequelize.query(`
+      SELECT 
+        pr.*,
+        q.title as quiz_title,
+        q.category,
+        q.difficulty,
+        q.pass_percentage,
+        q.creator_id
+      FROM public_quiz_results pr
+      INNER JOIN quizzes q ON pr.quiz_id = q.id
+      WHERE pr.id = :resultId AND q.creator_id = :userId
+    `, {
+      replacements: { resultId, userId },
+      type: QueryTypes.SELECT
+    }) as any;
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        error: 'Result not found or you do not have permission'
+      });
+    }
+
+    // Get questions to show detailed answers
+    const questions = await sequelize.query(`
+      SELECT 
+        id,
+        question_text,
+        question_type,
+        options,
+        correct_answers,
+        points
+      FROM questions 
+      WHERE quiz_id = :quizId
+      ORDER BY order_position
+    `, {
+      replacements: { quizId: result.quiz_id },
+      type: QueryTypes.SELECT
+    });
+
+    res.json({
+      success: true,
+      data: {
+        result,
+        questions
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching result detail:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch result detail'
+    });
+  }
+};
+
+// Get statistics for a quiz
+export const getResultsStatistics = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    const userId = req.user?.id;
+
+    // Verify quiz ownership
+    const [quiz] = await sequelize.query(
+      'SELECT * FROM quizzes WHERE id = :quizId AND creator_id = :userId',
+      {
+        replacements: { quizId, userId },
+        type: QueryTypes.SELECT
+      }
+    ) as any;
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        error: 'Quiz not found or you do not have permission'
+      });
+    }
+
+    // Get statistics
+    const [stats] = await sequelize.query(`
+      SELECT 
+        COUNT(*) as total_attempts,
+        COUNT(DISTINCT participant_email) as unique_participants,
+        ROUND(AVG(score), 2) as average_score,
+        ROUND(MIN(score), 2) as min_score,
+        ROUND(MAX(score), 2) as max_score,
+        ROUND(AVG(time_spent_seconds), 0) as avg_time_seconds,
+        SUM(CASE WHEN score >= :passingScore THEN 1 ELSE 0 END) as passed_count,
+        SUM(CASE WHEN score < :passingScore THEN 1 ELSE 0 END) as failed_count,
+        ROUND(AVG(correct_answers), 1) as avg_correct_answers
+      FROM public_quiz_results
+      WHERE quiz_id = :quizId
+    `, {
+      replacements: { 
+        quizId, 
+        passingScore: quiz.pass_percentage || 70 
+      },
+      type: QueryTypes.SELECT
+    }) as any;
+
+    // Get score distribution
+    const scoreDistribution = await sequelize.query(`
+      SELECT 
+        CASE 
+          WHEN score >= 90 THEN '90-100'
+          WHEN score >= 80 THEN '80-89'
+          WHEN score >= 70 THEN '70-79'
+          WHEN score >= 60 THEN '60-69'
+          WHEN score >= 50 THEN '50-59'
+          ELSE '0-49'
+        END as range,
+        COUNT(*) as count
+      FROM public_quiz_results
+      WHERE quiz_id = :quizId
+      GROUP BY range
+      ORDER BY range DESC
+    `, {
+      replacements: { quizId },
+      type: QueryTypes.SELECT
+    });
+
+    // Get recent results trend (last 7 days)
+    const recentTrend = await sequelize.query(`
+      SELECT 
+        DATE(completed_at) as date,
+        COUNT(*) as attempts,
+        ROUND(AVG(score), 2) as avg_score
+      FROM public_quiz_results
+      WHERE quiz_id = :quizId 
+        AND completed_at >= CURRENT_DATE - INTERVAL '7 days'
+      GROUP BY DATE(completed_at)
+      ORDER BY date ASC
+    `, {
+      replacements: { quizId },
+      type: QueryTypes.SELECT
+    });
+
+    // Get top performers
+    const topPerformers = await sequelize.query(`
+      SELECT 
+        participant_name,
+        participant_email,
+        score,
+        time_spent_seconds,
+        completed_at
+      FROM public_quiz_results
+      WHERE quiz_id = :quizId
+      ORDER BY score DESC, time_spent_seconds ASC
+      LIMIT 10
+    `, {
+      replacements: { quizId },
+      type: QueryTypes.SELECT
+    });
+
+    res.json({
+      success: true,
+      data: {
+        quiz,
+        statistics: stats,
+        scoreDistribution,
+        recentTrend,
+        topPerformers
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching statistics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch statistics'
+    });
   }
 };

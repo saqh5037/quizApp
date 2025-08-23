@@ -119,14 +119,12 @@ export default function PlayQuiz() {
   const checkForNewQuestion = async () => {
     if (!session) return;
 
-    console.log('Checking for new question, session:', session.id);
 
     try {
       const response = await fetch(`http://localhost:3001/api/v1/sessions/${session.id}/current-question`);
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Question data:', data);
         
         if (data.data.finished) {
           // Quiz is finished
@@ -134,7 +132,6 @@ export default function PlayQuiz() {
           navigate(`/sessions/${session.id}/results?participant=${participantName}`);
         } else if (!currentQuestion || currentQuestion.question.id !== data.data.question.id) {
           // New question available
-          console.log('Setting new question:', data.data.question);
           setCurrentQuestion(data.data);
           setHasAnswered(false);
           setSelectedAnswer('');
