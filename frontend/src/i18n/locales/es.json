@@ -432,6 +432,26 @@
       "lastNameRequired": "El apellido es requerido",
       "emailRequired": "El correo electrónico es requerido",
       "emailInvalid": "El correo electrónico no es válido"
-    }
+    },
+    "identificationRequired": "Debes identificarte antes de tomar la evaluación",
+    "errorLoadingQuiz": "Error al cargar la evaluación",
+    "quizCompleted": "Evaluación completada",
+    "errorSubmitting": "Error al enviar las respuestas",
+    "congratulations": "¡Felicidades!",
+    "quizCompletedDesc": "Has completado la evaluación exitosamente",
+    "yourScore": "Tu puntuación",
+    "questionsAnswered": "Preguntas respondidas",
+    "backToHome": "Volver al inicio",
+    "takeAnother": "Tomar otra evaluación",
+    "question": "Pregunta",
+    "of": "de",
+    "points": "puntos",
+    "true": "Verdadero",
+    "false": "Falso",
+    "typeYourAnswer": "Escribe tu respuesta aquí...",
+    "answered": "Respondida",
+    "notAnswered": "Sin responder",
+    "submit": "Enviar",
+    "questionNavigator": "Navegador de preguntas"
   }
 }

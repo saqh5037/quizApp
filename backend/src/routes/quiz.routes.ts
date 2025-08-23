@@ -46,8 +46,11 @@ router.delete(
   quizController.deleteQuiz
 );
 
-// Quiz questions endpoint
+// Quiz questions endpoint (authenticated)
 router.get('/:id/questions', simpleAuth, quizController.getQuizQuestions);
+
+// Public quiz questions endpoint (no auth required)
+router.get('/:id/questions/public', quizController.getPublicQuizQuestions);
 
 // Clone quiz
 router.post('/:id/clone', simpleAuth, quizController.cloneQuiz);

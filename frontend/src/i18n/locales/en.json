@@ -432,6 +432,26 @@
       "lastNameRequired": "Last name is required",
       "emailRequired": "Email is required",
       "emailInvalid": "Email is not valid"
-    }
+    },
+    "identificationRequired": "You must identify yourself before taking the assessment",
+    "errorLoadingQuiz": "Error loading assessment",
+    "quizCompleted": "Assessment completed",
+    "errorSubmitting": "Error submitting answers",
+    "congratulations": "Congratulations!",
+    "quizCompletedDesc": "You have successfully completed the assessment",
+    "yourScore": "Your score",
+    "questionsAnswered": "Questions answered",
+    "backToHome": "Back to home",
+    "takeAnother": "Take another assessment",
+    "question": "Question",
+    "of": "of",
+    "points": "points",
+    "true": "True",
+    "false": "False",
+    "typeYourAnswer": "Type your answer here...",
+    "answered": "Answered",
+    "notAnswered": "Not answered",
+    "submit": "Submit",
+    "questionNavigator": "Question navigator"
   }
 }

@@ -752,6 +752,81 @@ export const getPublicQuizzes = async (req: Request, res: Response) => {
   }
 };
 
+// Get public quiz questions (no auth required)
+export const getPublicQuizQuestions = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // Verify quiz is public
+    const [quiz] = await sequelize.query(
+      `SELECT id, title, estimated_time_minutes, total_questions 
+       FROM quizzes 
+       WHERE id = :id AND is_public = true AND is_active = true`,
+      {
+        replacements: { id },
+        type: QueryTypes.SELECT
+      }
+    ) as any;
+    
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        error: 'Quiz not found or not publicly available'
+      });
+    }
+    
+    // Get questions (without showing correct answers)
+    const questions = await sequelize.query(
+      `SELECT 
+        id,
+        question_text,
+        question_type,
+        question_image_url,
+        difficulty,
+        points,
+        time_limit_seconds,
+        order_position,
+        options
+      FROM questions 
+      WHERE quiz_id = :quizId 
+      ORDER BY order_position ASC, id ASC`,
+      {
+        replacements: { quizId: id },
+        type: QueryTypes.SELECT
+      }
+    );
+    
+    // Remove correct answer indicators from options for security
+    const sanitizedQuestions = questions.map((q: any) => {
+      if (q.options && q.options.choices) {
+        q.options.choices = q.options.choices.map((choice: any) => ({
+          id: choice.id,
+          text: choice.text
+          // Removed is_correct field
+        }));
+      }
+      return q;
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        quizId: quiz.id,
+        title: quiz.title,
+        timeLimit: quiz.estimated_time_minutes || 10,
+        totalQuestions: quiz.total_questions || sanitizedQuestions.length,
+        questions: sanitizedQuestions
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching public quiz questions:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch quiz questions'
+    });
+  }
+};
+
 // Get quiz questions
 export const getQuizQuestions = async (req: Request, res: Response) => {
   try {
@@ -828,5 +903,6 @@ export default {
   deleteQuiz,
   cloneQuiz,
   getPublicQuizzes,
-  getQuizQuestions
+  getQuizQuestions,
+  getPublicQuizQuestions
 };
