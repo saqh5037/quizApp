@@ -14,6 +14,9 @@ router.get('/', simpleAuth, quizController.getQuizzes);
 // Get public quizzes (no auth required)
 router.get('/public', quizController.getPublicQuizzes);
 
+// Get public quiz by ID (no auth required)
+router.get('/:id/public', quizController.getPublicQuizById);
+
 // Get quiz by ID
 router.get('/:id', simpleAuth, quizController.getQuizById);
 

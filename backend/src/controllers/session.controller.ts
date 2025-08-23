@@ -8,6 +8,96 @@ const generateSessionCode = (): string => {
   return crypto.randomBytes(3).toString('hex').toUpperCase();
 };
 
+// Create a public session (no auth required)
+export const createPublicSession = async (req: Request, res: Response) => {
+  try {
+    const { quizId, participant } = req.body;
+    
+    // Verify quiz is public
+    const [quiz] = await sequelize.query(
+      `SELECT q.*, 
+        (SELECT COUNT(*) FROM questions WHERE quiz_id = q.id) as questions_count
+      FROM quizzes q 
+      WHERE q.id = :quizId AND q.is_active = true AND q.is_public = true`,
+      {
+        replacements: { quizId },
+        type: QueryTypes.SELECT
+      }
+    ) as any;
+    
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        error: 'Quiz not found or not publicly available'
+      });
+    }
+    
+    // Generate a unique session code for tracking
+    const sessionCode = generateSessionCode();
+    
+    // Create a simple session record for public quiz taking
+    const [result] = await sequelize.query(
+      `INSERT INTO quiz_sessions (
+        quiz_id, host_id, session_code, name, status, mode,
+        current_question_index, max_participants, allow_late_joining,
+        show_leaderboard, show_correct_after_each, nickname_generator,
+        require_names, settings, created_at, updated_at
+      ) VALUES (
+        :quizId, NULL, :sessionCode, :name, 'active', 'self_paced',
+        0, 1, false, false, true, false, false, 
+        :settings, NOW(), NOW()
+      ) RETURNING *`,
+      {
+        replacements: {
+          quizId,
+          sessionCode: `PUB-${sessionCode}`,
+          name: `Public: ${participant.firstName} ${participant.lastName}`,
+          settings: JSON.stringify({
+            isPublic: true,
+            participant,
+            startTime: new Date().toISOString()
+          })
+        },
+        type: QueryTypes.INSERT
+      }
+    ) as any;
+    
+    const session = result[0];
+    
+    // Add participant to session
+    await sequelize.query(
+      `INSERT INTO session_participants (
+        session_id, user_id, nickname, joined_at, is_active
+      ) VALUES (
+        :sessionId, NULL, :nickname, NOW(), true
+      )`,
+      {
+        replacements: {
+          sessionId: session.id,
+          nickname: `${participant.firstName} ${participant.lastName}`
+        },
+        type: QueryTypes.INSERT
+      }
+    );
+    
+    res.status(201).json({
+      success: true,
+      data: {
+        sessionId: session.id,
+        sessionCode: session.session_code,
+        quizId: quiz.id,
+        questionsCount: quiz.questions_count
+      }
+    });
+  } catch (error) {
+    console.error('Error creating public session:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create public session'
+    });
+  }
+};
+
 // Create a new session
 export const createSession = async (req: Request, res: Response) => {
   try {
@@ -674,6 +764,7 @@ export const joinSession = async (req: Request, res: Response) => {
 
 export default {
   createSession,
+  createPublicSession,
   getSession,
   updateSessionStatus,
   getCurrentQuestion,

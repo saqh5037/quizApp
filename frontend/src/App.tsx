@@ -29,6 +29,7 @@ import Sessions from './pages/Sessions';
 import Results from './pages/Results';
 import Profile from './pages/Profile';
 import Documentation from './pages/Documentation';
+import PublicQuizAccess from './pages/PublicQuizAccess';
 import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient({
@@ -61,6 +62,10 @@ const router = createBrowserRouter([
   {
     path: '/sessions/:id/results',
     element: <SessionResults />,
+  },
+  {
+    path: '/quiz/:id/public',
+    element: <PublicQuizAccess />,
   },
   {
     path: '/',

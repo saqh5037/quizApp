@@ -2,6 +2,73 @@ import { Request, Response } from 'express';
 import { sequelize } from '../config/database';
 import { QueryTypes } from 'sequelize';
 
+// Get public quiz by ID (no auth required)
+export const getPublicQuizById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // Get quiz details if it's public
+    const [quiz] = await sequelize.query(
+      `SELECT 
+        q.id,
+        q.title,
+        q.description,
+        q.category,
+        q.cover_image_url,
+        q.difficulty,
+        q.estimated_time_minutes,
+        q.pass_percentage,
+        q.is_public,
+        q.is_active,
+        q.total_questions,
+        q.times_taken,
+        q.created_at,
+        q.updated_at,
+        u.id as creator_id,
+        u.first_name as creator_first_name,
+        u.last_name as creator_last_name
+      FROM quizzes q
+      LEFT JOIN users u ON q.creator_id = u.id
+      WHERE q.id = :id AND q.is_public = true AND q.is_active = true`,
+      {
+        replacements: { id },
+        type: QueryTypes.SELECT
+      }
+    ) as any;
+    
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found or not publicly available'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        id: quiz.id,
+        title: quiz.title,
+        description: quiz.description,
+        category: quiz.category,
+        coverImageUrl: quiz.cover_image_url,
+        difficulty: quiz.difficulty,
+        questionsCount: quiz.total_questions || 0,
+        timeLimit: (quiz.estimated_time_minutes || 10) * 60, // Convert to seconds
+        createdBy: {
+          firstName: quiz.creator_first_name,
+          lastName: quiz.creator_last_name
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching public quiz:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching quiz'
+    });
+  }
+};
+
 // Get all quizzes for the authenticated user
 export const getQuizzes = async (req: Request, res: Response) => {
   try {
@@ -755,6 +822,7 @@ export const getQuizQuestions = async (req: Request, res: Response) => {
 export default {
   getQuizzes,
   getQuizById,
+  getPublicQuizById,
   createQuiz,
   updateQuiz,
   deleteQuiz,

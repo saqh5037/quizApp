@@ -14,6 +14,9 @@ router.get('/my', simpleAuth, sessionController.getMySessions);
 // Create a new session
 router.post('/', simpleAuth, sessionController.createSession);
 
+// Create a public session (no auth required)
+router.post('/public', sessionController.createPublicSession);
+
 // Get session by ID or code
 router.get('/:id', sessionController.getSession);
 

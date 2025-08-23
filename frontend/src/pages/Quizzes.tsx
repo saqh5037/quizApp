@@ -6,7 +6,8 @@ import { apiConfig, buildApiUrl } from '../config/api.config';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
-import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiPlay, FiCopy, FiBarChart } from 'react-icons/fi';
+import PublicQuizShare from '../components/quiz/PublicQuizShare';
+import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiPlay, FiCopy, FiBarChart, FiShare2, FiX } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 interface Quiz {
@@ -30,6 +31,7 @@ export default function Quizzes() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<'all' | 'public' | 'private'>('all');
+  const [shareModalQuiz, setShareModalQuiz] = useState<Quiz | null>(null);
 
   useEffect(() => {
     fetchQuizzes();
@@ -375,6 +377,17 @@ export default function Quizzes() {
                       {t('quizzes.card.actions.edit')}
                     </Button>
                   </Link>
+                  {quiz.isPublic && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShareModalQuiz(quiz)}
+                      title={t('publicQuiz.shareLink')}
+                      className="text-primary hover:bg-primary/10"
+                    >
+                      <FiShare2 />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -403,6 +416,31 @@ export default function Quizzes() {
               </div>
             </Card>
           ))}
+        </div>
+      )}
+      
+      {/* Share Modal */}
+      {shareModalQuiz && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-primary">{shareModalQuiz.title}</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShareModalQuiz(null)}
+                  className="text-text-secondary hover:text-text-primary"
+                >
+                  <FiX size={20} />
+                </Button>
+              </div>
+              <PublicQuizShare 
+                quizId={shareModalQuiz.id} 
+                quizTitle={shareModalQuiz.title}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
