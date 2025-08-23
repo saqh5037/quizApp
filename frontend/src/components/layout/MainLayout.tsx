@@ -1,9 +1,12 @@
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
+import { FiHome, FiBookOpen, FiUsers, FiBarChart2, FiUser, FiHelpCircle } from 'react-icons/fi';
 
 export default function MainLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user, logout } = useAuthStore();
 
   const handleLogout = () => {
@@ -12,11 +15,12 @@ export default function MainLayout() {
   };
 
   const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-    { path: '/quizzes', label: 'Assessments', icon: '📝' },
-    { path: '/sessions', label: 'Sessions', icon: '🎮' },
-    { path: '/results', label: 'Results', icon: '📈' },
-    { path: '/profile', label: 'Profile', icon: '👤' },
+    { path: '/dashboard', label: t('navigation.dashboard'), icon: <FiHome className="w-5 h-5" /> },
+    { path: '/quizzes', label: t('navigation.assessments'), icon: <FiBookOpen className="w-5 h-5" /> },
+    { path: '/sessions', label: t('navigation.sessions'), icon: <FiUsers className="w-5 h-5" /> },
+    { path: '/results', label: t('navigation.results'), icon: <FiBarChart2 className="w-5 h-5" /> },
+    { path: '/profile', label: t('navigation.profile'), icon: <FiUser className="w-5 h-5" /> },
+    { path: '/docs', label: t('navigation.docs', { defaultValue: 'Docs' }), icon: <FiHelpCircle className="w-5 h-5" /> },
   ];
 
   return (
@@ -26,7 +30,11 @@ export default function MainLayout() {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <Link to="/dashboard" className="flex items-center">
-                <span className="text-2xl font-bold text-primary">AristoTest</span>
+                <img 
+                  src="/images/logoAristoTest.png" 
+                  alt="AristoTest" 
+                  className="h-10 mr-3"
+                />
               </Link>
               <div className="hidden md:ml-10 md:flex md:space-x-4">
                 {navItems.map((item) => (
@@ -55,7 +63,7 @@ export default function MainLayout() {
                     onClick={handleLogout}
                     className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors"
                   >
-                    Logout
+                    {t('common.logout')}
                   </button>
                 </>
               )}

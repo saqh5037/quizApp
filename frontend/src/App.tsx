@@ -22,9 +22,13 @@ import QuizDetail from './pages/QuizDetail';
 import CreateQuiz from './pages/CreateQuiz';
 import EditQuiz from './pages/EditQuiz';
 import HostSession from './pages/HostSession';
+import JoinSession from './pages/JoinSession';
 import PlayQuiz from './pages/PlayQuiz';
 import SessionResults from './pages/SessionResults';
+import Sessions from './pages/Sessions';
+import Results from './pages/Results';
 import Profile from './pages/Profile';
+import Documentation from './pages/Documentation';
 import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient({
@@ -69,6 +73,7 @@ function App() {
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/join" element={<JoinSession />} />
           <Route path="/play" element={<PlayQuiz />} />
           <Route path="/sessions/:id/results" element={<SessionResults />} />
           
@@ -87,8 +92,12 @@ function App() {
             <Route path="quizzes/:id" element={<QuizDetail />} />
             <Route path="quizzes/create" element={<CreateQuiz />} />
             <Route path="quizzes/:id/edit" element={<EditQuiz />} />
+            <Route path="sessions" element={<Sessions />} />
             <Route path="sessions/host" element={<HostSession />} />
+            <Route path="results" element={<Results />} />
+            <Route path="results/:sessionId" element={<Results />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="docs" element={<Documentation />} />
           </Route>
           
           {/* 404 */}

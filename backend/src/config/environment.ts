@@ -18,6 +18,7 @@ interface Environment {
   DB_NAME: string;
   DB_USER: string;
   DB_PASSWORD: string;
+  DB_DIALECT: string;
   DB_LOGGING: boolean;
   DB_POOL_MAX: number;
   DB_POOL_MIN: number;
@@ -97,6 +98,7 @@ export const env: Environment = {
   DB_NAME: process.env.DB_NAME!,
   DB_USER: process.env.DB_USER!,
   DB_PASSWORD: process.env.DB_PASSWORD!,
+  DB_DIALECT: process.env.DB_DIALECT || 'postgres',
   DB_LOGGING: process.env.DB_LOGGING === 'true',
   DB_POOL_MAX: parseInt(process.env.DB_POOL_MAX || '10', 10),
   DB_POOL_MIN: parseInt(process.env.DB_POOL_MIN || '2', 10),

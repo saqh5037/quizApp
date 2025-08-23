@@ -4,7 +4,7 @@ import logger from '../utils/logger';
 import path from 'path';
 
 // Check if we should use SQLite (for local development without PostgreSQL)
-const useSQLite = process.env.USE_SQLITE === 'true' || (!env.DB_HOST || env.DB_HOST === 'localhost');
+const useSQLite = process.env.USE_SQLITE === 'true' && env.DB_DIALECT !== 'postgres';
 
 // Database configuration interface
 interface DatabaseConfig extends Options {
@@ -139,16 +139,16 @@ export const connectDatabase = async (): Promise<void> => {
       logger.info(`📊 Connected to PostgreSQL database: ${env.DB_NAME} on ${env.DB_HOST}:${env.DB_PORT}`);
     }
     
-    // Sync database tables in development
-    if (isDevelopment) {
-      await sequelize.sync({ alter: false }); // Set to true with caution
-      logger.info('✅ Database synchronized.');
-    }
+    // Sync database tables in development - disabled to prevent conflicts during migration
+    // if (isDevelopment) {
+    //   await sequelize.sync({ alter: false }); // Set to true with caution
+    //   logger.info('✅ Database synchronized.');
+    // }
     
     // Set up connection event handlers (only for PostgreSQL)
-    if (!useSQLite) {
-      setupConnectionHandlers();
-    }
+    // if (!useSQLite) {
+    //   setupConnectionHandlers();
+    // }
     
   } catch (error) {
     logger.error('❌ Unable to connect to the database:', error);

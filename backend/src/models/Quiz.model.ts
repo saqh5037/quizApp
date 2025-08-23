@@ -5,51 +5,74 @@ interface QuizAttributes {
   id: number;
   title: string;
   description?: string;
+  coverImageUrl?: string;
+  creatorId?: number;
+  organizationId?: number;
   category?: string;
-  coverImage?: string;
-  timeLimit?: number; // in seconds
-  passingScore?: number; // percentage
-  isPublic: boolean;
-  isActive: boolean;
-  shuffleQuestions: boolean;
-  shuffleAnswers: boolean;
-  showResults: boolean;
-  showCorrectAnswers: boolean;
-  allowRetake: boolean;
+  tags?: string[];
+  difficulty?: 'easy' | 'medium' | 'hard';
+  estimatedTimeMinutes?: number;
+  passPercentage?: number;
   maxAttempts?: number;
-  userId: number;
+  shuffleQuestions?: boolean;
+  shuffleOptions?: boolean;
+  showCorrectAnswers?: boolean;
+  showScore?: boolean;
+  allowReview?: boolean;
+  timeLimitMinutes?: number;
+  instructions?: string;
+  settings?: Record<string, any>;
+  isPublic?: boolean;
+  isActive?: boolean;
   totalQuestions?: number;
+  totalPoints?: number;
+  timesTaken?: number;
+  averageScore?: number;
+  metadata?: Record<string, any>;
   createdAt?: Date;
   updatedAt?: Date;
+  deletedAt?: Date | null;
 }
 
 export interface QuizCreationAttributes extends Optional<
   QuizAttributes, 
-  'id' | 'isPublic' | 'isActive' | 'shuffleQuestions' | 'shuffleAnswers' | 
-  'showResults' | 'showCorrectAnswers' | 'allowRetake'
+  'id' | 'creatorId' | 'organizationId' | 'isPublic' | 'isActive' | 
+  'shuffleQuestions' | 'shuffleOptions' | 'showCorrectAnswers' | 'showScore' | 
+  'allowReview' | 'totalQuestions' | 'totalPoints' | 'timesTaken' | 'averageScore'
 > {}
 
 class Quiz extends Model<QuizAttributes, QuizCreationAttributes> implements QuizAttributes {
   public id!: number;
   public title!: string;
   public description?: string;
+  public coverImageUrl?: string;
+  public creatorId?: number;
+  public organizationId?: number;
   public category?: string;
-  public coverImage?: string;
-  public timeLimit?: number;
-  public passingScore?: number;
-  public isPublic!: boolean;
-  public isActive!: boolean;
-  public shuffleQuestions!: boolean;
-  public shuffleAnswers!: boolean;
-  public showResults!: boolean;
-  public showCorrectAnswers!: boolean;
-  public allowRetake!: boolean;
+  public tags?: string[];
+  public difficulty?: 'easy' | 'medium' | 'hard';
+  public estimatedTimeMinutes?: number;
+  public passPercentage?: number;
   public maxAttempts?: number;
-  public userId!: number;
+  public shuffleQuestions?: boolean;
+  public shuffleOptions?: boolean;
+  public showCorrectAnswers?: boolean;
+  public showScore?: boolean;
+  public allowReview?: boolean;
+  public timeLimitMinutes?: number;
+  public instructions?: string;
+  public settings?: Record<string, any>;
+  public isPublic?: boolean;
+  public isActive?: boolean;
   public totalQuestions?: number;
+  public totalPoints?: number;
+  public timesTaken?: number;
+  public averageScore?: number;
+  public metadata?: Record<string, any>;
   
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
+  public readonly deletedAt?: Date | null;
 }
 
 Quiz.init(
@@ -73,24 +96,26 @@ Quiz.init(
     category: {
       type: DataTypes.STRING(100),
     },
-    coverImage: {
-      type: DataTypes.STRING(500),
-      field: 'cover_image',
+    coverImageUrl: {
+      type: DataTypes.TEXT,
+      field: 'cover_image_url',
     },
-    timeLimit: {
+    timeLimitMinutes: {
       type: DataTypes.INTEGER,
-      field: 'time_limit',
-      comment: 'Time limit in seconds for the entire quiz',
+      field: 'time_limit_minutes',
     },
-    passingScore: {
+    estimatedTimeMinutes: {
       type: DataTypes.INTEGER,
-      field: 'passing_score',
+      field: 'estimated_time_minutes',
+    },
+    passPercentage: {
+      type: DataTypes.INTEGER,
+      field: 'pass_percentage',
       defaultValue: 70,
       validate: {
         min: 0,
         max: 100,
       },
-      comment: 'Minimum percentage score to pass',
     },
     isPublic: {
       type: DataTypes.BOOLEAN,
@@ -110,18 +135,15 @@ Quiz.init(
       allowNull: false,
       field: 'shuffle_questions',
     },
-    shuffleAnswers: {
+    shuffleOptions: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true,
-      allowNull: false,
-      field: 'shuffle_answers',
+      defaultValue: false,
+      field: 'shuffle_options',
     },
-    showResults: {
+    showScore: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
-      allowNull: false,
-      field: 'show_results',
-      comment: 'Show results immediately after quiz completion',
+      field: 'show_score',
     },
     showCorrectAnswers: {
       type: DataTypes.BOOLEAN,
@@ -130,29 +152,67 @@ Quiz.init(
       field: 'show_correct_answers',
       comment: 'Show correct answers in results',
     },
-    allowRetake: {
+    allowReview: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
-      allowNull: false,
-      field: 'allow_retake',
+      field: 'allow_review',
     },
     maxAttempts: {
       type: DataTypes.INTEGER,
       field: 'max_attempts',
       comment: 'Maximum number of attempts allowed',
     },
-    userId: {
+    creatorId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-      field: 'user_id',
+      allowNull: true,
+      field: 'creator_id',
       references: {
         model: 'users',
         key: 'id',
       },
     },
+    organizationId: {
+      type: DataTypes.INTEGER,
+      field: 'organization_id',
+      references: {
+        model: 'organizations',
+        key: 'id',
+      },
+    },
+    tags: {
+      type: DataTypes.ARRAY(DataTypes.STRING),
+    },
+    difficulty: {
+      type: DataTypes.ENUM('easy', 'medium', 'hard'),
+    },
+    instructions: {
+      type: DataTypes.TEXT,
+    },
+    settings: {
+      type: DataTypes.JSONB,
+    },
     totalQuestions: {
-      type: DataTypes.VIRTUAL,
+      type: DataTypes.INTEGER,
       field: 'total_questions',
+      defaultValue: 0,
+    },
+    totalPoints: {
+      type: DataTypes.INTEGER,
+      field: 'total_points',
+      defaultValue: 0,
+    },
+    timesTaken: {
+      type: DataTypes.INTEGER,
+      field: 'times_taken',
+      defaultValue: 0,
+    },
+    averageScore: {
+      type: DataTypes.DECIMAL(5, 2),
+      field: 'average_score',
+      defaultValue: 0,
+    },
+    metadata: {
+      type: DataTypes.JSONB,
     },
   },
   {
@@ -160,10 +220,11 @@ Quiz.init(
     modelName: 'Quiz',
     tableName: 'quizzes',
     timestamps: true,
+    paranoid: true,
     underscored: true,
     indexes: [
       {
-        fields: ['user_id'],
+        fields: ['creator_id'],
       },
       {
         fields: ['category'],

@@ -2,6 +2,8 @@ import { Router } from 'express';
 import authRoutes from './auth.routes';
 import quizRoutes from './quiz.routes';
 import sessionRoutes from './session.routes';
+import userRoutes from './user.routes';
+import dashboardRoutes from './dashboard.routes';
 
 const router = Router();
 
@@ -23,5 +25,7 @@ router.get('/', (req, res) => {
 router.use('/auth', authRoutes);
 router.use('/quizzes', quizRoutes);
 router.use('/sessions', sessionRoutes);
+router.use('/users', userRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 export default router;

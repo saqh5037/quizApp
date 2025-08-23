@@ -19,22 +19,18 @@ export interface UserAttributes {
   id: number;
   email: string;
   password: string;
-  name?: string;
-  firstName?: string;
-  lastName?: string;
+  firstName: string;
+  lastName: string;
   role: UserRole;
   avatarUrl?: string;
   organizationId?: number;
   isActive: boolean;
   isVerified: boolean;
-  emailVerified?: boolean;
   verificationToken?: string;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
   lastLoginAt?: Date;
-  lastLogin?: Date;
   metadata?: Record<string, any>;
-  refreshToken?: string;
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null;
@@ -51,22 +47,18 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public id!: number;
   public email!: string;
   public password!: string;
-  public name?: string;
-  public firstName?: string;
-  public lastName?: string;
+  public firstName!: string;
+  public lastName!: string;
   public role!: UserRole;
   public avatarUrl?: string;
   public organizationId?: number;
   public isActive!: boolean;
   public isVerified!: boolean;
-  public emailVerified?: boolean;
   public verificationToken?: string;
   public resetPasswordToken?: string;
   public resetPasswordExpires?: Date;
   public lastLoginAt?: Date;
-  public lastLogin?: Date;
   public metadata?: Record<string, any>;
-  public refreshToken?: string;
   
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -74,14 +66,11 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
 
   // Virtual fields
   public get fullName(): string {
-    if (this.firstName && this.lastName) {
-      return `${this.firstName} ${this.lastName}`;
-    }
-    return this.name || '';
+    return `${this.firstName} ${this.lastName}`;
   }
 
   public get displayName(): string {
-    return this.fullName || this.name || this.email;
+    return this.fullName || this.email;
   }
 
   public get isAdmin(): boolean {
@@ -143,7 +132,8 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
       env.JWT_REFRESH_SECRET,
       { expiresIn: env.JWT_REFRESH_EXPIRES_IN }
     );
-    this.refreshToken = token;
+    // Store refresh token in metadata or handle separately
+    // this.refreshToken = token;
     return token;
   }
 
@@ -226,7 +216,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public toJSON() {
     const values = { ...this.get() };
     delete values.password;
-    delete values.refreshToken;
+    // delete values.refreshToken;
     delete values.verificationToken;
     delete values.resetPasswordToken;
     delete values.resetPasswordExpires;
@@ -267,11 +257,6 @@ User.init(
           msg: 'Password must be at least 6 characters long',
         },
       },
-    },
-    name: {
-      type: DataTypes.STRING(255),
-      allowNull: true,
-      field: 'name',
     },
     firstName: {
       type: DataTypes.STRING(100),
@@ -335,12 +320,6 @@ User.init(
       allowNull: false,
       field: 'is_verified',
     },
-    emailVerified: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      allowNull: true,
-      field: 'email_verified',
-    },
     verificationToken: {
       type: DataTypes.STRING(255),
       field: 'verification_token',
@@ -357,10 +336,6 @@ User.init(
       type: DataTypes.DATE,
       field: 'last_login_at',
     },
-    lastLogin: {
-      type: DataTypes.DATE,
-      field: 'last_login',
-    },
     metadata: {
       type: DataTypes.JSON,
       defaultValue: {},
@@ -375,10 +350,6 @@ User.init(
           }
         },
       },
-    },
-    refreshToken: {
-      type: DataTypes.TEXT,
-      field: 'refresh_token',
     },
   },
   {
@@ -415,14 +386,14 @@ User.init(
       },
     },
     defaultScope: {
-      attributes: { exclude: ['password', 'refreshToken', 'verificationToken', 'resetPasswordToken'] },
+      attributes: { exclude: ['password', 'verificationToken', 'resetPasswordToken'] },
     },
     scopes: {
       withPassword: {
         attributes: { include: ['password'] },
       },
       withTokens: {
-        attributes: { include: ['refreshToken', 'verificationToken', 'resetPasswordToken'] },
+        attributes: { include: ['verificationToken', 'resetPasswordToken'] },
       },
       active: {
         where: {

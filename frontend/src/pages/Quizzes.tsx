@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
+import { apiConfig, buildApiUrl } from '../config/api.config';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
@@ -22,6 +24,7 @@ interface Quiz {
 }
 
 export default function Quizzes() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +38,7 @@ export default function Quizzes() {
   const fetchQuizzes = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3001/api/v1/quizzes', {
+      const response = await fetch(buildApiUrl(apiConfig.endpoints.quizzes.list), {
         headers: {
           'Authorization': `Bearer ${useAuthStore.getState().accessToken}`,
         },
@@ -112,10 +115,10 @@ export default function Quizzes() {
   ];
 
   const handleDeleteQuiz = async (quizId: number) => {
-    if (!confirm('Are you sure you want to delete this quiz?')) return;
+    if (!confirm(t('confirmation.delete'))) return;
     
     try {
-      const response = await fetch(`http://localhost:3001/api/v1/quizzes/${quizId}`, {
+      const response = await fetch(buildApiUrl(apiConfig.endpoints.quizzes.delete(quizId)), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${useAuthStore.getState().accessToken}`,
@@ -135,7 +138,7 @@ export default function Quizzes() {
 
   const handleDuplicateQuiz = async (quizId: number) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/v1/quizzes/${quizId}/clone`, {
+      const response = await fetch(buildApiUrl(apiConfig.endpoints.quizzes.clone(quizId)), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${useAuthStore.getState().accessToken}`,
@@ -186,14 +189,14 @@ export default function Quizzes() {
       <div className="mb-8">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-primary">My Assessments</h1>
+            <h1 className="text-3xl font-bold text-primary">{t('quizzes.title')}</h1>
             <p className="text-text-secondary mt-2">
-              Create and manage your assessment collection
+              {t('quizzes.subtitle')}
             </p>
           </div>
           <Link to="/quizzes/create">
             <Button variant="primary" leftIcon={<FiPlus />}>
-              Create Assessment
+              {t('quizzes.createButton')}
             </Button>
           </Link>
         </div>
@@ -203,7 +206,7 @@ export default function Quizzes() {
           <div className="flex-1 max-w-md">
             <Input
               type="text"
-              placeholder="Search assessments..."
+              placeholder={t('quizzes.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               leftIcon={<FiSearch />}
@@ -215,21 +218,21 @@ export default function Quizzes() {
               size="sm"
               onClick={() => setFilter('all')}
             >
-              All
+              {t('common.all')}
             </Button>
             <Button
               variant={filter === 'public' ? 'primary' : 'outline'}
               size="sm"
               onClick={() => setFilter('public')}
             >
-              Public
+              {t('common.public')}
             </Button>
             <Button
               variant={filter === 'private' ? 'primary' : 'outline'}
               size="sm"
               onClick={() => setFilter('private')}
             >
-              Private
+              {t('common.private')}
             </Button>
           </div>
         </div>
@@ -240,7 +243,7 @@ export default function Quizzes() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-secondary text-sm">Total Assessments</p>
+              <p className="text-text-secondary text-sm">{t('quizzes.stats.total')}</p>
               <p className="text-2xl font-bold text-primary">{quizzes.length}</p>
             </div>
             <div className="text-primary bg-primary/10 p-3 rounded-lg">
@@ -252,9 +255,9 @@ export default function Quizzes() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-secondary text-sm">Total Questions</p>
+              <p className="text-text-secondary text-sm">{t('quizzes.stats.questions')}</p>
               <p className="text-2xl font-bold text-primary">
-                {quizzes.reduce((acc, q) => acc + q.questionsCount, 0)}
+                {quizzes.reduce((acc, q) => acc + (q.questionsCount || 0), 0)}
               </p>
             </div>
             <div className="text-success bg-success/10 p-3 rounded-lg">
@@ -266,9 +269,9 @@ export default function Quizzes() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-secondary text-sm">Times Played</p>
+              <p className="text-text-secondary text-sm">{t('quizzes.stats.timesPlayed')}</p>
               <p className="text-2xl font-bold text-primary">
-                {quizzes.reduce((acc, q) => acc + q.timesPlayed, 0)}
+                {quizzes.reduce((acc, q) => acc + (q.timesPlayed || 0), 0)}
               </p>
             </div>
             <div className="text-warning bg-warning/10 p-3 rounded-lg">
@@ -280,7 +283,7 @@ export default function Quizzes() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-secondary text-sm">Public Assessments</p>
+              <p className="text-text-secondary text-sm">{t('quizzes.stats.public')}</p>
               <p className="text-2xl font-bold text-primary">
                 {quizzes.filter(q => q.isPublic).length}
               </p>
@@ -296,21 +299,21 @@ export default function Quizzes() {
       {loading ? (
         <div className="text-center py-12">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="mt-4 text-text-secondary">Loading assessments...</p>
+          <p className="mt-4 text-text-secondary">{t('common.loading')}</p>
         </div>
       ) : filteredQuizzes.length === 0 ? (
         <Card className="text-center py-12">
           <div className="text-gray-400 mb-4">
             <FiSearch size={48} className="mx-auto" />
           </div>
-          <h3 className="text-xl font-semibold mb-2">No quizzes found</h3>
+          <h3 className="text-xl font-semibold mb-2">{t('quizzes.empty.title')}</h3>
           <p className="text-text-secondary mb-6">
-            {searchTerm ? 'Try adjusting your search terms' : 'Create your first quiz to get started'}
+            {searchTerm ? t('quizzes.empty.searchSubtitle') : t('quizzes.empty.subtitle')}
           </p>
           {!searchTerm && (
             <Link to="/quizzes/create">
               <Button variant="primary" leftIcon={<FiPlus />}>
-                Create Your First Quiz
+                {t('quizzes.empty.createFirst')}
               </Button>
             </Link>
           )}
@@ -327,7 +330,7 @@ export default function Quizzes() {
                       {quiz.title}
                     </h3>
                     <span className={`text-sm font-medium ${getDifficultyColor(quiz.difficulty)}`}>
-                      {quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)}
+                      {t(`quizzes.card.difficulty.${quiz.difficulty}`)}
                     </span>
                   </div>
                   <span className={`px-2 py-1 text-xs rounded-full ${
@@ -335,7 +338,7 @@ export default function Quizzes() {
                       ? 'bg-success/10 text-success' 
                       : 'bg-gray-100 text-gray-600'
                   }`}>
-                    {quiz.isPublic ? 'Public' : 'Private'}
+                    {quiz.isPublic ? t('common.public') : t('common.private')}
                   </span>
                 </div>
 
@@ -346,11 +349,11 @@ export default function Quizzes() {
 
                 {/* Quiz Stats */}
                 <div className="flex items-center gap-4 text-sm text-text-secondary mb-4">
-                  <span>{quiz.questionsCount} questions</span>
+                  <span>{quiz.questionsCount} {t('quizzes.card.questions')}</span>
                   <span>•</span>
                   <span>{formatTime(quiz.timeLimit)}</span>
                   <span>•</span>
-                  <span>{quiz.timesPlayed} plays</span>
+                  <span>{quiz.timesPlayed} {t('quizzes.card.plays')}</span>
                 </div>
 
                 {/* Category Badge */}
@@ -364,19 +367,19 @@ export default function Quizzes() {
                 <div className="flex gap-2">
                   <Link to={`/sessions/host?quiz=${quiz.id}`} className="flex-1">
                     <Button variant="primary" size="sm" fullWidth leftIcon={<FiPlay />}>
-                      Start
+                      {t('quizzes.card.actions.start')}
                     </Button>
                   </Link>
                   <Link to={`/quizzes/${quiz.id}/edit`} className="flex-1">
                     <Button variant="outline" size="sm" fullWidth leftIcon={<FiEdit2 />}>
-                      Edit
+                      {t('quizzes.card.actions.edit')}
                     </Button>
                   </Link>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDuplicateQuiz(quiz.id)}
-                    title="Duplicate Quiz"
+                    title={t('quizzes.card.actions.duplicate')}
                   >
                     <FiCopy />
                   </Button>
@@ -385,7 +388,7 @@ export default function Quizzes() {
                     size="sm"
                     onClick={() => handleDeleteQuiz(quiz.id)}
                     className="text-error hover:bg-error/10"
-                    title="Delete Quiz"
+                    title={t('quizzes.card.actions.delete')}
                   >
                     <FiTrash2 />
                   </Button>
@@ -394,7 +397,7 @@ export default function Quizzes() {
                 {/* Last Used */}
                 {quiz.lastUsed && (
                   <p className="text-xs text-text-secondary mt-4">
-                    Last used: {new Date(quiz.lastUsed).toLocaleDateString()}
+                    {t('quizzes.card.lastUsed')}: {new Date(quiz.lastUsed).toLocaleDateString()}
                   </p>
                 )}
               </div>

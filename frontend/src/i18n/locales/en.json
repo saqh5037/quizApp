@@ -1,0 +1,349 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "all": "All",
+    "public": "Public",
+    "private": "Private",
+    "yes": "Yes",
+    "no": "No",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "start": "Start",
+    "finish": "Finish",
+    "play": "Play",
+    "logout": "Logout"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "subtitle": "Sign in to your account",
+      "email": "Email",
+      "emailPlaceholder": "Enter your email",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "signup": "Sign up",
+      "forgotPassword": "Forgot your password?",
+      "rememberMe": "Remember me"
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Join AristoTest",
+      "firstName": "First Name",
+      "firstNamePlaceholder": "Enter your first name",
+      "lastName": "Last Name",
+      "lastNamePlaceholder": "Enter your last name",
+      "email": "Email",
+      "emailPlaceholder": "Enter your email",
+      "password": "Password",
+      "passwordPlaceholder": "Create a password",
+      "confirmPassword": "Confirm Password",
+      "confirmPasswordPlaceholder": "Confirm your password",
+      "submit": "Sign Up",
+      "hasAccount": "Already have an account?",
+      "signin": "Sign In",
+      "terms": "By signing up, you agree to our",
+      "termsLink": "Terms and Conditions",
+      "privacy": "and",
+      "privacyLink": "Privacy Policy"
+    }
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "assessments": "Assessments",
+    "sessions": "Sessions",
+    "results": "Results",
+    "profile": "Profile",
+    "docs": "Documentation"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back, {{name}}",
+    "subtitle": "Here's your activity summary",
+    "stats": {
+      "totalQuizzes": "Total Assessments",
+      "activeSessions": "Active Sessions",
+      "totalStudents": "Total Students",
+      "averageScore": "Average Score"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "createQuiz": "Create Assessment",
+      "startSession": "Start Session",
+      "viewReports": "View Reports",
+      "inviteStudents": "Invite Students"
+    },
+    "recentActivity": {
+      "title": "Recent Activity",
+      "noActivity": "No recent activity"
+    },
+    "upcomingSessions": {
+      "title": "Upcoming Sessions",
+      "noSessions": "No scheduled sessions",
+      "startingSoon": "Starting soon",
+      "inProgress": "In progress",
+      "scheduled": "Scheduled"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "noNotifications": "No new notifications",
+      "markAllRead": "Mark all as read"
+    },
+    "weeklyPerformance": "Weekly Performance"
+  },
+  "quizzes": {
+    "title": "My Assessments",
+    "subtitle": "Create and manage your assessment collection",
+    "createButton": "Create Assessment",
+    "searchPlaceholder": "Search assessments...",
+    "stats": {
+      "total": "Total Assessments",
+      "questions": "Total Questions",
+      "timesPlayed": "Times Played",
+      "public": "Public Assessments"
+    },
+    "card": {
+      "questions": "questions",
+      "plays": "plays",
+      "lastUsed": "Last used",
+      "difficulty": {
+        "easy": "Easy",
+        "medium": "Medium",
+        "hard": "Hard"
+      },
+      "actions": {
+        "start": "Start",
+        "edit": "Edit",
+        "duplicate": "Duplicate",
+        "delete": "Delete"
+      }
+    },
+    "empty": {
+      "title": "No assessments found",
+      "subtitle": "Create your first assessment to get started",
+      "searchSubtitle": "Try adjusting your search terms",
+      "createFirst": "Create Your First Assessment"
+    },
+    "create": {
+      "title": "Create New Assessment",
+      "subtitle": "Set up your assessment details",
+      "form": {
+        "title": "Title",
+        "titlePlaceholder": "Enter assessment title",
+        "description": "Description",
+        "descriptionPlaceholder": "Describe what this assessment is about",
+        "category": "Category",
+        "categoryPlaceholder": "Select a category",
+        "difficulty": "Difficulty",
+        "timeLimit": "Time Limit (minutes)",
+        "passingScore": "Passing Score (%)",
+        "isPublic": "Make this assessment public",
+        "questions": "Questions",
+        "addQuestion": "Add Question"
+      }
+    }
+  },
+  "sessions": {
+    "title": "Sessions",
+    "subtitle": "Manage your assessment sessions",
+    "activeNow": "Active Now",
+    "hostSession": "Host Session",
+    "myTitle": "My Sessions",
+    "sessionCode": "Session Code",
+    "progress": "Progress",
+    "tabs": {
+      "active": "Active",
+      "hosted": "Hosted",
+      "participated": "Participated"
+    },
+    "joinSession": {
+      "title": "Join Session",
+      "codePlaceholder": "Enter session code",
+      "joinButton": "Join",
+      "invalidCode": "Invalid session code"
+    },
+    "card": {
+      "host": "Host",
+      "participants": "participants",
+      "status": {
+        "waiting": "Waiting",
+        "inProgress": "In Progress",
+        "completed": "Completed",
+        "scheduled": "Scheduled"
+      },
+      "actions": {
+        "view": "View",
+        "start": "Start",
+        "join": "Join",
+        "results": "Results"
+      }
+    },
+    "empty": {
+      "active": "No active sessions",
+      "hosted": "You haven't hosted any sessions",
+      "participated": "You haven't participated in any sessions"
+    }
+  },
+  "results": {
+    "title": "Results",
+    "subtitle": "Review your performance and progress",
+    "noResults": "No Results Available",
+    "noCompletedSessions": "There are no completed sessions to display.",
+    "goToSessions": "Go to Sessions",
+    "loadingResults": "Loading results...",
+    "sessionResults": "Session Results",
+    "averageScore": "Average Score",
+    "name": "Name",
+    "showNames": "Show Names",
+    "showResponses": "Show Responses",
+    "selected": "Selected",
+    "correctAnswer": "Correct Answer",
+    "noAnswer": "No Answer",
+    "filters": {
+      "all": "All",
+      "passed": "Passed",
+      "failed": "Failed",
+      "dateRange": "Date Range"
+    },
+    "summary": {
+      "score": "Score",
+      "correct": "Correct",
+      "incorrect": "Incorrect",
+      "timeSpent": "Time Spent",
+      "rank": "Rank",
+      "participants": "Participants"
+    },
+    "details": {
+      "questionAnalysis": "Question Analysis",
+      "performanceChart": "Performance Chart",
+      "compareWithAverage": "Compare with Average"
+    },
+    "export": {
+      "pdf": "Export PDF",
+      "excel": "Export Excel",
+      "email": "Email Results"
+    }
+  },
+  "profile": {
+    "title": "My Profile",
+    "subtitle": "Manage your personal information and preferences",
+    "personalInformation": "Personal Information",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "bio": "Bio",
+    "bioPlaceholder": "Tell us about yourself...",
+    "joined": "Joined",
+    "adminAccount": "Admin Account",
+    "teacherAccount": "Teacher Account",
+    "studentAccount": "Student Account",
+    "security": "Security",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "changePassword": "Change Password",
+    "recentActivity": "Recent Activity",
+    "noRecentActivity": "No recent activity",
+    "preferences": "Preferences",
+    "emailNotifications": "Email Notifications",
+    "smsNotifications": "SMS Notifications",
+    "publicProfile": "Public Profile",
+    "showActivity": "Show Activity",
+    "updatePreferences": "Update Preferences",
+    "dangerZone": "Danger Zone",
+    "deleteAccount": "Delete Account",
+    "deleteAccountWarning": "Once you delete your account, there is no going back. Please be certain.",
+    "teachingStatistics": "Teaching Statistics",
+    "learningStatistics": "Learning Statistics",
+    "quizzesCreated": "Quizzes Created",
+    "sessionsHosted": "Sessions Hosted",
+    "studentsReached": "Students Reached",
+    "avgScore": "Avg. Score",
+    "quizzesTaken": "Quizzes Taken",
+    "sessionsJoined": "Sessions Joined",
+    "averageScore": "Average Score",
+    "improvement": "Improvement",
+    "timeJustNow": "just now",
+    "pleaseLogin": "Please log in to view your profile.",
+    "goToLogin": "Go to Login",
+    "tabs": {
+      "personal": "Personal Information",
+      "security": "Security",
+      "preferences": "Preferences",
+      "notifications": "Notifications"
+    },
+    "personal": {
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "phone": "Phone",
+      "bio": "Bio",
+      "avatar": "Profile Picture",
+      "changeAvatar": "Change Photo",
+      "removeAvatar": "Remove Photo"
+    },
+    "preferences": {
+      "language": "Language",
+      "languageLabel": "Select your preferred language",
+      "theme": "Theme",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeAuto": "Auto",
+      "timezone": "Time Zone",
+      "dateFormat": "Date Format",
+      "emailNotifications": "Email Notifications",
+      "pushNotifications": "Push Notifications"
+    },
+    "stats": {
+      "totalQuizzes": "Assessments Created",
+      "totalSessions": "Sessions Hosted",
+      "totalParticipations": "Participations",
+      "averageScore": "Average Score"
+    },
+    "activity": {
+      "title": "Recent Activity",
+      "quizCreated": "Assessment created",
+      "sessionHosted": "Session hosted",
+      "sessionJoined": "Session joined",
+      "quizCompleted": "Assessment completed"
+    }
+  },
+  "errors": {
+    "general": "Something went wrong. Please try again.",
+    "network": "Connection error. Check your internet.",
+    "unauthorized": "Unauthorized. Please sign in.",
+    "forbidden": "You don't have permission to perform this action.",
+    "notFound": "We couldn't find what you're looking for.",
+    "validation": "Please check the entered data.",
+    "serverError": "Server error. Try again later."
+  },
+  "success": {
+    "saved": "Saved successfully",
+    "created": "Created successfully",
+    "updated": "Updated successfully",
+    "deleted": "Deleted successfully",
+    "copied": "Copied to clipboard"
+  },
+  "confirmation": {
+    "delete": "Are you sure you want to delete this?",
+    "unsavedChanges": "You have unsaved changes. Do you want to continue?",
+    "logout": "Are you sure you want to log out?"
+  }
+}

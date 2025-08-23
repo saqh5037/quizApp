@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { apiConfig, buildApiUrl } from '../config/api.config';
 
 interface User {
   id: number;
@@ -9,6 +10,11 @@ interface User {
   firstName: string;
   lastName: string;
   role: string;
+  avatar?: string;
+  phone?: string;
+  bio?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface AuthState {
@@ -33,8 +39,6 @@ interface RegisterData {
   lastName: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -47,7 +51,7 @@ export const useAuthStore = create<AuthState>()(
       login: async (email: string, password: string) => {
         set({ isLoading: true });
         try {
-          const response = await axios.post(`${API_URL}/api/v1/auth/login`, {
+          const response = await axios.post(buildApiUrl(apiConfig.endpoints.auth.login), {
             email,
             password,
           });

@@ -33,7 +33,7 @@ const httpServer = createServer(app);
 // Setup Socket.IO
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: env.SOCKET_CORS_ORIGIN,
+    origin: isDevelopment ? true : env.SOCKET_CORS_ORIGIN.split(',').map(o => o.trim()),
     credentials: true,
   },
   transports: ['websocket', 'polling'],
@@ -43,10 +43,30 @@ const io = new SocketIOServer(httpServer, {
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
-app.use(cors({
-  origin: env.CORS_ORIGIN,
+
+// Configure CORS to allow multiple origins
+const corsOptions = {
+  origin: function (origin: any, callback: any) {
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) return callback(null, true);
+    
+    // In development, allow any origin
+    if (isDevelopment) {
+      return callback(null, true);
+    }
+    
+    // In production, check against allowed origins
+    const allowedOrigins = env.CORS_ORIGIN.split(',').map(o => o.trim());
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: env.CORS_CREDENTIALS,
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));

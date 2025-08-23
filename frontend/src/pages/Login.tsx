@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
@@ -9,6 +10,7 @@ import toast from 'react-hot-toast';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { login, isLoading } = useAuthStore();
   const [formData, setFormData] = useState({
     email: '',
@@ -28,16 +30,20 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary">AristoTest</h1>
-          <p className="text-text-secondary mt-2">Sign in to your account</p>
+        <div className="text-center mb-6">
+          <img 
+            src="/images/logoAristoTest.png" 
+            alt="AristoTest" 
+            className="h-screen max-h-[500px] w-auto mx-auto mb-4"
+          />
+          <p className="text-text-secondary">{t('auth.login.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Input
             type="email"
-            label="Email"
-            placeholder="Enter your email"
+            label={t('auth.login.email')}
+            placeholder={t('auth.login.emailPlaceholder')}
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             leftIcon={<RiMailLine />}
@@ -47,8 +53,8 @@ export default function Login() {
 
           <Input
             type="password"
-            label="Password"
-            placeholder="Enter your password"
+            label={t('auth.login.password')}
+            placeholder={t('auth.login.passwordPlaceholder')}
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             leftIcon={<RiLockLine />}
@@ -63,15 +69,15 @@ export default function Login() {
             fullWidth
             loading={isLoading}
           >
-            Sign In
+            {t('auth.login.submit')}
           </Button>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-text-secondary">
-            Don't have an account?{' '}
+            {t('auth.login.noAccount')}{' '}
             <Link to="/register" className="text-primary hover:text-primary-dark">
-              Sign up
+              {t('auth.login.signup')}
             </Link>
           </p>
         </div>

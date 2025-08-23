@@ -5,54 +5,66 @@ import { QuizType } from '../config/constants';
 interface QuestionAttributes {
   id: number;
   quizId: number;
-  type: QuizType;
-  question: string;
-  options?: string[]; // For multiple choice
-  correctAnswer: string | boolean | string[]; // Can be string, boolean (for true/false), or array (for multiple correct)
+  questionText: string;
+  questionType: 'multiple_choice' | 'true_false' | 'short_answer' | 'multiple_select' | 'ordering' | 'matching';
+  questionImageUrl?: string;
   explanation?: string;
-  points: number;
-  timeLimit?: number; // in seconds
-  order: number;
-  imageUrl?: string;
+  hint?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  points?: number;
+  negativePoints?: number;
+  timeLimitSeconds?: number;
+  orderPosition: number;
+  isRequired?: boolean;
+  options: any;
+  correctAnswers: any;
+  validationRules?: any;
+  metadata?: Record<string, any>;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 export interface QuestionCreationAttributes extends Optional<
   QuestionAttributes, 
-  'id' | 'points' | 'order'
+  'id' | 'points' | 'orderPosition' | 'isRequired' | 'negativePoints' | 'difficulty'
 > {}
 
 class Question extends Model<QuestionAttributes, QuestionCreationAttributes> implements QuestionAttributes {
   public id!: number;
   public quizId!: number;
-  public type!: QuizType;
-  public question!: string;
-  public options?: string[];
-  public correctAnswer!: string | boolean | string[];
+  public questionText!: string;
+  public questionType!: 'multiple_choice' | 'true_false' | 'short_answer' | 'multiple_select' | 'ordering' | 'matching';
+  public questionImageUrl?: string;
   public explanation?: string;
-  public points!: number;
-  public timeLimit?: number;
-  public order!: number;
-  public imageUrl?: string;
+  public hint?: string;
+  public difficulty?: 'easy' | 'medium' | 'hard';
+  public points?: number;
+  public negativePoints?: number;
+  public timeLimitSeconds?: number;
+  public orderPosition!: number;
+  public isRequired?: boolean;
+  public options!: any;
+  public correctAnswers!: any;
+  public validationRules?: any;
+  public metadata?: Record<string, any>;
   
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
   // Helper methods
   public isCorrectAnswer(answer: any): boolean {
-    if (this.type === 'true_false') {
-      return String(answer).toLowerCase() === String(this.correctAnswer).toLowerCase();
+    if (this.questionType === 'true_false') {
+      return String(answer).toLowerCase() === String(this.correctAnswers).toLowerCase();
     }
     
-    if (Array.isArray(this.correctAnswer)) {
+    if (Array.isArray(this.correctAnswers)) {
       if (Array.isArray(answer)) {
-        return JSON.stringify(answer.sort()) === JSON.stringify(this.correctAnswer.sort());
+        return JSON.stringify(answer.sort()) === JSON.stringify(this.correctAnswers.sort());
       }
       return false;
     }
     
-    return String(answer).toLowerCase() === String(this.correctAnswer).toLowerCase();
+    return String(answer).toLowerCase() === String(this.correctAnswers).toLowerCase();
   }
 }
 
@@ -73,34 +85,58 @@ Question.init(
       },
       onDelete: 'CASCADE',
     },
-    type: {
-      type: DataTypes.ENUM('multiple_choice', 'true_false', 'short_answer'),
-      allowNull: false,
-    },
-    question: {
+    questionText: {
       type: DataTypes.TEXT,
       allowNull: false,
+      field: 'question_text',
       validate: {
         notEmpty: true,
       },
+    },
+    questionType: {
+      type: DataTypes.ENUM('multiple_choice', 'true_false', 'short_answer', 'multiple_select', 'ordering', 'matching'),
+      allowNull: false,
+      field: 'question_type',
+    },
+    questionImageUrl: {
+      type: DataTypes.TEXT,
+      field: 'question_image_url',
+    },
+    hint: {
+      type: DataTypes.TEXT,
+    },
+    difficulty: {
+      type: DataTypes.ENUM('easy', 'medium', 'hard'),
+    },
+    negativePoints: {
+      type: DataTypes.INTEGER,
+      field: 'negative_points',
+      defaultValue: 0,
+    },
+    timeLimitSeconds: {
+      type: DataTypes.INTEGER,
+      field: 'time_limit_seconds',
+    },
+    isRequired: {
+      type: DataTypes.BOOLEAN,
+      field: 'is_required',
+      defaultValue: false,
     },
     options: {
-      type: DataTypes.JSON,
-      validate: {
-        isValidOptions(value: any) {
-          if (this.type === 'multiple_choice' && (!Array.isArray(value) || value.length < 2)) {
-            throw new Error('Multiple choice questions must have at least 2 options');
-          }
-        },
-      },
-    },
-    correctAnswer: {
-      type: DataTypes.JSON,
+      type: DataTypes.JSONB,
       allowNull: false,
-      field: 'correct_answer',
-      validate: {
-        notEmpty: true,
-      },
+    },
+    correctAnswers: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      field: 'correct_answers',
+    },
+    validationRules: {
+      type: DataTypes.JSONB,
+      field: 'validation_rules',
+    },
+    metadata: {
+      type: DataTypes.JSONB,
     },
     explanation: {
       type: DataTypes.TEXT,
@@ -113,19 +149,11 @@ Question.init(
         min: 1,
       },
     },
-    timeLimit: {
-      type: DataTypes.INTEGER,
-      field: 'time_limit',
-      comment: 'Time limit in seconds for this specific question',
-    },
-    order: {
+    orderPosition: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
       allowNull: false,
-    },
-    imageUrl: {
-      type: DataTypes.STRING(500),
-      field: 'image_url',
+      field: 'order_position',
     },
   },
   {
@@ -139,7 +167,7 @@ Question.init(
         fields: ['quiz_id'],
       },
       {
-        fields: ['quiz_id', 'order'],
+        fields: ['quiz_id', 'order_position'],
       },
     ],
   }

@@ -43,14 +43,8 @@ router.delete(
   quizController.deleteQuiz
 );
 
-// Quiz questions
+// Quiz questions endpoint
 router.get('/:id/questions', simpleAuth, quizController.getQuizQuestions);
-router.post('/:id/questions', authenticate, quizController.addQuestion);
-router.put('/:id/questions/:questionId', authenticate, quizController.updateQuestion);
-router.delete('/:id/questions/:questionId', authenticate, quizController.deleteQuestion);
-
-// Quiz statistics
-router.get('/:id/statistics', authenticate, quizController.getQuizStatistics);
 
 // Clone quiz
 router.post('/:id/clone', simpleAuth, quizController.cloneQuiz);
