@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Play, Copy, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../stores/authStore';
+import { buildApiUrl } from '../config/api.config';
 
 interface Quiz {
   id: number;
@@ -30,7 +31,7 @@ export default function QuizDetail() {
 
   const fetchQuizDetails = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/v1/quizzes/${id}`, {
+      const response = await fetch(buildApiUrl(`/quizzes/${id}`), {
         headers: {
           'Authorization': `Bearer ${accessToken}`
         }
@@ -60,7 +61,7 @@ export default function QuizDetail() {
 
   const handleDuplicateQuiz = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/v1/quizzes/${id}/clone`, {
+      const response = await fetch(buildApiUrl(`/quizzes/${id}/clone`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`
@@ -87,7 +88,7 @@ export default function QuizDetail() {
     }
     
     try {
-      const response = await fetch(`http://localhost:3001/api/v1/quizzes/${id}`, {
+      const response = await fetch(buildApiUrl(`/quizzes/${id}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${accessToken}`

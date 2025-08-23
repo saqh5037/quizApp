@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Send, Clock, CheckCircle, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { buildApiUrl } from '../config/api.config';
 
 interface Session {
   id: number;
@@ -89,7 +90,7 @@ export default function PlayQuiz() {
     setJoining(true);
     try {
       // Get session by code
-      const response = await fetch(`http://localhost:3001/api/v1/sessions/${sessionCode}`);
+      const response = await fetch(buildApiUrl(`/sessions/${sessionCode}`));
       
       if (response.ok) {
         const data = await response.json();
@@ -121,7 +122,7 @@ export default function PlayQuiz() {
 
 
     try {
-      const response = await fetch(`http://localhost:3001/api/v1/sessions/${session.id}/current-question`);
+      const response = await fetch(buildApiUrl(`/sessions/${session.id}/current-question`));
       
       if (response.ok) {
         const data = await response.json();
@@ -165,7 +166,7 @@ export default function PlayQuiz() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/v1/sessions/answer', {
+      const response = await fetch(buildApiUrl('/sessions/answer'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

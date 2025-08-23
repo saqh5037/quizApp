@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import toast from 'react-hot-toast';
+import { buildApiUrl } from '../config/api.config';
 
 interface QuizResult {
   id: number;
@@ -84,7 +85,7 @@ export default function PublicResults() {
       }
       
       const response = await fetch(
-        `http://localhost:3001/api/v1/results/public/quiz/${quizId}`,
+        buildApiUrl(`/results/public/quiz/${quizId}`),
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -119,7 +120,7 @@ export default function PublicResults() {
   const fetchStatistics = async () => {
     try {
       const response = await fetch(
-        `http://localhost:3001/api/v1/results/public/quiz/${quizId}/stats`,
+        buildApiUrl(`/results/public/quiz/${quizId}/stats`),
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`
@@ -141,7 +142,7 @@ export default function PublicResults() {
     try {
       // Temporarily disabled auth for testing
       const response = await fetch(
-        'http://localhost:3001/api/v1/results/public',
+        buildApiUrl('/results/public'),
         {
           headers: {
             'Content-Type': 'application/json'

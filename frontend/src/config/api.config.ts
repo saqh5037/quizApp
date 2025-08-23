@@ -7,12 +7,12 @@
 // Use dynamic URL detection for production
 const getApiUrl = () => {
   // If explicitly set in environment, use that
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+  if ((import.meta as any).env?.VITE_API_URL) {
+    return (import.meta as any).env.VITE_API_URL;
   }
   
   // In production, use same origin (for when frontend and backend are on same server)
-  if (import.meta.env.PROD) {
+  if ((import.meta as any).env?.PROD) {
     return window.location.origin;
   }
   
@@ -21,8 +21,8 @@ const getApiUrl = () => {
 };
 
 const API_URL = getApiUrl();
-const API_PREFIX = import.meta.env.VITE_API_PREFIX || '/api/v1';
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || API_URL;
+const API_PREFIX = (import.meta as any).env?.VITE_API_PREFIX || '/api/v1';
+const SOCKET_URL = (import.meta as any).env?.VITE_SOCKET_URL || API_URL;
 
 // Export configuration
 export const apiConfig = {

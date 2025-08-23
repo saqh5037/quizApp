@@ -56,16 +56,37 @@ ChartJS.register(
 );
 
 interface DashboardStats {
+  // Quiz Metrics
   totalQuizzes: number;
-  totalSessions: number;
-  totalStudents: number;
-  averageScore: number;
-  completionRate: number;
   activeQuizzes: number;
+  publicQuizzes: number;
+  myQuizzes: number;
+  
+  // Session Metrics
+  totalSessions: number;
+  completedSessions: number;
+  activeSessions: number;
   upcomingSessions: number;
-  recentActivities: number;
+  
+  // Participation Metrics
+  totalParticipants: number;
+  totalResponses: number;
+  passedResponses: number;
+  failedResponses: number;
+  
+  // Performance Metrics
+  averageScore: string;
+  averageTotalPoints: string;
+  highestScore: string;
+  passRate: number;
+  
+  // Activity Metrics
+  recentActivity: number;
   weeklyGrowth: number;
   monthlyGrowth: number;
+  
+  // Category Data
+  topCategories?: any[];
 }
 
 interface RecentActivity {
@@ -102,16 +123,37 @@ export default function Dashboard() {
   const { user, accessToken } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
+    // Quiz Metrics
     totalQuizzes: 0,
-    totalSessions: 0,
-    totalStudents: 0,
-    averageScore: 0,
-    completionRate: 0,
     activeQuizzes: 0,
+    publicQuizzes: 0,
+    myQuizzes: 0,
+    
+    // Session Metrics
+    totalSessions: 0,
+    completedSessions: 0,
+    activeSessions: 0,
     upcomingSessions: 0,
-    recentActivities: 0,
+    
+    // Participation Metrics
+    totalParticipants: 0,
+    totalResponses: 0,
+    passedResponses: 0,
+    failedResponses: 0,
+    
+    // Performance Metrics
+    averageScore: '0.0',
+    averageTotalPoints: '0.0',
+    highestScore: '0.0',
+    passRate: 0,
+    
+    // Activity Metrics
+    recentActivity: 0,
     weeklyGrowth: 0,
     monthlyGrowth: 0,
+    
+    // Category Data
+    topCategories: [],
   });
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [upcomingSessions, setUpcomingSessions] = useState<UpcomingSession[]>([]);
@@ -257,21 +299,21 @@ export default function Dashboard() {
     }
   };
 
-  // Chart configurations
+  // Chart configurations with real data
   const lineChartData = {
-    labels: performanceData?.weeklyLabels || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    labels: performanceData?.weeklyLabels || ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
     datasets: [
       {
-        label: 'Sessions',
-        data: performanceData?.weeklySessions || [12, 19, 15, 25, 22, 30, 28],
+        label: 'Respuestas por Día',
+        data: performanceData?.weeklyResponses || [0, 0, 0, 0, 0, 0, 0],
         borderColor: 'rgb(99, 102, 241)',
         backgroundColor: 'rgba(99, 102, 241, 0.1)',
         tension: 0.4,
         fill: true,
       },
       {
-        label: 'Participants',
-        data: performanceData?.weeklyParticipants || [65, 89, 76, 125, 110, 145, 132],
+        label: 'Participantes Únicos',
+        data: performanceData?.weeklyParticipants || [0, 0, 0, 0, 0, 0, 0],
         borderColor: 'rgb(34, 197, 94)',
         backgroundColor: 'rgba(34, 197, 94, 0.1)',
         tension: 0.4,
@@ -281,11 +323,11 @@ export default function Dashboard() {
   };
 
   const barChartData = {
-    labels: performanceData?.quizLabels || ['Math', 'Science', 'History', 'English', 'Geography'],
+    labels: performanceData?.categoryLabels || ['General'],
     datasets: [
       {
-        label: 'Average Score',
-        data: performanceData?.quizScores || [85, 78, 92, 88, 75],
+        label: 'Puntuación Promedio',
+        data: performanceData?.categoryScores || [0],
         backgroundColor: [
           'rgba(99, 102, 241, 0.8)',
           'rgba(34, 197, 94, 0.8)',
@@ -294,18 +336,28 @@ export default function Dashboard() {
           'rgba(20, 184, 166, 0.8)',
         ],
       },
+      {
+        label: 'Total Intentos',
+        data: performanceData?.categoryAttempts || [0],
+        backgroundColor: [
+          'rgba(99, 102, 241, 0.4)',
+          'rgba(34, 197, 94, 0.4)',
+          'rgba(168, 85, 247, 0.4)',
+          'rgba(251, 146, 60, 0.4)',
+          'rgba(20, 184, 166, 0.4)',
+        ],
+      },
     ],
   };
 
   const doughnutChartData = {
-    labels: ['Completed', 'In Progress', 'Not Started'],
+    labels: performanceData?.completionLabels || ['Aprobados', 'No Aprobados'],
     datasets: [
       {
-        data: performanceData?.completionData || [65, 25, 10],
+        data: performanceData?.completionData || [0, 0],
         backgroundColor: [
-          'rgba(34, 197, 94, 0.8)',
-          'rgba(251, 146, 60, 0.8)',
-          'rgba(239, 68, 68, 0.8)',
+          'rgba(34, 197, 94, 0.8)',  // Green for passed
+          'rgba(239, 68, 68, 0.8)',   // Red for failed
         ],
         borderWidth: 0,
       },
@@ -384,77 +436,135 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        {/* Total Quizzes */}
+        <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('dashboard.stats.totalQuizzes')}</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalQuizzes}</p>
-              <div className="flex items-center mt-2">
+              <p className="text-xs font-medium text-gray-600">Quizzes Creados</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalQuizzes}</p>
+              <div className="flex items-center mt-1">
+                <span className="text-xs text-green-600 mr-2">{stats.activeQuizzes} activos</span>
+                <span className="text-xs text-blue-600">{stats.publicQuizzes} públicos</span>
+              </div>
+            </div>
+            <div className="bg-blue-100 p-2 rounded-lg">
+              <FiBookOpen className="text-blue-600" size={20} />
+            </div>
+          </div>
+        </Card>
+
+        {/* Total Responses */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600">Total Respuestas</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalResponses}</p>
+              <div className="flex items-center mt-1">
+                <span className="text-xs text-gray-500">{stats.recentActivity} esta semana</span>
+              </div>
+            </div>
+            <div className="bg-green-100 p-2 rounded-lg">
+              <FiActivity className="text-green-600" size={20} />
+            </div>
+          </div>
+        </Card>
+
+        {/* Participants */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600">Participantes Únicos</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalParticipants}</p>
+              <div className="flex items-center mt-1">
                 {stats.weeklyGrowth > 0 ? (
-                  <FiArrowUp className="text-green-500 mr-1" />
+                  <FiArrowUp className="text-green-500 mr-1" size={12} />
                 ) : (
-                  <FiArrowDown className="text-red-500 mr-1" />
+                  <FiArrowDown className="text-red-500 mr-1" size={12} />
                 )}
-                <span className={`text-sm ${stats.weeklyGrowth > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {Math.abs(stats.weeklyGrowth)}% {t('dashboard.thisWeek', { defaultValue: 'this week' })}
+                <span className={`text-xs ${stats.weeklyGrowth > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {Math.abs(stats.weeklyGrowth)} nuevos
                 </span>
               </div>
             </div>
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <FiBookOpen className="text-blue-500" size={24} />
+            <div className="bg-purple-100 p-2 rounded-lg">
+              <FiUsers className="text-purple-600" size={20} />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
+        {/* Pass Rate */}
+        <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('dashboard.stats.totalSessions', { defaultValue: 'Total Sessions' })}</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalSessions}</p>
-              <div className="flex items-center mt-2">
-                <span className="text-sm text-gray-500">{stats.upcomingSessions} {t('dashboard.upcoming', { defaultValue: 'upcoming' })}</span>
+              <p className="text-xs font-medium text-gray-600">Tasa de Aprobación</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.passRate}%</p>
+              <div className="flex items-center mt-1">
+                <span className="text-xs text-green-600 mr-2">{stats.passedResponses} aprobados</span>
+                <span className="text-xs text-red-600">{stats.failedResponses} reprobados</span>
               </div>
             </div>
-            <div className="bg-green-100 p-3 rounded-lg">
-              <FiActivity className="text-green-500" size={24} />
+            <div className="bg-emerald-100 p-2 rounded-lg">
+              <FiTarget className="text-emerald-600" size={20} />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
+        {/* Average Score */}
+        <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('dashboard.stats.totalStudents')}</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalStudents}</p>
-              <div className="flex items-center mt-2">
-                {stats.monthlyGrowth > 0 ? (
-                  <FiArrowUp className="text-green-500 mr-1" />
-                ) : (
-                  <FiArrowDown className="text-red-500 mr-1" />
-                )}
-                <span className={`text-sm ${stats.monthlyGrowth > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {Math.abs(stats.monthlyGrowth)}% {t('dashboard.thisMonth', { defaultValue: 'this month' })}
-                </span>
+              <p className="text-xs font-medium text-gray-600">Puntuación Promedio</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{parseFloat(stats.averageScore).toFixed(0)}%</p>
+              <div className="flex items-center mt-1">
+                <span className="text-xs text-gray-500">Máx: {parseFloat(stats.highestScore).toFixed(0)}%</span>
               </div>
             </div>
-            <div className="bg-purple-100 p-3 rounded-lg">
-              <FiUsers className="text-purple-500" size={24} />
+            <div className="bg-orange-100 p-2 rounded-lg">
+              <FiAward className="text-orange-600" size={20} />
             </div>
           </div>
         </Card>
+      </div>
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
+      {/* Secondary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+          <div className="flex items-center">
+            <FiPlay className="text-blue-600 mr-3" size={20} />
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('dashboard.stats.averageScore')}</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{stats.averageScore}%</p>
-              <div className="flex items-center mt-2">
-                <span className="text-sm text-gray-500">{stats.completionRate}% {t('dashboard.completion', { defaultValue: 'completion' })}</span>
-              </div>
+              <p className="text-sm font-semibold text-blue-900">Sesiones Activas</p>
+              <p className="text-xl font-bold text-blue-600">{stats.activeSessions}</p>
             </div>
-            <div className="bg-orange-100 p-3 rounded-lg">
-              <FiAward className="text-orange-500" size={24} />
+          </div>
+        </Card>
+        
+        <Card className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+          <div className="flex items-center">
+            <FiCheckCircle className="text-green-600 mr-3" size={20} />
+            <div>
+              <p className="text-sm font-semibold text-green-900">Sesiones Completadas</p>
+              <p className="text-xl font-bold text-green-600">{stats.completedSessions}</p>
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+          <div className="flex items-center">
+            <FiCalendar className="text-purple-600 mr-3" size={20} />
+            <div>
+              <p className="text-sm font-semibold text-purple-900">Próximas Sesiones</p>
+              <p className="text-xl font-bold text-purple-600">{stats.upcomingSessions}</p>
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="p-4 bg-gradient-to-r from-orange-50 to-red-50 border-orange-200">
+          <div className="flex items-center">
+            <FiZap className="text-orange-600 mr-3" size={20} />
+            <div>
+              <p className="text-sm font-semibold text-orange-900">Actividad Reciente</p>
+              <p className="text-xl font-bold text-orange-600">{stats.recentActivity}</p>
             </div>
           </div>
         </Card>
@@ -467,9 +577,12 @@ export default function Dashboard() {
           {/* Performance Chart */}
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">{t('dashboard.weeklyPerformance', { defaultValue: 'Weekly Performance' })}</h2>
-              <Button variant="ghost" size="sm">
-                {t('dashboard.viewDetails', { defaultValue: 'View Details' })}
+              <div>
+                <h2 className="text-lg font-semibold">Actividad Semanal</h2>
+                <p className="text-sm text-gray-500">Respuestas y participantes por día</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/public-results')}>
+                Ver Resultados
                 <FiChevronRight className="ml-1" />
               </Button>
             </div>
@@ -478,12 +591,15 @@ export default function Dashboard() {
             </div>
           </Card>
 
-          {/* Quiz Scores by Category */}
+          {/* Quiz Performance by Category */}
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">{t('dashboard.performanceByCategory', { defaultValue: 'Quiz Performance by Category' })}</h2>
-              <Button variant="ghost" size="sm">
-                {t('dashboard.viewAll', { defaultValue: 'View All' })}
+              <div>
+                <h2 className="text-lg font-semibold">Rendimiento por Categoría</h2>
+                <p className="text-sm text-gray-500">Puntuaciones promedio y total de intentos</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/quizzes')}>
+                Ver Quizzes
                 <FiChevronRight className="ml-1" />
               </Button>
             </div>
@@ -527,33 +643,43 @@ export default function Dashboard() {
 
         {/* Right Column - Sidebar */}
         <div className="space-y-6">
-          {/* Completion Overview */}
+          {/* Pass/Fail Overview */}
           <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">{t('dashboard.completionOverview', { defaultValue: 'Completion Overview' })}</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold">Resultados Generales</h2>
+                <p className="text-sm text-gray-500">Distribución de aprobaciones</p>
+              </div>
+            </div>
             <div className="h-48">
               <Doughnut data={doughnutChartData} options={chartOptions} />
             </div>
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center">
                   <span className="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-                  {t('dashboard.completed', { defaultValue: 'Completed' })}
+                  Aprobados
                 </span>
-                <span className="font-medium">65%</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center">
-                  <span className="w-3 h-3 bg-orange-500 rounded-full mr-2"></span>
-                  {t('dashboard.inProgress', { defaultValue: 'In Progress' })}
-                </span>
-                <span className="font-medium">25%</span>
+                <div className="text-right">
+                  <span className="font-medium">{stats.passedResponses}</span>
+                  <p className="text-xs text-gray-500">{stats.passRate}%</p>
+                </div>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center">
                   <span className="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
-                  {t('dashboard.notStarted', { defaultValue: 'Not Started' })}
+                  No Aprobados
                 </span>
-                <span className="font-medium">10%</span>
+                <div className="text-right">
+                  <span className="font-medium">{stats.failedResponses}</span>
+                  <p className="text-xs text-gray-500">{100 - stats.passRate}%</p>
+                </div>
+              </div>
+              <div className="border-t pt-2 mt-2">
+                <div className="flex items-center justify-between text-sm font-medium">
+                  <span>Total Respuestas</span>
+                  <span>{stats.totalResponses}</span>
+                </div>
               </div>
             </div>
           </Card>
@@ -626,36 +752,95 @@ export default function Dashboard() {
             </div>
           </Card>
 
-          {/* Quick Stats */}
+          {/* MVP Metrics for Quality Team */}
           <Card className="p-6 bg-gradient-to-br from-primary to-secondary text-white">
-            <h2 className="text-lg font-semibold mb-4">{t('dashboard.goalsTargets', { defaultValue: 'Goals & Targets' })}</h2>
+            <div className="flex items-center mb-4">
+              <FiTarget className="mr-2" size={20} />
+              <h2 className="text-lg font-semibold">Métricas MVP</h2>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span>Tasa de Éxito</span>
+                  <span>{stats.passRate}%</span>
+                </div>
+                <div className="w-full bg-white/20 rounded-full h-2">
+                  <div 
+                    className="bg-white h-2 rounded-full transition-all duration-300" 
+                    style={{ width: `${Math.min(stats.passRate, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span>Quizzes Activos</span>
+                  <span>{stats.activeQuizzes}/{stats.totalQuizzes}</span>
+                </div>
+                <div className="w-full bg-white/20 rounded-full h-2">
+                  <div 
+                    className="bg-white h-2 rounded-full transition-all duration-300" 
+                    style={{ width: `${stats.totalQuizzes > 0 ? (stats.activeQuizzes / stats.totalQuizzes) * 100 : 0}%` }}
+                  ></div>
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span>Participación Única</span>
+                  <span>{stats.totalParticipants}</span>
+                </div>
+                <div className="text-xs opacity-80 mt-1">
+                  {stats.totalResponses} respuestas totales
+                </div>
+              </div>
+              <div className="pt-2 border-t border-white/20">
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <div className="text-2xl font-bold">{parseFloat(stats.averageScore).toFixed(0)}%</div>
+                    <div className="text-xs opacity-80">Prom. General</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">{stats.recentActivity}</div>
+                    <div className="text-xs opacity-80">Esta Semana</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* System Status for MVP */}
+          <Card className="p-6">
+            <div className="flex items-center mb-4">
+              <FiCheckCircle className="text-green-500 mr-2" size={20} />
+              <h2 className="text-lg font-semibold">Estado del Sistema</h2>
+            </div>
             <div className="space-y-3">
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span>{t('dashboard.weeklyTarget', { defaultValue: 'Weekly Target' })}</span>
-                  <span>8/10 {t('sessions.title')}</span>
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center">
+                  <FiCheckCircle className="text-green-500 mr-2" size={16} />
+                  <span className="text-sm font-medium">Sistema de Calificación</span>
                 </div>
-                <div className="w-full bg-white/20 rounded-full h-2">
-                  <div className="bg-white h-2 rounded-full" style={{ width: '80%' }}></div>
-                </div>
+                <span className="text-xs text-green-700 font-medium">ACTIVO</span>
               </div>
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span>{t('dashboard.studentEngagement', { defaultValue: 'Student Engagement' })}</span>
-                  <span>85%</span>
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center">
+                  <FiCheckCircle className="text-green-500 mr-2" size={16} />
+                  <span className="text-sm font-medium">Resultados Públicos</span>
                 </div>
-                <div className="w-full bg-white/20 rounded-full h-2">
-                  <div className="bg-white h-2 rounded-full" style={{ width: '85%' }}></div>
-                </div>
+                <span className="text-xs text-green-700 font-medium">ACTIVO</span>
               </div>
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span>{t('dashboard.quizCompletion', { defaultValue: 'Quiz Completion' })}</span>
-                  <span>92%</span>
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center">
+                  <FiCheckCircle className="text-green-500 mr-2" size={16} />
+                  <span className="text-sm font-medium">Generación PDF</span>
                 </div>
-                <div className="w-full bg-white/20 rounded-full h-2">
-                  <div className="bg-white h-2 rounded-full" style={{ width: '92%' }}></div>
+                <span className="text-xs text-green-700 font-medium">ACTIVO</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center">
+                  <FiActivity className="text-blue-500 mr-2" size={16} />
+                  <span className="text-sm font-medium">Base de Datos</span>
                 </div>
+                <span className="text-xs text-blue-700 font-medium">PostgreSQL</span>
               </div>
             </div>
           </Card>

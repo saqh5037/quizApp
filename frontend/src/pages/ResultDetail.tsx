@@ -8,6 +8,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../stores/authStore';
+import { buildApiUrl } from '../config/api.config';
 
 interface ResultDetail {
   id: number;
@@ -58,7 +59,7 @@ export default function ResultDetail() {
     try {
       // Using the new endpoint without auth for testing
       const response = await fetch(
-        `http://localhost:3001/api/v1/results/public/detail/${id}`,
+        buildApiUrl(`/results/public/detail/${id}`),
         {
           headers: {
             'Content-Type': 'application/json'

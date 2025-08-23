@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Play, Users, ChevronRight, ChevronLeft, Eye, EyeOff, Pause, StopCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../stores/authStore';
+import { buildApiUrl } from '../config/api.config';
 
 interface Session {
   id: number;
@@ -72,7 +73,7 @@ export default function HostSession() {
   const createSession = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3001/api/v1/sessions', {
+      const response = await fetch(buildApiUrl('/sessions'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +106,7 @@ export default function HostSession() {
     console.log('Starting session:', session.id);
     
     try {
-      const response = await fetch(`http://localhost:3001/api/v1/sessions/${session.id}/status`, {
+      const response = await fetch(buildApiUrl(`/sessions/${session.id}/status`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -143,7 +144,7 @@ export default function HostSession() {
     console.log('Loading question for session:', session.id);
     
     try {
-      const response = await fetch(`http://localhost:3001/api/v1/sessions/${session.id}/current-question`);
+      const response = await fetch(buildApiUrl(`/sessions/${session.id}/current-question`));
       
       if (response.ok) {
         const data = await response.json();
@@ -182,7 +183,7 @@ export default function HostSession() {
     const newQuestionIndex = session.currentQuestion + 1;
     
     try {
-      const response = await fetch(`http://localhost:3001/api/v1/sessions/${session.id}/status`, {
+      const response = await fetch(buildApiUrl(`/sessions/${session.id}/status`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -212,7 +213,7 @@ export default function HostSession() {
     const newQuestionIndex = session.currentQuestion - 1;
     
     try {
-      const response = await fetch(`http://localhost:3001/api/v1/sessions/${session.id}/status`, {
+      const response = await fetch(buildApiUrl(`/sessions/${session.id}/status`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -240,7 +241,7 @@ export default function HostSession() {
     if (!session) return;
     
     try {
-      const response = await fetch(`http://localhost:3001/api/v1/sessions/${session.id}/status`, {
+      const response = await fetch(buildApiUrl(`/sessions/${session.id}/status`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -266,7 +267,7 @@ export default function HostSession() {
     if (!session) return;
     
     try {
-      const response = await fetch(`http://localhost:3001/api/v1/sessions/${session.id}/status`, {
+      const response = await fetch(buildApiUrl(`/sessions/${session.id}/status`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -291,7 +292,7 @@ export default function HostSession() {
     if (!session) return;
     
     try {
-      const response = await fetch(`http://localhost:3001/api/v1/sessions/${session.id}/status`, {
+      const response = await fetch(buildApiUrl(`/sessions/${session.id}/status`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

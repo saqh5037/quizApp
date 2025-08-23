@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Plus, Trash2, GripVertical, Save, ArrowLeft, Copy, Eye, CheckCircle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../stores/authStore';
+import { buildApiUrl } from '../config/api.config';
 
 interface Question {
   id: string;
@@ -223,7 +224,7 @@ export default function CreateQuiz() {
         }
       };
       
-      const response = await fetch('http://localhost:3001/api/v1/quizzes', {
+      const response = await fetch(buildApiUrl('/quizzes'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

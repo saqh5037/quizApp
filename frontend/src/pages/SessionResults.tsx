@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { Trophy, Medal, Award, CheckCircle, XCircle, Clock, Target, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { buildApiUrl } from '../config/api.config';
 
 interface ParticipantResult {
   participant: string;
@@ -55,8 +56,8 @@ export default function SessionResults() {
     try {
       setLoading(true);
       const url = viewMode === 'participant' && participantName
-        ? `http://localhost:3001/api/v1/sessions/${id}/results?participantName=${participantName}`
-        : `http://localhost:3001/api/v1/sessions/${id}/results`;
+        ? buildApiUrl(`/sessions/${id}/results?participantName=${participantName}`)
+        : buildApiUrl(`/sessions/${id}/results`);
         
       const response = await fetch(url);
       

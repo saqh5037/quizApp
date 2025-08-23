@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import { buildApiUrl } from '../config/api.config';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
@@ -23,7 +24,7 @@ export default function JoinSession() {
     if (code.length === 6) {
       setCheckingCode(true);
       try {
-        const response = await fetch(`http://localhost:3001/api/v1/sessions/${code}`, {
+        const response = await fetch(buildApiUrl(`/sessions/${code}`), {
           headers: {
             'Authorization': `Bearer ${useAuthStore.getState().accessToken}`,
           },
@@ -72,7 +73,7 @@ export default function JoinSession() {
     setLoading(true);
     try {
       // First, get session by code
-      const response = await fetch(`http://localhost:3001/api/v1/sessions/${sessionCode}`, {
+      const response = await fetch(buildApiUrl(`/sessions/${sessionCode}`), {
         headers: {
           'Authorization': `Bearer ${useAuthStore.getState().accessToken}`,
         },
@@ -88,7 +89,7 @@ export default function JoinSession() {
         }
 
         // Join as participant
-        const joinResponse = await fetch(`http://localhost:3001/api/v1/sessions/${session.id}/join`, {
+        const joinResponse = await fetch(buildApiUrl(`/sessions/${session.id}/join`), {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${useAuthStore.getState().accessToken}`,

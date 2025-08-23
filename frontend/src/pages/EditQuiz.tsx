@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, Trash2, GripVertical, Save, ArrowLeft, Copy, Eye, CheckCircle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../stores/authStore';
+import { buildApiUrl } from '../config/api.config';
 
 interface Question {
   id: string | number;
@@ -64,7 +65,7 @@ export default function EditQuiz() {
       setLoading(true);
       
       // Fetch quiz details
-      const quizResponse = await fetch(`http://localhost:3001/api/v1/quizzes/${id}`, {
+      const quizResponse = await fetch(buildApiUrl(`/quizzes/${id}`), {
         headers: {
           'Authorization': `Bearer ${accessToken}`
         }
@@ -77,7 +78,7 @@ export default function EditQuiz() {
       const quizData = await quizResponse.json();
       
       // Fetch quiz questions
-      const questionsResponse = await fetch(`http://localhost:3001/api/v1/quizzes/${id}/questions`, {
+      const questionsResponse = await fetch(buildApiUrl(`/quizzes/${id}/questions`), {
         headers: {
           'Authorization': `Bearer ${accessToken}`
         }
@@ -302,7 +303,7 @@ export default function EditQuiz() {
         pass_percentage: quiz.passingScore
       };
       
-      const response = await fetch(`http://localhost:3001/api/v1/quizzes/${id}`, {
+      const response = await fetch(buildApiUrl(`/quizzes/${id}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

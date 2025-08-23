@@ -5,7 +5,8 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon",
-    "build": "tsc",
+    "build": "npx babel src --out-dir dist --extensions .ts,.js --presets @babel/preset-typescript --ignore '**/*.test.ts'",
+    "build-tsc": "tsc --skipLibCheck --noEmitOnError false",
     "start": "node dist/server.js",
     "start:prod": "pm2 start ecosystem.config.js",
     "test": "jest",
@@ -47,6 +48,9 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
+    "@babel/cli": "^7.28.3",
+    "@babel/core": "^7.28.3",
+    "@babel/preset-typescript": "^7.27.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",

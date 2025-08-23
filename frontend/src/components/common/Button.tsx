@@ -10,7 +10,7 @@ import clsx from 'clsx';
 
 export interface ButtonProps extends Omit<HTMLMotionProps<"button">, 'size'> {
   /** Visual style variant */
-  variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'ghost' | 'outline';
   /** Button size */
   size?: 'sm' | 'md' | 'lg' | 'xl';
   /** Full width button */
