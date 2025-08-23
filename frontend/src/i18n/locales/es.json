@@ -186,7 +186,11 @@
         "deleteQuestion": "Eliminar Pregunta",
         "duplicateQuestion": "Duplicar Pregunta",
         "noQuestions": "No hay preguntas todavía",
-        "noQuestionsHint": "Agrega tu primera pregunta para comenzar a construir tu evaluación"
+        "noQuestionsHint": "Agrega tu primera pregunta para comenzar a construir tu evaluación",
+        "isPublicHint": "Permitir que cualquiera tome esta evaluación",
+        "randomizeQuestionsHint": "Mostrar preguntas en orden aleatorio",
+        "allowReviewHint": "Permitir a los estudiantes revisar sus respuestas después de enviar",
+        "showCorrectAnswersHint": "Mostrar respuestas correctas después de completar la evaluación"
       }
     }
   },

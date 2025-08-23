@@ -186,7 +186,11 @@
         "deleteQuestion": "Delete Question",
         "duplicateQuestion": "Duplicate Question",
         "noQuestions": "No questions yet",
-        "noQuestionsHint": "Add your first question to start building your quiz"
+        "noQuestionsHint": "Add your first question to start building your quiz",
+        "isPublicHint": "Allow anyone to take this quiz",
+        "randomizeQuestionsHint": "Show questions in random order",
+        "allowReviewHint": "Let students review their answers after submission",
+        "showCorrectAnswersHint": "Display correct answers after quiz completion"
       }
     }
   },

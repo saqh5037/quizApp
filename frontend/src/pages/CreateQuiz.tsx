@@ -316,7 +316,7 @@ export default function CreateQuiz() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Time Limit (minutes)
+                {t('quizzes.create.form.timeLimit')}
               </label>
               <input
                 type="number"
@@ -601,12 +601,12 @@ export default function CreateQuiz() {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold mb-4">Quiz Settings</h3>
+              <h3 className="text-lg font-semibold mb-4">{t('quizzes.create.tabs.settings')}</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="font-medium text-gray-700">Public Quiz</label>
-                    <p className="text-sm text-gray-500">Allow anyone to take this quiz</p>
+                    <label className="font-medium text-gray-700">{t('quizzes.create.form.isPublic')}</label>
+                    <p className="text-sm text-gray-500">{t('quizzes.create.form.isPublicHint')}</p>
                   </div>
                   <button
                     onClick={() => setQuiz(prev => ({ ...prev, isPublic: !prev.isPublic }))}
@@ -624,8 +624,8 @@ export default function CreateQuiz() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="font-medium text-gray-700">Randomize Questions</label>
-                    <p className="text-sm text-gray-500">Show questions in random order</p>
+                    <label className="font-medium text-gray-700">{t('quizzes.create.form.randomizeQuestions')}</label>
+                    <p className="text-sm text-gray-500">{t('quizzes.create.form.randomizeQuestionsHint')}</p>
                   </div>
                   <button
                     onClick={() => setQuiz(prev => ({ ...prev, randomizeQuestions: !prev.randomizeQuestions }))}
@@ -643,8 +643,8 @@ export default function CreateQuiz() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="font-medium text-gray-700">Allow Review</label>
-                    <p className="text-sm text-gray-500">Let students review their answers after submission</p>
+                    <label className="font-medium text-gray-700">{t('quizzes.create.form.allowReview')}</label>
+                    <p className="text-sm text-gray-500">{t('quizzes.create.form.allowReviewHint')}</p>
                   </div>
                   <button
                     onClick={() => setQuiz(prev => ({ ...prev, allowReview: !prev.allowReview }))}
@@ -662,8 +662,8 @@ export default function CreateQuiz() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="font-medium text-gray-700">Show Correct Answers</label>
-                    <p className="text-sm text-gray-500">Display correct answers after quiz completion</p>
+                    <label className="font-medium text-gray-700">{t('quizzes.create.form.showCorrectAnswers')}</label>
+                    <p className="text-sm text-gray-500">{t('quizzes.create.form.showCorrectAnswersHint')}</p>
                   </div>
                   <button
                     onClick={() => setQuiz(prev => ({ ...prev, showCorrectAnswers: !prev.showCorrectAnswers }))}
@@ -681,7 +681,7 @@ export default function CreateQuiz() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Passing Score (%)
+                    {t('quizzes.create.form.passingScore')}
                   </label>
                   <div className="flex items-center space-x-3">
                     <input
