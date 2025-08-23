@@ -1,4 +1,5 @@
 import User from './User.model';
+import Organization from './Organization.model';
 import Quiz from './Quiz.model';
 import Question from './Question.model';
 import QuizSession from './QuizSession.model';
@@ -11,6 +12,7 @@ setupAssociations();
 
 export {
   User,
+  Organization,
   Quiz,
   Question,
   QuizSession,
@@ -20,6 +22,7 @@ export {
 
 export default {
   User,
+  Organization,
   Quiz,
   Question,
   QuizSession,

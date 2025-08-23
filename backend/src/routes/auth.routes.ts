@@ -23,7 +23,7 @@ const loginValidation = [
 
 // Routes
 router.post('/register', authRateLimiter, validate(registerValidation), authController.register);
-router.post('/login', authRateLimiter, simpleLogin); // Using simple login for SQLite
+router.post('/login', authRateLimiter, validate(loginValidation), simpleLogin);
 router.post('/refresh', authController.refreshToken);
 router.post('/logout', authenticate, authController.logout);
 router.get('/me', authenticate, authController.getCurrentUser);

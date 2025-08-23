@@ -8,7 +8,7 @@ const router = Router();
 // Welcome route
 router.get('/', (req, res) => {
   res.json({
-    message: 'Quiz App API',
+    message: 'AristoTest API',
     version: '1.0.0',
     documentation: '/api/v1/docs',
     endpoints: {

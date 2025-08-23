@@ -395,7 +395,9 @@ User.init(
         }
         // Generate avatar if not provided
         if (!user.avatarUrl) {
-          const initials = `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+          const firstName = user.firstName || 'U';
+          const lastName = user.lastName || 'U';
+          const initials = `${firstName[0]}${lastName[0]}`.toUpperCase();
           user.avatarUrl = `https://ui-avatars.com/api/?name=${initials}&background=03A9F4&color=fff`;
         }
       },

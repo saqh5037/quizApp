@@ -8,7 +8,7 @@ export const simpleLogin = async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
     // Query user directly from SQLite
-    const [users] = await sequelize.query(
+    const users = await sequelize.query(
       'SELECT * FROM users WHERE email = :email',
       {
         replacements: { email },
@@ -16,7 +16,7 @@ export const simpleLogin = async (req: Request, res: Response) => {
       }
     ) as any;
 
-    const user = users;
+    const user = users[0];
 
     if (!user) {
       return res.status(401).json({

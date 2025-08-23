@@ -52,8 +52,8 @@ export const login = catchAsync(async (
 ) => {
   const { email, password } = req.body;
 
-  // Find user
-  const user = await User.findOne({ 
+  // Find user with password
+  const user = await User.scope('withPassword').findOne({ 
     where: { email }
   });
   if (!user) {

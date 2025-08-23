@@ -139,8 +139,8 @@ export const connectDatabase = async (): Promise<void> => {
       logger.info(`📊 Connected to PostgreSQL database: ${env.DB_NAME} on ${env.DB_HOST}:${env.DB_PORT}`);
     }
     
-    // Don't sync if using SQLite with existing database
-    if (isDevelopment && !useSQLite) {
+    // Sync database tables in development
+    if (isDevelopment) {
       await sequelize.sync({ alter: false }); // Set to true with caution
       logger.info('✅ Database synchronized.');
     }

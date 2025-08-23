@@ -1,7 +1,7 @@
 /**
- * Quiz App Backend Server
+ * AristoTest Backend Server
  * 
- * Main entry point for the Quiz application backend.
+ * Main entry point for the AristoTest application backend.
  * Handles HTTP requests, WebSocket connections, and database interactions.
  * 
  * @author Samuel Quiroz

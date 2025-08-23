@@ -1,6 +1,6 @@
-# Quiz App - Interactive Learning Platform 🎓
+# AristoTest - Interactive Learning Platform 🎓
 
-Una aplicación de cuestionarios educativos tipo Socrative desarrollada con tecnologías modernas para capacitaciones internas y externas.
+Una aplicación de evaluaciones educativas interactivas desarrollada con tecnologías modernas para capacitaciones internas y externas.
 
 ## 🚀 Características Principales
 

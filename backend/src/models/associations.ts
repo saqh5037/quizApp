@@ -1,4 +1,5 @@
 import User from './User.model';
+import Organization from './Organization.model';
 import Quiz from './Quiz.model';
 import Question from './Question.model';
 import QuizSession from './QuizSession.model';
@@ -6,6 +7,17 @@ import Participant from './Participant.model';
 import Answer from './Answer.model';
 
 export const setupAssociations = (): void => {
+  // Organization associations
+  Organization.hasMany(User, {
+    foreignKey: 'organizationId',
+    as: 'users',
+  });
+  
+  User.belongsTo(Organization, {
+    foreignKey: 'organizationId',
+    as: 'organization',
+  });
+  
   // User associations
   User.hasMany(Quiz, {
     foreignKey: 'userId',

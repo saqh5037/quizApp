@@ -1,7 +1,7 @@
 {
-  "name": "quiz-app-backend",
+  "name": "aristotest-backend",
   "version": "1.0.0",
-  "description": "Backend for Socrative-style quiz application",
+  "description": "Backend for AristoTest interactive learning platform",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon",

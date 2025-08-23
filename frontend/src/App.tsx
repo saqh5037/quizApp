@@ -1,5 +1,5 @@
 /**
- * Quiz App Frontend
+ * AristoTest Frontend
  * 
  * Main React application component that sets up routing,
  * state management, and global providers.

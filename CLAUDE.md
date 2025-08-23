@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an interactive quiz application similar to Socrative, built with TypeScript, React, Node.js, and PostgreSQL. It features real-time quiz sessions using Socket.io, QR code generation for easy session joining, and comprehensive quiz management capabilities.
+AristoTest is an interactive assessment and learning platform, built with TypeScript, React, Node.js, and PostgreSQL/SQLite. It features real-time quiz sessions using Socket.io, QR code generation for easy session joining, and comprehensive quiz management capabilities.
 
 ## Development Commands
 
