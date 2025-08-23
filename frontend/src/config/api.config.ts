@@ -17,7 +17,7 @@ const getApiUrl = () => {
   }
   
   // Default for development
-  return 'http://localhost:3000';
+  return 'http://localhost:3001';
 };
 
 const API_URL = getApiUrl();
