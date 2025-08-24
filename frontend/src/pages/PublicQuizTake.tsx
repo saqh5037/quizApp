@@ -332,7 +332,7 @@ export default function PublicQuizTake() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <img 
-                src="/images/logoAristoTest.png" 
+                src="/images/logoAristoTest.svg" 
                 alt="AristoTest" 
                 className="h-8 w-auto"
               />

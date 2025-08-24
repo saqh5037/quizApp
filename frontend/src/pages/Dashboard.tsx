@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { apiConfig, buildApiUrl } from '../config/api.config';
+import { theme, getButtonClass, getHeadingClass, getTextClass } from '../styles/theme';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { 
@@ -266,7 +267,7 @@ export default function Dashboard() {
       case 'quiz_taken':
         return 'text-purple-500';
       case 'session_joined':
-        return 'text-orange-500';
+        return 'text-blue-500';
       case 'student_joined':
         return 'text-teal-500';
       default:
@@ -306,8 +307,8 @@ export default function Dashboard() {
       {
         label: 'Respuestas por Día',
         data: performanceData?.weeklyResponses || [0, 0, 0, 0, 0, 0, 0],
-        borderColor: 'rgb(99, 102, 241)',
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
         tension: 0.4,
         fill: true,
       },
@@ -329,10 +330,10 @@ export default function Dashboard() {
         label: 'Puntuación Promedio',
         data: performanceData?.categoryScores || [0],
         backgroundColor: [
-          'rgba(99, 102, 241, 0.8)',
+          'rgba(59, 130, 246, 0.8)',
           'rgba(34, 197, 94, 0.8)',
-          'rgba(168, 85, 247, 0.8)',
-          'rgba(251, 146, 60, 0.8)',
+          'rgba(147, 51, 234, 0.8)',
+          'rgba(59, 130, 246, 0.6)',
           'rgba(20, 184, 166, 0.8)',
         ],
       },
@@ -340,10 +341,10 @@ export default function Dashboard() {
         label: 'Total Intentos',
         data: performanceData?.categoryAttempts || [0],
         backgroundColor: [
-          'rgba(99, 102, 241, 0.4)',
+          'rgba(59, 130, 246, 0.4)',
           'rgba(34, 197, 94, 0.4)',
-          'rgba(168, 85, 247, 0.4)',
-          'rgba(251, 146, 60, 0.4)',
+          'rgba(147, 51, 234, 0.4)',
+          'rgba(59, 130, 246, 0.3)',
           'rgba(20, 184, 166, 0.4)',
         ],
       },
@@ -385,77 +386,69 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* Welcome Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
+      {/* Welcome Header with Enhanced Design */}
+      <div className="mb-8 bg-gradient-to-r from-blue-50 to-white p-6 rounded-xl border border-blue-100">
+        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
           {t('dashboard.welcome', { name: user?.firstName })}
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-base text-gray-600">
           {t('dashboard.subtitle')}
         </p>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <Button
-          variant="primary"
-          fullWidth
-          leftIcon={<FiPlus />}
+      {/* Quick Actions with Blue Theme */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-8">
+        <button
           onClick={() => navigate('/quizzes/create')}
-          className="py-4"
+          className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 group text-sm"
         >
+          <FiPlus size={16} className="group-hover:scale-110 transition-transform" />
           {t('dashboard.quickActions.createQuiz')}
-        </Button>
-        <Button
-          variant="outline"
-          fullWidth
-          leftIcon={<FiPlay />}
+        </button>
+        <button
           onClick={() => navigate('/sessions/host')}
-          className="py-4"
+          className="px-4 py-3 border border-gray-300 hover:border-blue-600 hover:bg-blue-50 text-gray-900 hover:text-blue-600 font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 group text-sm"
         >
+          <FiPlay size={16} className="group-hover:scale-110 transition-transform" />
           {t('common.start')} {t('sessions.title')}
-        </Button>
-        <Button
-          variant="outline"
-          fullWidth
-          leftIcon={<FiUsers />}
+        </button>
+        <button
           onClick={() => navigate('/join')}
-          className="py-4"
+          className="px-4 py-3 border border-gray-300 hover:border-blue-600 hover:bg-blue-50 text-gray-900 hover:text-blue-600 font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 group text-sm"
         >
+          <FiUsers size={16} className="group-hover:scale-110 transition-transform" />
           {t('sessions.joinSession.joinButton')} {t('sessions.title')}
-        </Button>
-        <Button
-          variant="outline"
-          fullWidth
-          leftIcon={<FiBarChart2 />}
+        </button>
+        <button
           onClick={() => navigate('/results')}
-          className="py-4"
+          className="px-4 py-3 border border-gray-300 hover:border-blue-600 hover:bg-blue-50 text-gray-900 hover:text-blue-600 font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 group text-sm"
         >
+          <FiBarChart2 size={16} className="group-hover:scale-110 transition-transform" />
           {t('dashboard.quickActions.viewReports')}
-        </Button>
+        </button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      {/* Stats Cards with Enhanced Styling */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
         {/* Total Quizzes */}
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600">Quizzes Creados</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalQuizzes}</p>
-              <div className="flex items-center mt-1">
-                <span className="text-xs text-green-600 mr-2">{stats.activeQuizzes} activos</span>
-                <span className="text-xs text-blue-600">{stats.publicQuizzes} públicos</span>
+              <div className="flex items-center mt-1 gap-2">
+                <span className="text-xs text-blue-600">{stats.activeQuizzes} activos</span>
+                <span className="text-xs text-blue-500">{stats.publicQuizzes} públicos</span>
               </div>
             </div>
             <div className="bg-blue-100 p-2 rounded-lg">
               <FiBookOpen className="text-blue-600" size={20} />
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Total Responses */}
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600">Total Respuestas</p>
@@ -468,10 +461,10 @@ export default function Dashboard() {
               <FiActivity className="text-green-600" size={20} />
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Participants */}
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600">Participantes Únicos</p>
@@ -491,16 +484,16 @@ export default function Dashboard() {
               <FiUsers className="text-purple-600" size={20} />
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Pass Rate */}
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600">Tasa de Aprobación</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">{stats.passRate}%</p>
-              <div className="flex items-center mt-1">
-                <span className="text-xs text-green-600 mr-2">{stats.passedResponses} aprobados</span>
+              <div className="flex items-center mt-1 gap-2">
+                <span className="text-xs text-green-600">{stats.passedResponses} aprobados</span>
                 <span className="text-xs text-red-600">{stats.failedResponses} reprobados</span>
               </div>
             </div>
@@ -508,10 +501,10 @@ export default function Dashboard() {
               <FiTarget className="text-emerald-600" size={20} />
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Average Score */}
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600">Puntuación Promedio</p>
@@ -520,54 +513,54 @@ export default function Dashboard() {
                 <span className="text-xs text-gray-500">Máx: {parseFloat(stats.highestScore).toFixed(0)}%</span>
               </div>
             </div>
-            <div className="bg-orange-100 p-2 rounded-lg">
-              <FiAward className="text-orange-600" size={20} />
+            <div className="bg-blue-100 p-2 rounded-lg">
+              <FiAward className="text-blue-600" size={20} />
             </div>
           </div>
-        </Card>
+        </div>
       </div>
 
-      {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+      {/* Secondary Stats with Blue Theme */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+        <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg">
           <div className="flex items-center">
             <FiPlay className="text-blue-600 mr-3" size={20} />
             <div>
-              <p className="text-sm font-semibold text-blue-900">Sesiones Activas</p>
+              <p className="text-xs font-semibold text-blue-900">Sesiones Activas</p>
               <p className="text-xl font-bold text-blue-600">{stats.activeSessions}</p>
             </div>
           </div>
-        </Card>
+        </div>
         
-        <Card className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+        <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-100 border border-green-200 rounded-lg">
           <div className="flex items-center">
             <FiCheckCircle className="text-green-600 mr-3" size={20} />
             <div>
-              <p className="text-sm font-semibold text-green-900">Sesiones Completadas</p>
+              <p className="text-xs font-semibold text-green-900">Sesiones Completadas</p>
               <p className="text-xl font-bold text-green-600">{stats.completedSessions}</p>
             </div>
           </div>
-        </Card>
+        </div>
         
-        <Card className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+        <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg">
           <div className="flex items-center">
             <FiCalendar className="text-purple-600 mr-3" size={20} />
             <div>
-              <p className="text-sm font-semibold text-purple-900">Próximas Sesiones</p>
+              <p className="text-xs font-semibold text-purple-900">Próximas Sesiones</p>
               <p className="text-xl font-bold text-purple-600">{stats.upcomingSessions}</p>
             </div>
           </div>
-        </Card>
+        </div>
         
-        <Card className="p-4 bg-gradient-to-r from-orange-50 to-red-50 border-orange-200">
+        <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-100 border border-blue-200 rounded-lg">
           <div className="flex items-center">
-            <FiZap className="text-orange-600 mr-3" size={20} />
+            <FiZap className="text-blue-600 mr-3" size={20} />
             <div>
-              <p className="text-sm font-semibold text-orange-900">Actividad Reciente</p>
-              <p className="text-xl font-bold text-orange-600">{stats.recentActivity}</p>
+              <p className="text-xs font-semibold text-blue-900">Actividad Reciente</p>
+              <p className="text-xl font-bold text-blue-600">{stats.recentActivity}</p>
             </div>
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* Main Content Grid */}
@@ -575,47 +568,56 @@ export default function Dashboard() {
         {/* Left Column - Charts */}
         <div className="lg:col-span-2 space-y-6">
           {/* Performance Chart */}
-          <Card className="p-6">
+          <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-semibold">Actividad Semanal</h2>
-                <p className="text-sm text-gray-500">Respuestas y participantes por día</p>
+                <h2 className="text-lg font-semibold text-gray-900">Actividad Semanal</h2>
+                <p className="text-xs text-gray-600 mt-1">Respuestas y participantes por día</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/public-results')}>
+              <button 
+                onClick={() => navigate('/public-results')}
+                className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium"
+              >
                 Ver Resultados
-                <FiChevronRight className="ml-1" />
-              </Button>
+                <FiChevronRight />
+              </button>
             </div>
             <div className="h-64">
               <Line data={lineChartData} options={chartOptions} />
             </div>
-          </Card>
+          </div>
 
           {/* Quiz Performance by Category */}
-          <Card className="p-6">
+          <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-semibold">Rendimiento por Categoría</h2>
-                <p className="text-sm text-gray-500">Puntuaciones promedio y total de intentos</p>
+                <h2 className="text-lg font-semibold text-gray-900">Rendimiento por Categoría</h2>
+                <p className="text-xs text-gray-600 mt-1">Puntuaciones promedio y total de intentos</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/quizzes')}>
+              <button 
+                onClick={() => navigate('/quizzes')}
+                className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium"
+              >
                 Ver Quizzes
-                <FiChevronRight className="ml-1" />
-              </Button>
+                <FiChevronRight />
+              </button>
             </div>
             <div className="h-64">
               <Bar data={barChartData} options={chartOptions} />
             </div>
-          </Card>
+          </div>
 
           {/* Recent Activity */}
-          <Card className="p-6">
+          <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">{t('dashboard.recentActivity.title')}</h2>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/activity')}>
+              <h2 className="text-lg font-semibold text-gray-900">{t('dashboard.recentActivity.title')}</h2>
+              <button 
+                onClick={() => navigate('/activity')}
+                className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium"
+              >
                 {t('dashboard.viewAll', { defaultValue: 'View All' })}
-                <FiChevronRight className="ml-1" />
-              </Button>
+                <FiChevronRight />
+              </button>
             </div>
             <div className="space-y-4">
               {recentActivities.length > 0 ? (
@@ -638,17 +640,17 @@ export default function Dashboard() {
                 <p className="text-sm text-gray-500">{t('dashboard.recentActivity.noActivity')}</p>
               )}
             </div>
-          </Card>
+          </div>
         </div>
 
         {/* Right Column - Sidebar */}
         <div className="space-y-6">
           {/* Pass/Fail Overview */}
-          <Card className="p-6">
+          <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-semibold">Resultados Generales</h2>
-                <p className="text-sm text-gray-500">Distribución de aprobaciones</p>
+                <h2 className="text-lg font-semibold text-gray-900">Resultados Generales</h2>
+                <p className="text-xs text-gray-600 mt-1">Distribución de aprobaciones</p>
               </div>
             </div>
             <div className="h-48">
@@ -682,21 +684,24 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
 
           {/* Upcoming Sessions */}
-          <Card className="p-6">
+          <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">{t('dashboard.upcomingSessions.title')}</h2>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/sessions')}>
+              <h2 className="text-lg font-semibold text-gray-900">{t('dashboard.upcomingSessions.title')}</h2>
+              <button 
+                onClick={() => navigate('/sessions')}
+                className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium"
+              >
                 {t('dashboard.viewAll', { defaultValue: 'View All' })}
-                <FiChevronRight className="ml-1" />
-              </Button>
+                <FiChevronRight />
+              </button>
             </div>
             <div className="space-y-3">
               {upcomingSessions.length > 0 ? (
                 upcomingSessions.slice(0, 3).map(session => (
-                  <div key={session.id} className="border-l-4 border-primary pl-3 py-2">
+                  <div key={session.id} className="border-l-4 border-blue-600 pl-3 py-2 hover:bg-gray-50 rounded-r-lg transition-colors">
                     <p className="text-sm font-medium text-gray-900">{session.title}</p>
                     <p className="text-xs text-gray-600">{session.quizTitle}</p>
                     <div className="flex items-center justify-between mt-2">
@@ -720,20 +725,20 @@ export default function Dashboard() {
                 <p className="text-sm text-gray-500">{t('dashboard.upcomingSessions.noSessions')}</p>
               )}
             </div>
-          </Card>
+          </div>
 
           {/* Notifications */}
-          <Card className="p-6">
+          <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">{t('dashboard.notifications.title')}</h2>
-              <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+              <h2 className="text-lg font-semibold text-gray-900">{t('dashboard.notifications.title')}</h2>
+              <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-medium">
                 {notifications.filter(n => !n.read).length}
               </span>
             </div>
             <div className="space-y-3">
               {notifications.length > 0 ? (
                 notifications.slice(0, 4).map(notification => (
-                  <div key={notification.id} className={`flex items-start gap-3 ${!notification.read ? 'bg-blue-50 -mx-2 px-2 py-2 rounded' : ''}`}>
+                  <div key={notification.id} className={`flex items-start gap-3 p-2 rounded-lg ${!notification.read ? 'bg-blue-50 border border-blue-100' : 'hover:bg-gray-50'} transition-colors`}>
                     <div className="mt-1">
                       {getNotificationIcon(notification.type)}
                     </div>
@@ -750,10 +755,10 @@ export default function Dashboard() {
                 <p className="text-sm text-gray-500">{t('dashboard.notifications.noNotifications')}</p>
               )}
             </div>
-          </Card>
+          </div>
 
           {/* MVP Metrics for Quality Team */}
-          <Card className="p-6 bg-gradient-to-br from-primary to-secondary text-white">
+          <div className="p-5 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-lg shadow-lg">
             <div className="flex items-center mb-4">
               <FiTarget className="mr-2" size={20} />
               <h2 className="text-lg font-semibold">Métricas MVP</h2>
@@ -805,45 +810,45 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
 
           {/* System Status for MVP */}
-          <Card className="p-6">
+          <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100">
             <div className="flex items-center mb-4">
               <FiCheckCircle className="text-green-500 mr-2" size={20} />
-              <h2 className="text-lg font-semibold">Estado del Sistema</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Estado del Sistema</h2>
             </div>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
                 <div className="flex items-center">
-                  <FiCheckCircle className="text-green-500 mr-2" size={16} />
-                  <span className="text-sm font-medium">Sistema de Calificación</span>
+                  <FiCheckCircle className="text-green-600 mr-2" size={16} />
+                  <span className="text-sm font-medium text-gray-900">Sistema de Calificación</span>
                 </div>
-                <span className="text-xs text-green-700 font-medium">ACTIVO</span>
+                <span className="text-xs text-green-700 font-semibold">ACTIVO</span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
                 <div className="flex items-center">
-                  <FiCheckCircle className="text-green-500 mr-2" size={16} />
-                  <span className="text-sm font-medium">Resultados Públicos</span>
+                  <FiCheckCircle className="text-green-600 mr-2" size={16} />
+                  <span className="text-sm font-medium text-gray-900">Resultados Públicos</span>
                 </div>
-                <span className="text-xs text-green-700 font-medium">ACTIVO</span>
+                <span className="text-xs text-green-700 font-semibold">ACTIVO</span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
                 <div className="flex items-center">
-                  <FiCheckCircle className="text-green-500 mr-2" size={16} />
-                  <span className="text-sm font-medium">Generación PDF</span>
+                  <FiCheckCircle className="text-green-600 mr-2" size={16} />
+                  <span className="text-sm font-medium text-gray-900">Generación PDF</span>
                 </div>
-                <span className="text-xs text-green-700 font-medium">ACTIVO</span>
+                <span className="text-xs text-green-700 font-semibold">ACTIVO</span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex items-center">
-                  <FiActivity className="text-blue-500 mr-2" size={16} />
-                  <span className="text-sm font-medium">Base de Datos</span>
+                  <FiActivity className="text-blue-600 mr-2" size={16} />
+                  <span className="text-sm font-medium text-gray-900">Base de Datos</span>
                 </div>
-                <span className="text-xs text-blue-700 font-medium">PostgreSQL</span>
+                <span className="text-xs text-blue-700 font-semibold">PostgreSQL</span>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       </div>
     </div>

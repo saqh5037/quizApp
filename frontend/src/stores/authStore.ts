@@ -56,7 +56,7 @@ export const useAuthStore = create<AuthState>()(
             password,
           });
           
-          const { user, accessToken, refreshToken } = response.data.data;
+          const { user, accessToken, refreshToken = null } = response.data.data;
           
           set({
             user,
@@ -80,9 +80,9 @@ export const useAuthStore = create<AuthState>()(
       register: async (data: RegisterData) => {
         set({ isLoading: true });
         try {
-          const response = await axios.post(`${API_URL}/api/v1/auth/register`, data);
+          const response = await axios.post(buildApiUrl(apiConfig.endpoints.auth.register), data);
           
-          const { user, accessToken, refreshToken } = response.data.data;
+          const { user, accessToken, refreshToken = null } = response.data.data;
           
           set({
             user,
@@ -122,7 +122,7 @@ export const useAuthStore = create<AuthState>()(
         }
 
         try {
-          const response = await axios.post(`${API_URL}/api/v1/auth/refresh`, {
+          const response = await axios.post(buildApiUrl(apiConfig.endpoints.auth.refresh), {
             refreshToken,
           });
           
@@ -184,7 +184,11 @@ axios.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Don't retry for login or refresh endpoints
+    const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
+                          originalRequest.url?.includes('/auth/refresh');
+    
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
       
       try {

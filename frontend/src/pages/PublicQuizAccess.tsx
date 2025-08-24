@@ -188,7 +188,7 @@ export default function PublicQuizAccess() {
         {/* Header with Logo */}
         <div className="text-center mb-8">
           <img 
-            src="/images/logoAristoTest.png" 
+            src="/images/logoAristoTest.svg" 
             alt="AristoTest" 
             className="h-24 w-auto mx-auto mb-4"
           />

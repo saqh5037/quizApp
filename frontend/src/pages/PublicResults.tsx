@@ -239,65 +239,70 @@ export default function PublicResults() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Resultados de Evaluaciones Públicas
-        </h1>
-        {quiz && (
-          <p className="text-gray-600">
-            {quiz.title} - {quiz.category}
-          </p>
-        )}
+      <div className="bg-gradient-to-r from-blue-50 to-white p-6 rounded-xl border border-blue-100 mb-6">
+        <div className="flex items-center gap-3">
+          <BarChart3 className="w-8 h-8 text-blue-600" />
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+              Resultados de Evaluaciones Públicas
+            </h1>
+            {quiz && (
+              <p className="text-gray-600 text-sm mt-1">
+                {quiz.title} - {quiz.category}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Statistics Cards */}
       {statistics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Users className="w-8 h-8 text-blue-500" />
-              <span className="text-2xl font-bold">{statistics.unique_participants}</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <Users className="w-6 h-6 text-blue-600" />
+              <span className="text-xl font-bold text-gray-900">{statistics.unique_participants}</span>
             </div>
-            <h3 className="text-sm font-medium text-gray-600">Participantes Únicos</h3>
+            <h3 className="text-xs font-medium text-gray-600">Participantes Únicos</h3>
             <p className="text-xs text-gray-500 mt-1">{statistics.total_attempts} intentos totales</p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Trophy className="w-8 h-8 text-yellow-500" />
-              <span className="text-2xl font-bold">{parseFloat(statistics.average_score).toFixed(1)}%</span>
+          <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <Trophy className="w-6 h-6 text-yellow-500" />
+              <span className="text-xl font-bold text-gray-900">{parseFloat(statistics.average_score).toFixed(1)}%</span>
             </div>
-            <h3 className="text-sm font-medium text-gray-600">Puntuación Promedio</h3>
+            <h3 className="text-xs font-medium text-gray-600">Puntuación Promedio</h3>
             <p className="text-xs text-gray-500 mt-1">
               Min: {statistics.min_score}% | Max: {statistics.max_score}%
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Target className="w-8 h-8 text-green-500" />
-              <span className="text-2xl font-bold">{statistics.passed_count}</span>
+          <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <Target className="w-6 h-6 text-green-500" />
+              <span className="text-xl font-bold text-gray-900">{statistics.passed_count}</span>
             </div>
-            <h3 className="text-sm font-medium text-gray-600">Aprobados</h3>
+            <h3 className="text-xs font-medium text-gray-600">Aprobados</h3>
             <p className="text-xs text-gray-500 mt-1">
               {((parseFloat(statistics.passed_count) / parseFloat(statistics.total_attempts)) * 100).toFixed(1)}% tasa de aprobación
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Clock className="w-8 h-8 text-purple-500" />
-              <span className="text-2xl font-bold">{formatTime(statistics.avg_time_seconds)}</span>
+          <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <Clock className="w-6 h-6 text-purple-500" />
+              <span className="text-xl font-bold text-gray-900">{formatTime(statistics.avg_time_seconds)}</span>
             </div>
-            <h3 className="text-sm font-medium text-gray-600">Tiempo Promedio</h3>
+            <h3 className="text-xs font-medium text-gray-600">Tiempo Promedio</h3>
             <p className="text-xs text-gray-500 mt-1">Por evaluación</p>
           </div>
         </div>
@@ -305,8 +310,8 @@ export default function PublicResults() {
 
       {/* Score Distribution Chart */}
       {scoreDistribution.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <h2 className="text-lg font-semibold mb-4">Distribución de Puntuaciones</h2>
+        <div className="bg-white rounded-lg shadow-sm p-5 mb-6 border border-gray-100">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Distribución de Puntuaciones</h2>
           <div className="flex items-end space-x-2 h-40">
             {scoreDistribution.map((range) => {
               const maxCount = Math.max(...scoreDistribution.map(r => parseInt(r.count.toString())));
@@ -314,7 +319,7 @@ export default function PublicResults() {
               
               return (
                 <div key={range.range} className="flex-1 flex flex-col items-center">
-                  <div className="w-full bg-primary rounded-t transition-all hover:bg-primary-dark relative group"
+                  <div className="w-full bg-blue-600 rounded-t transition-all hover:bg-blue-700 relative group"
                        style={{ height: `${height}%` }}>
                     <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <span className="bg-gray-800 text-white text-xs px-2 py-1 rounded">
@@ -331,7 +336,7 @@ export default function PublicResults() {
       )}
 
       {/* Filters and Actions */}
-      <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+      <div className="bg-white rounded-lg shadow-sm p-4 mb-6 border border-gray-100">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
@@ -339,7 +344,7 @@ export default function PublicResults() {
               <select
                 value={filterScore}
                 onChange={(e) => setFilterScore(e.target.value as any)}
-                className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
               >
                 <option value="all">Todos</option>
                 <option value="passed">Aprobados</option>
@@ -352,7 +357,7 @@ export default function PublicResults() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
               >
                 <option value="date">Fecha</option>
                 <option value="score">Puntuación</option>
@@ -363,16 +368,16 @@ export default function PublicResults() {
 
           <button
             onClick={exportToCSV}
-            className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
           >
             <Download className="w-4 h-4" />
-            <span>Exportar CSV</span>
+            <span className="text-sm">Exportar CSV</span>
           </button>
         </div>
       </div>
 
       {/* Results Table */}
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
@@ -454,7 +459,7 @@ export default function PublicResults() {
                     <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => navigate(`/results/detail/${result.id}`)}
-                        className="text-primary hover:text-primary-dark"
+                        className="text-blue-600 hover:text-blue-700 transition-colors"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
@@ -468,8 +473,8 @@ export default function PublicResults() {
 
         {results.length === 0 && (
           <div className="text-center py-12">
-            <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No hay resultados disponibles</p>
+            <AlertCircle className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-500 text-sm">No hay resultados disponibles</p>
           </div>
         )}
       </div>

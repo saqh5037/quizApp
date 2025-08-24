@@ -33,6 +33,11 @@ import Profile from './pages/Profile';
 import Documentation from './pages/Documentation';
 import PublicQuizAccess from './pages/PublicQuizAccess';
 import PublicQuizTake from './pages/PublicQuizTake';
+import Videos from './pages/Videos';
+import VideoUpload from './pages/VideoUpload';
+import VideoDetail from './pages/VideoDetail';
+import VideoEdit from './pages/VideoEdit';
+import VideoPlayerPage from './pages/VideoPlayer';
 import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient({
@@ -109,6 +114,26 @@ const router = createBrowserRouter([
       {
         path: 'quizzes/:id/edit',
         element: <EditQuiz />,
+      },
+      {
+        path: 'videos',
+        element: <Videos />,
+      },
+      {
+        path: 'videos/upload',
+        element: <VideoUpload />,
+      },
+      {
+        path: 'videos/:id',
+        element: <VideoDetail />,
+      },
+      {
+        path: 'videos/:id/edit',
+        element: <VideoEdit />,
+      },
+      {
+        path: 'videos/:id/play',
+        element: <VideoPlayerPage />,
       },
       {
         path: 'sessions',

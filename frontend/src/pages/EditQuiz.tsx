@@ -362,7 +362,7 @@ export default function EditQuiz() {
             </button>
             <button
               onClick={handleSaveQuiz}
-              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center space-x-2"
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-600-dark transition-colors flex items-center space-x-2"
             >
               <Save className="w-4 h-4" />
               <span>Save Changes</span>
@@ -378,13 +378,13 @@ export default function EditQuiz() {
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 font-medium text-sm capitalize transition-colors ${
                 activeTab === tab
-                  ? 'text-primary border-b-2 border-primary'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               {tab}
               {tab === 'questions' && quiz.questions.length > 0 && (
-                <span className="ml-2 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs">
+                <span className="ml-2 px-2 py-0.5 bg-blue-600/10 text-blue-600 rounded-full text-xs">
                   {quiz.questions.length}
                 </span>
               )}
@@ -405,7 +405,7 @@ export default function EditQuiz() {
                 type="text"
                 value={quiz.title}
                 onChange={e => setQuiz(prev => ({ ...prev, title: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                 placeholder="Enter quiz title"
               />
             </div>
@@ -417,7 +417,7 @@ export default function EditQuiz() {
               <select
                 value={quiz.category}
                 onChange={e => setQuiz(prev => ({ ...prev, category: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
               >
                 {categories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -432,7 +432,7 @@ export default function EditQuiz() {
               <textarea
                 value={quiz.description}
                 onChange={e => setQuiz(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                 rows={3}
                 placeholder="Describe what this quiz is about"
               />
@@ -449,7 +449,7 @@ export default function EditQuiz() {
                     onClick={() => setQuiz(prev => ({ ...prev, difficulty: level }))}
                     className={`px-4 py-2 rounded-lg capitalize transition-colors ${
                       quiz.difficulty === level
-                        ? 'bg-primary text-white'
+                        ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -467,7 +467,7 @@ export default function EditQuiz() {
                 type="number"
                 value={quiz.timeLimit || ''}
                 onChange={e => setQuiz(prev => ({ ...prev, timeLimit: e.target.value ? parseInt(e.target.value) : undefined }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                 placeholder="No time limit"
                 min="1"
               />
@@ -484,7 +484,7 @@ export default function EditQuiz() {
               <h3 className="font-semibold text-gray-900">Questions</h3>
               <button
                 onClick={addQuestion}
-                className="p-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-600-dark transition-colors"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -497,7 +497,7 @@ export default function EditQuiz() {
                   onClick={() => setCurrentQuestionIndex(index)}
                   className={`p-3 rounded-lg cursor-pointer transition-colors ${
                     currentQuestionIndex === index
-                      ? 'bg-primary/10 border-2 border-primary'
+                      ? 'bg-blue-600/10 border-2 border-blue-600'
                       : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
                   }`}
                 >
@@ -605,7 +605,7 @@ export default function EditQuiz() {
                       
                       updateQuestion(currentQuestionIndex, updates);
                     }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                   >
                     <option value="multiple_choice">Multiple Choice</option>
                     <option value="true_false">True/False</option>
@@ -621,7 +621,7 @@ export default function EditQuiz() {
                   <textarea
                     value={currentQuestion.question}
                     onChange={e => updateQuestion(currentQuestionIndex, { question: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                     rows={3}
                     placeholder="Enter your question here"
                   />
@@ -684,7 +684,7 @@ export default function EditQuiz() {
                                   ? 'border-green-400 bg-white'
                                   : isIncorrect
                                   ? 'border-red-300 bg-white'
-                                  : 'border-gray-300 bg-white focus:ring-2 focus:ring-primary focus:border-transparent'
+                                  : 'border-gray-300 bg-white focus:ring-2 focus:ring-blue-600 focus:border-transparent'
                               }`}
                               placeholder={`Option ${optIndex + 1}`}
                             />
@@ -818,7 +818,7 @@ export default function EditQuiz() {
                     type="number"
                     value={currentQuestion.points}
                     onChange={e => updateQuestion(currentQuestionIndex, { points: parseInt(e.target.value) || 1 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                     min="1"
                   />
                 </div>
@@ -831,7 +831,7 @@ export default function EditQuiz() {
                   <textarea
                     value={currentQuestion.explanation || ''}
                     onChange={e => updateQuestion(currentQuestionIndex, { explanation: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                     rows={2}
                     placeholder="Provide an explanation for the correct answer"
                   />
@@ -861,7 +861,7 @@ export default function EditQuiz() {
                   <button
                     onClick={() => setQuiz(prev => ({ ...prev, isPublic: !prev.isPublic }))}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      quiz.isPublic ? 'bg-primary' : 'bg-gray-200'
+                      quiz.isPublic ? 'bg-blue-600' : 'bg-gray-200'
                     }`}
                   >
                     <span
@@ -880,7 +880,7 @@ export default function EditQuiz() {
                   <button
                     onClick={() => setQuiz(prev => ({ ...prev, randomizeQuestions: !prev.randomizeQuestions }))}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      quiz.randomizeQuestions ? 'bg-primary' : 'bg-gray-200'
+                      quiz.randomizeQuestions ? 'bg-blue-600' : 'bg-gray-200'
                     }`}
                   >
                     <span
@@ -899,7 +899,7 @@ export default function EditQuiz() {
                   <button
                     onClick={() => setQuiz(prev => ({ ...prev, allowReview: !prev.allowReview }))}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      quiz.allowReview ? 'bg-primary' : 'bg-gray-200'
+                      quiz.allowReview ? 'bg-blue-600' : 'bg-gray-200'
                     }`}
                   >
                     <span
@@ -918,7 +918,7 @@ export default function EditQuiz() {
                   <button
                     onClick={() => setQuiz(prev => ({ ...prev, showCorrectAnswers: !prev.showCorrectAnswers }))}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      quiz.showCorrectAnswers ? 'bg-primary' : 'bg-gray-200'
+                      quiz.showCorrectAnswers ? 'bg-blue-600' : 'bg-gray-200'
                     }`}
                   >
                     <span

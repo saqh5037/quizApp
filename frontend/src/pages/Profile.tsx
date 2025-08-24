@@ -365,10 +365,13 @@ export default function Profile() {
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t('profile.title')}</h1>
-          <p className="text-gray-600 mt-1">{t('profile.subtitle')}</p>
+      <div className="bg-gradient-to-r from-blue-50 to-white p-6 rounded-xl border border-blue-100 mb-6">
+        <div className="flex items-center gap-3">
+          <FiUser className="w-8 h-8 text-blue-600" />
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">{t('profile.title')}</h1>
+            <p className="text-gray-600 text-sm mt-1">{t('profile.subtitle')}</p>
+          </div>
         </div>
       </div>
 
@@ -378,7 +381,7 @@ export default function Profile() {
           {/* Basic Information */}
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold">{t('profile.personalInformation')}</h2>
+              <h2 className="text-base font-semibold">{t('profile.personalInformation')}</h2>
               {!editMode ? (
                 <Button
                   variant="outline"
@@ -423,7 +426,7 @@ export default function Profile() {
             <div className="flex items-start gap-6">
               {/* Avatar */}
               <div className="relative">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
                   {user.avatar ? (
                     <img src={user.avatar} alt={user.firstName} className="w-full h-full object-cover" />
                   ) : (
@@ -432,7 +435,7 @@ export default function Profile() {
                 </div>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 bg-primary text-white rounded-full p-2 hover:bg-primary-dark transition-colors"
+                  className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 transition-colors"
                   disabled={uploadingAvatar}
                 >
                   <FiCamera size={14} />
@@ -494,7 +497,7 @@ export default function Profile() {
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                     disabled={!editMode}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-50"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                     placeholder={t('profile.bioPlaceholder')}
                   />
                 </div>
@@ -516,7 +519,7 @@ export default function Profile() {
           {/* Statistics */}
           {user.role === 'teacher' && (
             <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-4">{t('profile.teachingStatistics')}</h2>
+              <h2 className="text-base font-semibold mb-4">{t('profile.teachingStatistics')}</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
                   <FiBookOpen className="text-blue-500 mx-auto mb-2" size={24} />
@@ -544,7 +547,7 @@ export default function Profile() {
 
           {user.role === 'student' && (
             <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-4">{t('profile.learningStatistics')}</h2>
+              <h2 className="text-base font-semibold mb-4">{t('profile.learningStatistics')}</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
                   <FiBookOpen className="text-blue-500 mx-auto mb-2" size={24} />
@@ -572,7 +575,7 @@ export default function Profile() {
 
           {/* Change Password */}
           <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">{t('profile.security')}</h2>
+            <h2 className="text-base font-semibold mb-4">{t('profile.security')}</h2>
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -625,7 +628,7 @@ export default function Profile() {
         <div className="space-y-6">
           {/* Recent Activity */}
           <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">{t('profile.recentActivity')}</h2>
+            <h2 className="text-base font-semibold mb-4">{t('profile.recentActivity')}</h2>
             {activities.length > 0 ? (
               <div className="space-y-3">
                 {activities.slice(0, 5).map((activity) => (
@@ -649,10 +652,10 @@ export default function Profile() {
 
           {/* Preferences */}
           <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">{t('profile.preferences')}</h2>
+            <h2 className="text-base font-semibold mb-4">{t('profile.preferences')}</h2>
             <div className="space-y-6">
               <div className="mb-6">
-                <label className="block text-sm font-medium text-text-primary mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t('profile.preferences.language')}
                 </label>
                 <p className="text-sm text-text-secondary mb-3">
@@ -661,7 +664,7 @@ export default function Profile() {
                 <select
                   value={i18n.language}
                   onChange={(e) => i18n.changeLanguage(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="es">Español</option>
                   <option value="en">English</option>
@@ -673,7 +676,7 @@ export default function Profile() {
                   type="checkbox"
                   checked={preferences.emailNotifications}
                   onChange={(e) => setPreferences({ ...preferences, emailNotifications: e.target.checked })}
-                  className="rounded text-primary focus:ring-primary"
+                  className="rounded text-blue-600 focus:ring-blue-500"
                 />
               </label>
               <label className="flex items-center justify-between">
@@ -682,7 +685,7 @@ export default function Profile() {
                   type="checkbox"
                   checked={preferences.smsNotifications}
                   onChange={(e) => setPreferences({ ...preferences, smsNotifications: e.target.checked })}
-                  className="rounded text-primary focus:ring-primary"
+                  className="rounded text-blue-600 focus:ring-blue-500"
                 />
               </label>
               <label className="flex items-center justify-between">
@@ -691,7 +694,7 @@ export default function Profile() {
                   type="checkbox"
                   checked={preferences.publicProfile}
                   onChange={(e) => setPreferences({ ...preferences, publicProfile: e.target.checked })}
-                  className="rounded text-primary focus:ring-primary"
+                  className="rounded text-blue-600 focus:ring-blue-500"
                 />
               </label>
               <label className="flex items-center justify-between">
@@ -700,7 +703,7 @@ export default function Profile() {
                   type="checkbox"
                   checked={preferences.showActivity}
                   onChange={(e) => setPreferences({ ...preferences, showActivity: e.target.checked })}
-                  className="rounded text-primary focus:ring-primary"
+                  className="rounded text-blue-600 focus:ring-blue-500"
                 />
               </label>
               <Button
@@ -717,7 +720,7 @@ export default function Profile() {
 
           {/* Danger Zone */}
           <Card className="p-6 border-red-200">
-            <h2 className="text-lg font-semibold text-red-600 mb-4">{t('profile.dangerZone')}</h2>
+            <h2 className="text-base font-semibold text-red-600 mb-4">{t('profile.dangerZone')}</h2>
             <p className="text-sm text-gray-600 mb-4">
               {t('profile.deleteAccountWarning')}
             </p>

@@ -7,7 +7,7 @@ import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
 import PublicQuizShare from '../components/quiz/PublicQuizShare';
-import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiPlay, FiCopy, FiBarChart, FiShare2, FiX } from 'react-icons/fi';
+import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiPlay, FiCopy, FiBarChart, FiShare2, FiX, FiBookOpen, FiUsers, FiGlobe } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 interface Quiz {
@@ -173,10 +173,10 @@ export default function Quizzes() {
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'easy': return 'text-success';
-      case 'medium': return 'text-warning';
-      case 'hard': return 'text-error';
-      default: return 'text-text-secondary';
+      case 'easy': return 'text-green-600';
+      case 'medium': return 'text-yellow-600';
+      case 'hard': return 'text-red-600';
+      default: return 'text-gray-600';
     }
   };
 
@@ -189,155 +189,176 @@ export default function Quizzes() {
     <div>
       {/* Header */}
       <div className="mb-8">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-primary">{t('quizzes.title')}</h1>
-            <p className="text-text-secondary mt-2">
-              {t('quizzes.subtitle')}
-            </p>
+        <div className="bg-gradient-to-r from-blue-50 to-white p-6 rounded-xl border border-blue-100 mb-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <FiBookOpen className="text-blue-600" />
+                {t('quizzes.title')}
+              </h1>
+              <p className="text-base text-gray-600 mt-2">
+                {t('quizzes.subtitle')}
+              </p>
+            </div>
+            <Link to="/quizzes/create">
+              <button className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2">
+                <FiPlus size={16} />
+                {t('quizzes.createButton')}
+              </button>
+            </Link>
           </div>
-          <Link to="/quizzes/create">
-            <Button variant="primary" leftIcon={<FiPlus />}>
-              {t('quizzes.createButton')}
-            </Button>
-          </Link>
         </div>
 
         {/* Search and Filters */}
-        <div className="flex gap-4 items-center">
-          <div className="flex-1 max-w-md">
-            <Input
+        <div className="flex gap-3 items-center">
+          <div className="flex-1 max-w-md relative">
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <input
               type="text"
               placeholder={t('quizzes.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              leftIcon={<FiSearch />}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-sm"
             />
           </div>
           <div className="flex gap-2">
-            <Button
-              variant={filter === 'all' ? 'primary' : 'outline'}
-              size="sm"
+            <button
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                filter === 'all' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'border border-gray-300 text-gray-700 hover:border-blue-600 hover:bg-blue-50'
+              }`}
               onClick={() => setFilter('all')}
             >
               {t('common.all')}
-            </Button>
-            <Button
-              variant={filter === 'public' ? 'primary' : 'outline'}
-              size="sm"
+            </button>
+            <button
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                filter === 'public' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'border border-gray-300 text-gray-700 hover:border-blue-600 hover:bg-blue-50'
+              }`}
               onClick={() => setFilter('public')}
             >
               {t('common.public')}
-            </Button>
-            <Button
-              variant={filter === 'private' ? 'primary' : 'outline'}
-              size="sm"
+            </button>
+            <button
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                filter === 'private' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'border border-gray-300 text-gray-700 hover:border-blue-600 hover:bg-blue-50'
+              }`}
               onClick={() => setFilter('private')}
             >
               {t('common.private')}
-            </Button>
+            </button>
           </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <Card className="p-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-secondary text-sm">{t('quizzes.stats.total')}</p>
-              <p className="text-2xl font-bold text-primary">{quizzes.length}</p>
+              <p className="text-xs font-medium text-gray-600">{t('quizzes.stats.total')}</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{quizzes.length}</p>
             </div>
-            <div className="text-primary bg-primary/10 p-3 rounded-lg">
-              <FiBarChart size={24} />
+            <div className="bg-blue-100 p-2 rounded-lg">
+              <FiBookOpen className="text-blue-600" size={20} />
             </div>
           </div>
-        </Card>
+        </div>
 
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-secondary text-sm">{t('quizzes.stats.questions')}</p>
-              <p className="text-2xl font-bold text-primary">
+              <p className="text-xs font-medium text-gray-600">{t('quizzes.stats.questions')}</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
                 {quizzes.reduce((acc, q) => acc + (q.questionsCount || 0), 0)}
               </p>
             </div>
-            <div className="text-success bg-success/10 p-3 rounded-lg">
-              <FiBarChart size={24} />
+            <div className="bg-green-100 p-2 rounded-lg">
+              <FiBarChart className="text-green-600" size={20} />
             </div>
           </div>
-        </Card>
+        </div>
 
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-secondary text-sm">{t('quizzes.stats.timesPlayed')}</p>
-              <p className="text-2xl font-bold text-primary">
+              <p className="text-xs font-medium text-gray-600">{t('quizzes.stats.timesPlayed')}</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
                 {quizzes.reduce((acc, q) => acc + (q.timesPlayed || 0), 0)}
               </p>
             </div>
-            <div className="text-warning bg-warning/10 p-3 rounded-lg">
-              <FiPlay size={24} />
+            <div className="bg-purple-100 p-2 rounded-lg">
+              <FiPlay className="text-purple-600" size={20} />
             </div>
           </div>
-        </Card>
+        </div>
 
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text-secondary text-sm">{t('quizzes.stats.public')}</p>
-              <p className="text-2xl font-bold text-primary">
+              <p className="text-xs font-medium text-gray-600">{t('quizzes.stats.public')}</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
                 {quizzes.filter(q => q.isPublic).length}
               </p>
             </div>
-            <div className="text-error bg-error/10 p-3 rounded-lg">
-              <FiBarChart size={24} />
+            <div className="bg-blue-100 p-2 rounded-lg">
+              <FiGlobe className="text-blue-600" size={20} />
             </div>
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* Quiz Grid */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="mt-4 text-text-secondary">{t('common.loading')}</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
         </div>
       ) : filteredQuizzes.length === 0 ? (
-        <Card className="text-center py-12">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 text-center py-12">
           <div className="text-gray-400 mb-4">
             <FiSearch size={48} className="mx-auto" />
           </div>
-          <h3 className="text-xl font-semibold mb-2">{t('quizzes.empty.title')}</h3>
-          <p className="text-text-secondary mb-6">
+          <h3 className="text-xl font-semibold mb-2 text-gray-900">{t('quizzes.empty.title')}</h3>
+          <p className="text-gray-600 mb-6">
             {searchTerm ? t('quizzes.empty.searchSubtitle') : t('quizzes.empty.subtitle')}
           </p>
           {!searchTerm && (
             <Link to="/quizzes/create">
-              <Button variant="primary" leftIcon={<FiPlus />}>
+              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md inline-flex items-center gap-2">
+                <FiPlus size={16} />
                 {t('quizzes.empty.createFirst')}
-              </Button>
+              </button>
             </Link>
           )}
-        </Card>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredQuizzes.map((quiz) => (
-            <Card key={quiz.id} className="hover:shadow-lg transition-shadow">
-              <div className="p-6">
+            <div key={quiz.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100">
+              <div className="p-5">
                 {/* Quiz Header */}
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-primary mb-1">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
                       {quiz.title}
                     </h3>
-                    <span className={`text-sm font-medium ${getDifficultyColor(quiz.difficulty)}`}>
+                    <span className={`text-xs font-medium ${
+                      quiz.difficulty === 'easy' ? 'text-green-600' :
+                      quiz.difficulty === 'medium' ? 'text-yellow-600' :
+                      'text-red-600'
+                    }`}>
                       {t(`quizzes.card.difficulty.${quiz.difficulty}`)}
                     </span>
                   </div>
                   <span className={`px-2 py-1 text-xs rounded-full ${
                     quiz.isPublic 
-                      ? 'bg-success/10 text-success' 
+                      ? 'bg-blue-100 text-blue-600 font-medium' 
                       : 'bg-gray-100 text-gray-600'
                   }`}>
                     {quiz.isPublic ? t('common.public') : t('common.private')}
@@ -345,12 +366,12 @@ export default function Quizzes() {
                 </div>
 
                 {/* Quiz Description */}
-                <p className="text-text-secondary text-sm mb-4 line-clamp-2">
+                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
                   {quiz.description}
                 </p>
 
                 {/* Quiz Stats */}
-                <div className="flex items-center gap-4 text-sm text-text-secondary mb-4">
+                <div className="flex items-center gap-3 text-xs text-gray-500 mb-4">
                   <span>{quiz.questionsCount} {t('quizzes.card.questions')}</span>
                   <span>•</span>
                   <span>{formatTime(quiz.timeLimit)}</span>
@@ -360,7 +381,7 @@ export default function Quizzes() {
 
                 {/* Category Badge */}
                 <div className="mb-4">
-                  <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">
+                  <span className="inline-block px-3 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full">
                     {quiz.category}
                   </span>
                 </div>
@@ -368,53 +389,50 @@ export default function Quizzes() {
                 {/* Action Buttons */}
                 <div className="flex gap-2">
                   <Link to={`/sessions/host?quiz=${quiz.id}`} className="flex-1">
-                    <Button variant="primary" size="sm" fullWidth leftIcon={<FiPlay />}>
+                    <button className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 text-sm flex items-center justify-center gap-1">
+                      <FiPlay size={14} />
                       {t('quizzes.card.actions.start')}
-                    </Button>
+                    </button>
                   </Link>
                   <Link to={`/quizzes/${quiz.id}/edit`} className="flex-1">
-                    <Button variant="outline" size="sm" fullWidth leftIcon={<FiEdit2 />}>
+                    <button className="w-full px-3 py-2 border border-gray-300 hover:border-blue-600 hover:bg-blue-50 text-gray-700 hover:text-blue-600 font-medium rounded-lg transition-all duration-200 text-sm flex items-center justify-center gap-1">
+                      <FiEdit2 size={14} />
                       {t('quizzes.card.actions.edit')}
-                    </Button>
+                    </button>
                   </Link>
                   {quiz.isPublic && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={() => setShareModalQuiz(quiz)}
                       title={t('publicQuiz.shareLink')}
-                      className="text-primary hover:bg-primary/10"
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     >
-                      <FiShare2 />
-                    </Button>
+                      <FiShare2 size={16} />
+                    </button>
                   )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
                     onClick={() => handleDuplicateQuiz(quiz.id)}
                     title={t('quizzes.card.actions.duplicate')}
+                    className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
                   >
-                    <FiCopy />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                    <FiCopy size={16} />
+                  </button>
+                  <button
                     onClick={() => handleDeleteQuiz(quiz.id)}
-                    className="text-error hover:bg-error/10"
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title={t('quizzes.card.actions.delete')}
                   >
-                    <FiTrash2 />
-                  </Button>
+                    <FiTrash2 size={16} />
+                  </button>
                 </div>
 
                 {/* Last Used */}
                 {quiz.lastUsed && (
-                  <p className="text-xs text-text-secondary mt-4">
+                  <p className="text-xs text-gray-500 mt-4">
                     {t('quizzes.card.lastUsed')}: {new Date(quiz.lastUsed).toLocaleDateString()}
                   </p>
                 )}
               </div>
-            </Card>
+            </div>
           ))}
         </div>
       )}
@@ -422,18 +440,16 @@ export default function Quizzes() {
       {/* Share Modal */}
       {shareModalQuiz && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-primary">{shareModalQuiz.title}</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <h2 className="text-xl font-bold text-gray-900">{shareModalQuiz.title}</h2>
+                <button
                   onClick={() => setShareModalQuiz(null)}
-                  className="text-text-secondary hover:text-text-primary"
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <FiX size={20} />
-                </Button>
+                </button>
               </div>
               <PublicQuizShare 
                 quizId={shareModalQuiz.id} 

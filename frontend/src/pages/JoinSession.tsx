@@ -123,7 +123,7 @@ export default function JoinSession() {
       <Card className="w-full max-w-md p-8">
         <div className="text-center mb-8">
           <img 
-            src="/images/logoAristoTest.png" 
+            src="/images/logoAristoTest.svg" 
             alt="AristoTest" 
             className="h-16 mx-auto mb-4"
           />

@@ -1,7 +1,18 @@
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
-import { FiHome, FiBookOpen, FiUsers, FiBarChart2, FiUser, FiHelpCircle } from 'react-icons/fi';
+import { 
+  RiRocketLine, 
+  RiBookOpenLine, 
+  RiBarChartBoxLine, 
+  RiGroupLine, 
+  RiFileListLine,
+  RiUserLine,
+  RiLogoutBoxLine,
+  RiNotification3Line,
+  RiVideoLine,
+  RiFileTextLine
+} from 'react-icons/ri';
 
 export default function MainLayout() {
   const location = useLocation();
@@ -14,65 +25,111 @@ export default function MainLayout() {
     navigate('/login');
   };
 
+  // Check if user is admin
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+
   const navItems = [
-    { path: '/dashboard', label: t('navigation.dashboard'), icon: <FiHome className="w-5 h-5" /> },
-    { path: '/quizzes', label: t('navigation.assessments'), icon: <FiBookOpen className="w-5 h-5" /> },
-    { path: '/sessions', label: t('navigation.sessions'), icon: <FiUsers className="w-5 h-5" /> },
-    { path: '/public-results', label: 'Resultados', icon: <FiBarChart2 className="w-5 h-5" /> },
-    { path: '/profile', label: t('navigation.profile'), icon: <FiUser className="w-5 h-5" /> },
-    { path: '/docs', label: t('navigation.docs', { defaultValue: 'Docs' }), icon: <FiHelpCircle className="w-5 h-5" /> },
+    { path: '/dashboard', label: t('navigation.dashboard', { defaultValue: 'Dashboard' }), key: 'launch' },
+    { path: '/quizzes', label: t('navigation.assessments', { defaultValue: 'Evaluaciones' }), key: 'library' },
+    { path: '/videos', label: 'Videos', key: 'videos' },
+    { path: '/sessions', label: t('navigation.sessions', { defaultValue: 'Sesiones' }), key: 'rooms' },
+    { path: '/public-results', label: 'Resultados', key: 'reports' },
+    { path: '/results', label: 'Resultados En Vivo', key: 'live-results' },
+    ...(isAdmin ? [{ path: '/docs', label: 'Documentación', key: 'docs' }] : []),
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="bg-white shadow-md border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50">
+      {/* Top Navigation Bar */}
+      <nav className="bg-white border-b border-gray-200">
+        <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
+            {/* Left side - Logo and Navigation */}
             <div className="flex items-center">
-              <Link to="/dashboard" className="flex items-center">
+              {/* Logo */}
+              <Link to="/dashboard" className="flex items-center mr-8">
                 <img 
-                  src="/images/logoAristoTest.png" 
+                  src="/images/isoTipoAristoTest.svg" 
                   alt="AristoTest" 
-                  className="h-10 mr-3"
+                  className="h-14"
                 />
               </Link>
-              <div className="hidden md:ml-10 md:flex md:space-x-4">
+              
+              {/* Tab Navigation */}
+              <div className="flex space-x-1">
                 {navItems.map((item) => (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                      location.pathname === item.path
-                        ? 'text-primary bg-primary/10'
-                        : 'text-text-secondary hover:text-primary hover:bg-gray-50'
+                    className={`px-4 py-5 text-sm border-b-2 transition-all ${
+                      location.pathname.startsWith(item.path)
+                        ? 'text-gray-900 font-bold border-blue-600'
+                        : 'text-gray-600 font-medium border-transparent hover:text-gray-900 hover:border-gray-300'
                     }`}
                   >
-                    <span className="mr-2">{item.icon}</span>
                     {item.label}
                   </Link>
                 ))}
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              {user && (
-                <>
-                  <span className="text-sm text-text-secondary">
-                    {user.name || user.email}
-                  </span>
+            {/* Right side - User menu */}
+            <div className="flex items-center space-x-3">
+              {/* Notifications */}
+              <button className="p-2 text-gray-500 hover:text-gray-700 transition-colors">
+                <RiNotification3Line className="w-5 h-5" />
+              </button>
+              
+              {/* User Dropdown */}
+              <div className="relative group">
+                <button className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:text-gray-900 transition-colors">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
+                    {user?.email?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <span className="hidden sm:block">{user?.email?.split('@')[0] || 'Usuario'}</span>
+                  <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">PRO</span>
+                </button>
+                
+                {/* Dropdown Menu */}
+                <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <Link 
+                    to="/profile" 
+                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <RiUserLine className="w-4 h-4 mr-2" />
+                    Mi Perfil
+                  </Link>
+                  {isAdmin && (
+                    <>
+                      <hr className="border-gray-200" />
+                      <Link 
+                        to="/docs" 
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <RiFileTextLine className="w-4 h-4 mr-2" />
+                        Documentación
+                      </Link>
+                    </>
+                  )}
+                  <hr className="border-gray-200" />
                   <button
                     onClick={handleLogout}
-                    className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors"
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   >
-                    {t('common.logout')}
+                    <RiLogoutBoxLine className="w-4 h-4 mr-2" />
+                    Cerrar Sesión
                   </button>
-                </>
-              )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </nav>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Outlet />
+      
+      {/* Main Content */}
+      <main className="flex-1">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
