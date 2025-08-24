@@ -411,6 +411,112 @@ export default function Documentation() {
       status: 'partial'
     },
     {
+      id: 'videos',
+      title: i18n.language === 'es' ? 'Módulo de Videos' : 'Video Module',
+      description: i18n.language === 'es'
+        ? 'Sistema completo de gestión de videos educativos con reproducción segura y acceso de red.'
+        : 'Complete educational video management system with secure playback and network access.',
+      icon: <FiPlay className="w-5 h-5" />,
+      features: i18n.language === 'es' ? [
+        '✅ Subida de videos con validación de formato MP4',
+        '✅ Generación automática de thumbnails',
+        '✅ Reproducción con Video.js y controles avanzados',
+        '✅ Seguimiento de progreso de visualización',
+        '✅ Gestión de permisos (público/privado)',
+        '✅ Categorización y metadatos completos',
+        '✅ URLs dinámicas para acceso desde red local',
+        '✅ Integración con MinIO para almacenamiento',
+        '✅ Detección automática de IP para streaming',
+        '✅ Interfaz responsive con tema azul consistente'
+      ] : [
+        '✅ Video upload with MP4 format validation',
+        '✅ Automatic thumbnail generation',  
+        '✅ Playback with Video.js and advanced controls',
+        '✅ View progress tracking',
+        '✅ Permission management (public/private)',
+        '✅ Complete categorization and metadata',
+        '✅ Dynamic URLs for local network access',
+        '✅ MinIO integration for storage',
+        '✅ Automatic IP detection for streaming',
+        '✅ Responsive interface with consistent blue theme'
+      ],
+      testSteps: i18n.language === 'es' ? [
+        '1. Ve a Videos desde el menú principal',
+        '2. Sube un nuevo video usando "Subir Video"',
+        '3. Completa metadatos: título, descripción, categoría',
+        '4. Reproduce el video y verifica controles',
+        '5. Accede desde 192.168.1.125:5173/videos',
+        '6. Confirma que thumbnails y videos cargan',
+        '7. Verifica progreso de visualización',
+        '8. Prueba edición y eliminación de videos'
+      ] : [
+        '1. Go to Videos from main menu',
+        '2. Upload new video using "Upload Video"',
+        '3. Complete metadata: title, description, category',
+        '4. Play video and verify controls',
+        '5. Access from 192.168.1.125:5173/videos',
+        '6. Confirm thumbnails and videos load',
+        '7. Verify viewing progress tracking',
+        '8. Test video editing and deletion'
+      ],
+      testData: {
+        title: i18n.language === 'es' ? 'URLs de Red - FUNCIONANDO' : 'Network URLs - WORKING',
+        data: {
+          networkAccess: '192.168.1.125:5173/videos',
+          videoStreaming: 'http://192.168.1.125:9000/aristotest-videos/storage/uploads/',
+          thumbnailUrls: 'http://192.168.1.125:9000/aristotest-videos/videos/thumbnails/',
+          autoDetection: 'IP detection based on request host header',
+          note: i18n.language === 'es' 
+            ? 'Sistema completamente funcional en red local con URLs automáticas'
+            : 'Fully functional system on local network with automatic URLs'
+        }
+      },
+      status: 'working'
+    },
+    {
+      id: 'ui-theme',
+      title: i18n.language === 'es' ? 'Tema Visual' : 'UI Theme',
+      description: i18n.language === 'es'
+        ? 'Sistema de diseño consistente con tema azul aplicado en toda la aplicación.'
+        : 'Consistent design system with blue theme applied across the entire application.',
+      icon: <FiSettings className="w-5 h-5" />,
+      features: i18n.language === 'es' ? [
+        '✅ Tema azul consistente (blue-600/blue-700)',
+        '✅ Headers con gradiente from-blue-50 to-white',
+        '✅ Tamaños normalizados y proporcionales',
+        '✅ Componentes Button actualizados',
+        '✅ Navegación con indicador azul activo',
+        '✅ Iconografía consistente con Lucide React',
+        '✅ Responsive design en todos los módulos',
+        '✅ Accesibilidad mejorada con focus states'
+      ] : [
+        '✅ Consistent blue theme (blue-600/blue-700)',
+        '✅ Gradient headers from-blue-50 to-white',
+        '✅ Normalized and proportional sizes',
+        '✅ Updated Button components',
+        '✅ Navigation with blue active indicator',
+        '✅ Consistent iconography with Lucide React',
+        '✅ Responsive design across all modules',
+        '✅ Improved accessibility with focus states'
+      ],
+      testSteps: i18n.language === 'es' ? [
+        '1. Navega por todos los módulos principales',
+        '2. Observa la consistencia del tema azul',
+        '3. Verifica headers con gradiente',
+        '4. Prueba interacciones de botones',
+        '5. Confirma navegación con indicadores',
+        '6. Revisa responsive en diferentes tamaños'
+      ] : [
+        '1. Navigate through all main modules',
+        '2. Observe blue theme consistency', 
+        '3. Verify gradient headers',
+        '4. Test button interactions',
+        '5. Confirm navigation with indicators',
+        '6. Review responsive on different sizes'
+      ],
+      status: 'working'
+    },
+    {
       id: 'database',
       title: i18n.language === 'es' ? 'Base de Datos' : 'Database',
       description: i18n.language === 'es'
@@ -491,21 +597,26 @@ export default function Documentation() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-primary">
-            {i18n.language === 'es' ? 'Documentación y Pruebas' : 'Documentation & Testing'}
-          </h1>
-          <p className="text-text-secondary mt-2">
-            {i18n.language === 'es' 
-              ? 'Guía completa para probar todos los módulos de AristoTest'
-              : 'Complete guide to test all AristoTest modules'}
-          </p>
+        <div className="bg-gradient-to-r from-blue-50 to-white p-6 rounded-xl border border-blue-100 mb-6">
+          <div className="flex items-center gap-3">
+            <FiBook className="w-8 h-8 text-blue-600" />
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+                {i18n.language === 'es' ? 'Documentación y Pruebas' : 'Documentation & Testing'}
+              </h1>
+              <p className="text-gray-600 text-sm mt-1">
+                {i18n.language === 'es' 
+                  ? 'Guía completa para probar todos los módulos de AristoTest'
+                  : 'Complete guide to test all AristoTest modules'}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <Card className="p-4">
+            <Card className="p-5">
               <h3 className="font-semibold mb-4">
                 {i18n.language === 'es' ? 'Módulos' : 'Modules'}
               </h3>
@@ -516,7 +627,7 @@ export default function Documentation() {
                     onClick={() => setSelectedModule(module.id)}
                     className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition-colors ${
                       selectedModule === module.id
-                        ? 'bg-primary text-white'
+                        ? 'bg-blue-600 text-white'
                         : 'hover:bg-gray-100'
                     }`}
                   >
@@ -533,14 +644,14 @@ export default function Documentation() {
             </Card>
 
             {/* Quick Status */}
-            <Card className="p-4 mt-4">
+            <Card className="p-5 mt-4">
               <h3 className="font-semibold mb-4">
                 {i18n.language === 'es' ? 'Estado General' : 'Overall Status'}
               </h3>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-green-500">● {i18n.language === 'es' ? 'Funcionando' : 'Working'}</span>
-                  <span>6</span>
+                  <span>8</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-yellow-500">● {i18n.language === 'es' ? 'Parcial' : 'Partial'}</span>
@@ -557,14 +668,14 @@ export default function Documentation() {
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
             {/* Module Header */}
-            <Card className="p-6">
+            <Card className="p-5">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 bg-primary/10 rounded-lg text-primary">
+                  <div className="p-3 bg-blue-50 rounded-lg text-blue-600">
                     {currentModule.icon}
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold">{currentModule.title}</h2>
+                    <h2 className="text-xl font-bold">{currentModule.title}</h2>
                     <div className={`flex items-center gap-2 mt-1 ${getStatusColor(currentModule.status)}`}>
                       {getStatusIcon(currentModule.status)}
                       <span className="text-sm">{getStatusText(currentModule.status)}</span>
@@ -576,14 +687,14 @@ export default function Documentation() {
             </Card>
 
             {/* Features */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">
+            <Card className="p-5">
+              <h3 className="text-base font-semibold mb-4">
                 {i18n.language === 'es' ? 'Características' : 'Features'}
               </h3>
               <ul className="space-y-2">
                 {currentModule.features.map((feature, index) => (
                   <li key={index} className="flex items-start gap-2">
-                    <FiCheckCircle className="w-5 h-5 text-primary mt-0.5" />
+                    <FiCheckCircle className="w-5 h-5 text-blue-600 mt-0.5" />
                     <span>{feature}</span>
                   </li>
                 ))}
@@ -591,14 +702,14 @@ export default function Documentation() {
             </Card>
 
             {/* Test Steps */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">
+            <Card className="p-5">
+              <h3 className="text-base font-semibold mb-4">
                 {i18n.language === 'es' ? 'Pasos de Prueba' : 'Test Steps'}
               </h3>
               <ol className="space-y-3">
                 {currentModule.testSteps.map((step, index) => (
                   <li key={index} className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm">
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm">
                       {/^\d/.test(step) ? step.charAt(0) : index + 1}
                     </div>
                     <span>{step.replace(/^\d\.\s*/, '')}</span>
@@ -609,7 +720,7 @@ export default function Documentation() {
 
             {/* Test Data */}
             {currentModule.testData && (
-              <Card className="p-6">
+              <Card className="p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">
                     {currentModule.testData.title}
@@ -633,7 +744,7 @@ export default function Documentation() {
 
             {/* Known Issues */}
             {currentModule.status !== 'working' && (
-              <Card className="p-6 border-yellow-200 bg-yellow-50">
+              <Card className="p-5 border-yellow-200 bg-yellow-50">
                 <h3 className="text-lg font-semibold mb-4 text-yellow-800">
                   {i18n.language === 'es' ? '⚠️ Problemas Conocidos' : '⚠️ Known Issues'}
                 </h3>

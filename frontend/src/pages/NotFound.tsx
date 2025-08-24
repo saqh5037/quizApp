@@ -8,7 +8,7 @@ export default function NotFound() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center">
         <img 
-          src="/images/logoAristoTest.png" 
+          src="/images/logoAristoTest.svg" 
           alt="AristoTest" 
           className="h-20 mx-auto mb-8"
         />

@@ -122,7 +122,7 @@ export default function QuizDetail() {
         <p className="text-gray-500 mb-4">Quiz not found</p>
         <button
           onClick={() => navigate('/quizzes')}
-          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-600-dark"
         >
           Back to Quizzes
         </button>
@@ -157,7 +157,7 @@ export default function QuizDetail() {
           <div className="flex items-center space-x-3">
             <button
               onClick={handleStartSession}
-              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center space-x-2"
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-600-dark transition-colors flex items-center space-x-2"
             >
               <Play className="w-4 h-4" />
               <span>Start Session</span>

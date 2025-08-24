@@ -22,8 +22,6 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "noEmitOnError": false,
-    "suppressImplicitAnyIndexErrors": true,
-    "noStrictGenericChecks": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],

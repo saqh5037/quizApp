@@ -6,29 +6,32 @@
 // Get environment variables with fallbacks
 // Use dynamic URL detection for production
 const getApiUrl = () => {
-  // If explicitly set in environment, use that
-  if ((import.meta as any).env?.VITE_API_URL) {
-    return (import.meta as any).env.VITE_API_URL;
+  // ALWAYS use the hostname from the browser for network access
+  const hostname = window.location.hostname;
+  
+  // If accessing from any IP that's not localhost, use that IP for backend
+  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    return `http://${hostname}:3001`;
   }
   
-  // In production, use same origin (for when frontend and backend are on same server)
-  if ((import.meta as any).env?.PROD) {
-    return window.location.origin;
-  }
-  
-  // Default for development
+  // Only use localhost when actually accessing from localhost
   return 'http://localhost:3001';
 };
 
-const API_URL = getApiUrl();
+// Make API URL dynamic - recalculate on each access
 const API_PREFIX = (import.meta as any).env?.VITE_API_PREFIX || '/api/v1';
-const SOCKET_URL = (import.meta as any).env?.VITE_SOCKET_URL || API_URL;
 
-// Export configuration
+// Export configuration with dynamic getters
 export const apiConfig = {
-  baseURL: `${API_URL}${API_PREFIX}`,
-  apiURL: API_URL,
-  socketURL: SOCKET_URL,
+  get baseURL() { 
+    return `${getApiUrl()}${API_PREFIX}`;
+  },
+  get apiURL() { 
+    return getApiUrl();
+  },
+  get socketURL() { 
+    return (import.meta as any).env?.VITE_SOCKET_URL || getApiUrl();
+  },
   endpoints: {
     auth: {
       login: '/auth/login',

@@ -114,17 +114,17 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     // Variant classes
     const variantClasses = {
       primary: clsx(
-        'bg-primary text-white',
-        'hover:bg-primary-dark hover:shadow-md',
+        'bg-blue-600 text-white',
+        'hover:bg-blue-700 hover:shadow-md',
         'active:scale-[0.98]',
-        'focus-visible:ring-primary'
+        'focus-visible:ring-blue-500'
       ),
       secondary: clsx(
-        'bg-transparent text-primary',
-        'border-2 border-primary',
-        'hover:bg-primary hover:text-white hover:shadow-md',
+        'bg-transparent text-blue-600',
+        'border-2 border-blue-600',
+        'hover:bg-blue-600 hover:text-white hover:shadow-md',
         'active:scale-[0.98]',
-        'focus-visible:ring-primary'
+        'focus-visible:ring-blue-500'
       ),
       success: clsx(
         'bg-success text-white',
@@ -145,10 +145,17 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         'focus-visible:ring-warning'
       ),
       ghost: clsx(
-        'bg-transparent text-text-primary',
-        'hover:bg-surface-variant',
+        'bg-transparent text-gray-700',
+        'hover:bg-gray-50',
         'active:scale-[0.98]',
-        'focus-visible:ring-text-secondary'
+        'focus-visible:ring-gray-500'
+      ),
+      outline: clsx(
+        'bg-transparent text-gray-700',
+        'border-2 border-gray-300',
+        'hover:bg-gray-50 hover:border-gray-400',
+        'active:scale-[0.98]',
+        'focus-visible:ring-gray-500'
       ),
     };
 

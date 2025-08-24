@@ -190,7 +190,7 @@ export default function Sessions() {
       <div className="mb-8">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-primary">{t('sessions.title')}</h1>
+            <h1 className="text-3xl font-bold text-blue-600">{t('sessions.title')}</h1>
             <p className="text-text-secondary mt-2">
               {t('sessions.subtitle')}
             </p>
@@ -221,8 +221,8 @@ export default function Sessions() {
             <button
               className={`px-4 py-2 font-medium transition-colors ${
                 activeTab === 'active'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-text-secondary hover:text-primary'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-text-secondary hover:text-blue-600'
               }`}
               onClick={() => setActiveTab('active')}
             >
@@ -231,8 +231,8 @@ export default function Sessions() {
             <button
               className={`px-4 py-2 font-medium transition-colors ${
                 activeTab === 'my'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-text-secondary hover:text-primary'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-text-secondary hover:text-blue-600'
               }`}
               onClick={() => setActiveTab('my')}
             >
@@ -248,7 +248,7 @@ export default function Sessions() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-sm">{t('sessions.activeNow', { defaultValue: 'Active Now' })}</p>
-              <p className="text-2xl font-bold text-primary">
+              <p className="text-2xl font-bold text-blue-600">
                 {sessions.filter(s => s.status === 'active').length}
               </p>
             </div>
@@ -262,7 +262,7 @@ export default function Sessions() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-sm">{t('sessions.card.status.waiting')}</p>
-              <p className="text-2xl font-bold text-primary">
+              <p className="text-2xl font-bold text-blue-600">
                 {sessions.filter(s => s.status === 'waiting').length}
               </p>
             </div>
@@ -276,11 +276,11 @@ export default function Sessions() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-sm">{t('sessions.totalParticipants', { defaultValue: 'Total Participants' })}</p>
-              <p className="text-2xl font-bold text-primary">
+              <p className="text-2xl font-bold text-blue-600">
                 {sessions.reduce((acc, s) => acc + s.participantsCount, 0)}
               </p>
             </div>
-            <div className="text-primary bg-primary/10 p-3 rounded-lg">
+            <div className="text-blue-600 bg-blue-600/10 p-3 rounded-lg">
               <FiUsers size={24} />
             </div>
           </div>
@@ -291,7 +291,7 @@ export default function Sessions() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-text-secondary text-sm">{t('sessions.myTitle', { defaultValue: 'My Sessions' })}</p>
-                <p className="text-2xl font-bold text-primary">
+                <p className="text-2xl font-bold text-blue-600">
                   {mySessions.length}
                 </p>
               </div>
@@ -306,7 +306,7 @@ export default function Sessions() {
       {/* Sessions List */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           <p className="mt-4 text-text-secondary">{t('sessions.loading', { defaultValue: 'Loading sessions...' })}</p>
         </div>
       ) : (
@@ -349,7 +349,7 @@ export default function Sessions() {
                       {/* Session Header */}
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
-                          <h3 className="text-xl font-semibold text-primary mb-1">
+                          <h3 className="text-xl font-semibold text-blue-600 mb-1">
                             {session.name}
                           </h3>
                           <p className="text-sm text-text-secondary">
@@ -456,7 +456,7 @@ export default function Sessions() {
                       {/* Session Header */}
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
-                          <h3 className="text-xl font-semibold text-primary mb-1">
+                          <h3 className="text-xl font-semibold text-blue-600 mb-1">
                             {session.name}
                           </h3>
                           <p className="text-sm text-text-secondary">

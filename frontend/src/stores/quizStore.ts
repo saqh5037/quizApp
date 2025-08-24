@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { apiConfig } from '../config/api.config';
+
+// Remove static API_URL, use apiConfig.apiURL dynamically
 
 interface Quiz {
   id: number;
@@ -63,7 +66,6 @@ interface QuizState {
   resetStore: () => void;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export const useQuizStore = create<QuizState>((set, get) => ({
   quizzes: [],
@@ -74,7 +76,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   fetchQuizzes: async (filters = {}) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await axios.get(`${API_URL}/api/v1/quizzes`, {
+      const response = await axios.get(`${apiConfig.apiURL}/api/v1/quizzes`, {
         params: filters,
       });
       
@@ -94,7 +96,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   fetchQuizById: async (id: number) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await axios.get(`${API_URL}/api/v1/quizzes/${id}`);
+      const response = await axios.get(`${apiConfig.apiURL}/api/v1/quizzes/${id}`);
       
       set({
         currentQuiz: response.data.data.quiz,
@@ -113,7 +115,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   createQuiz: async (data: Partial<Quiz>) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await axios.post(`${API_URL}/api/v1/quizzes`, data);
+      const response = await axios.post(`${apiConfig.apiURL}/api/v1/quizzes`, data);
       const newQuiz = response.data.data.quiz;
       
       set((state) => ({
@@ -137,7 +139,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   updateQuiz: async (id: number, data: Partial<Quiz>) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await axios.put(`${API_URL}/api/v1/quizzes/${id}`, data);
+      const response = await axios.put(`${apiConfig.apiURL}/api/v1/quizzes/${id}`, data);
       const updatedQuiz = response.data.data.quiz;
       
       set((state) => ({
@@ -160,7 +162,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   deleteQuiz: async (id: number) => {
     set({ isLoading: true, error: null });
     try {
-      await axios.delete(`${API_URL}/api/v1/quizzes/${id}`);
+      await axios.delete(`${apiConfig.apiURL}/api/v1/quizzes/${id}`);
       
       set((state) => ({
         quizzes: state.quizzes.filter(q => q.id !== id),
@@ -183,7 +185,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await axios.post(
-        `${API_URL}/api/v1/quizzes/${quizId}/questions`,
+        `${apiConfig.apiURL}/api/v1/quizzes/${quizId}/questions`,
         question
       );
       
@@ -217,7 +219,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await axios.put(
-        `${API_URL}/api/v1/quizzes/${quizId}/questions/${questionId}`,
+        `${apiConfig.apiURL}/api/v1/quizzes/${quizId}/questions/${questionId}`,
         data
       );
       
@@ -253,7 +255,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await axios.delete(
-        `${API_URL}/api/v1/quizzes/${quizId}/questions/${questionId}`
+        `${apiConfig.apiURL}/api/v1/quizzes/${quizId}/questions/${questionId}`
       );
       
       set((state) => {

@@ -39,10 +39,12 @@ export const authenticate = async (
 
     // Optionally load full user data
     console.log('Looking for user with ID:', payload.id);
-    const user = await User.findByPk(payload.id);
-    console.log('User found:', user ? `${user.email} (active: ${user.isActive})` : 'null');
+    const user = await User.findByPk(payload.id, {
+      attributes: ['id', 'email', 'firstName', 'lastName', 'role', 'isActive', 'isVerified']
+    });
+    console.log('User found:', user ? `${user.email} (active: ${user.get('isActive')})` : 'null');
     
-    if (!user || !user.isActive) {
+    if (!user || !user.get('isActive')) {
       throw new AuthenticationError('User not found or inactive');
     }
 
@@ -96,7 +98,7 @@ export const optionalAuth = async (
       req.user = payload;
 
       const user = await User.findByPk(payload.id);
-      if (user && user.isActive) {
+      if (user && user.get('isActive')) {
         req.currentUser = user;
       }
     } catch {

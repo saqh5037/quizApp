@@ -6,6 +6,7 @@ import userRoutes from './user.routes';
 import dashboardRoutes from './dashboard.routes';
 import gradingRoutes from './grading.routes';
 import resultsRoutes from './results.routes';
+import videoRoutes from './video.routes';
 
 const router = Router();
 
@@ -19,6 +20,7 @@ router.get('/', (req, res) => {
       auth: '/api/v1/auth',
       quizzes: '/api/v1/quizzes',
       sessions: '/api/v1/sessions',
+      videos: '/api/v1/videos',
     },
   });
 });
@@ -31,5 +33,6 @@ router.use('/users', userRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/grading', gradingRoutes);
 router.use('/results', resultsRoutes);
+router.use('/videos', videoRoutes);
 
 export default router;

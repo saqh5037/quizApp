@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
+import { apiConfig } from '../config/api.config';
+
+// Remove static SOCKET_URL, use apiConfig.socketURL dynamically
 
 interface Session {
   id: number;
@@ -82,7 +85,6 @@ interface SessionState {
   resetStore: () => void;
 }
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
 
 export const useSessionStore = create<SessionState>((set, get) => ({
   socket: null,
@@ -96,7 +98,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   error: null,
 
   connectSocket: (token?: string) => {
-    const socket = io(SOCKET_URL, {
+    const socket = io(apiConfig.socketURL, {
       auth: token ? { token } : undefined,
       transports: ['websocket', 'polling'],
     });

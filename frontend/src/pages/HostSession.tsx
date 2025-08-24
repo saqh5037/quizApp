@@ -324,7 +324,7 @@ export default function HostSession() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Creating session...</p>
         </div>
       </div>
@@ -338,7 +338,7 @@ export default function HostSession() {
           <p className="text-gray-600">No session available</p>
           <button
             onClick={() => navigate('/quizzes')}
-            className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark"
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-600-dark"
           >
             Back to Quizzes
           </button>
@@ -356,7 +356,7 @@ export default function HostSession() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{session.quiz.title}</h1>
               <div className="flex items-center space-x-4 mt-2">
-                <span className="text-3xl font-bold text-primary">
+                <span className="text-3xl font-bold text-blue-600">
                   Code: {session.code}
                 </span>
                 <span className="text-sm text-gray-500">
@@ -428,7 +428,7 @@ export default function HostSession() {
         {session.status === 'waiting' ? (
           <div className="bg-white rounded-lg shadow-lg p-12 text-center">
             <div className="mb-8">
-              <div className="text-6xl font-bold text-primary mb-4">
+              <div className="text-6xl font-bold text-blue-600 mb-4">
                 {session.code}
               </div>
               <p className="text-xl text-gray-600 mb-2">
@@ -436,7 +436,7 @@ export default function HostSession() {
               </p>
               <p className="text-gray-500">
                 Or they can join at: 
-                <span className="font-mono ml-2 text-primary">
+                <span className="font-mono ml-2 text-blue-600">
                   http://localhost:5173/play
                 </span>
               </p>
@@ -446,7 +446,7 @@ export default function HostSession() {
               <p className="text-gray-600 mb-4">
                 Waiting for participants to join...
               </p>
-              <div className="text-3xl font-bold text-primary">
+              <div className="text-3xl font-bold text-blue-600">
                 <Users className="inline w-8 h-8 mr-2" />
                 {session.participantsCount} joined
               </div>
@@ -477,7 +477,7 @@ export default function HostSession() {
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
-                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${(questionNumber / totalQuestions) * 100}%` }}
                 />
               </div>
@@ -486,7 +486,7 @@ export default function HostSession() {
             {/* Question */}
             <div className="bg-white rounded-lg shadow-lg p-8">
               <div className="flex items-center justify-between mb-6">
-                <span className="text-sm font-medium px-3 py-1 bg-primary/10 text-primary rounded-full">
+                <span className="text-sm font-medium px-3 py-1 bg-blue-600/10 text-blue-600 rounded-full">
                   {currentQuestion.type.toUpperCase()}
                 </span>
                 <span className="text-sm font-medium text-gray-500">
@@ -510,7 +510,7 @@ export default function HostSession() {
                       }`}
                     >
                       <div className="flex items-center space-x-3">
-                        <span className="flex-shrink-0 w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold">
+                        <span className="flex-shrink-0 w-10 h-10 bg-blue-600/10 text-blue-600 rounded-full flex items-center justify-center font-bold">
                           {String.fromCharCode(65 + index)}
                         </span>
                         <span className="text-lg">{option}</span>
@@ -550,13 +550,13 @@ export default function HostSession() {
                   
                   <div className="text-center">
                     <p className="text-sm text-gray-500">Responses</p>
-                    <p className="text-2xl font-bold text-primary">{responses}</p>
+                    <p className="text-2xl font-bold text-blue-600">{responses}</p>
                   </div>
                 </div>
                 
                 <button
                   onClick={nextQuestion}
-                  className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center space-x-2"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-600-dark transition-colors flex items-center space-x-2"
                 >
                   <span>{questionNumber === totalQuestions ? 'Finish' : 'Next'}</span>
                   <ChevronRight className="w-5 h-5" />

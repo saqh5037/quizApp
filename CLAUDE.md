@@ -20,6 +20,7 @@ npm run lint              # Run ESLint
 npm run format            # Format code with Prettier
 npm run migrate           # Run database migrations
 npm run seed              # Seed database with demo data
+npm run db:reset          # Reset database completely
 ```
 
 ### Frontend
@@ -55,7 +56,7 @@ docker-compose logs -f    # View logs
   - Routes organize API endpoints by domain (auth, quiz, session)
   - Socket handlers manage real-time events separately
   - Middleware provides auth, validation, rate limiting, and error handling
-  - Services would contain reusable business logic (currently empty)
+  - Validators contain express-validator schemas for input validation
 
 ### Frontend Architecture
 - **React SPA**: Built with Vite, using React Router for navigation
@@ -101,24 +102,26 @@ Base URL: `/api/v1`
 - `/auth/*` - Authentication (login, register, refresh, logout)
 - `/quizzes/*` - Quiz CRUD operations
 - `/sessions/*` - Session management and results
+- `/grading/*` - Automated grading system
+- `/results/*` - Session results and reporting
 
 ### Socket Events
-- Session: create, join, leave, start, end, pause, resume
+- Session: create_session, join_session, leave_session, start_session, end_session, pause_session, resume_session
 - Quiz: next_question, previous_question, submit_answer, skip_question
-- Results: show_results, hide_results, update_leaderboard
+- Results: show_results, hide_results, leaderboard_update
 
 ## Environment Configuration
 
 ### Backend (.env)
-- Database: PostgreSQL connection (host, port, user, password, database)
-- JWT: Secret keys and expiration times
-- Redis: Connection for caching (optional)
+- Database: PostgreSQL connection (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)
+- JWT: JWT_SECRET and JWT_REFRESH_SECRET
+- Redis: REDIS_HOST and REDIS_PORT for caching (optional)
 - CORS: Allowed origins
 - Rate limiting: Request limits
 
 ### Frontend (.env)
-- API URL: Backend endpoint
-- Socket URL: WebSocket endpoint
+- VITE_API_URL: Backend endpoint (e.g., http://localhost:3001)
+- VITE_SOCKET_URL: WebSocket endpoint
 
 ## Testing Approach
 
