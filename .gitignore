@@ -61,6 +61,9 @@ Desktop.ini
 postgres_data/
 redis_data/
 
+# MinIO storage data (local development)
+backend/storage/minio-data/
+
 # Python
 __pycache__/
 *.py[cod]
