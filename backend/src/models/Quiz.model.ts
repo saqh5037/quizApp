@@ -8,6 +8,7 @@ interface QuizAttributes {
   coverImageUrl?: string;
   creatorId?: number;
   organizationId?: number;
+  tenantId?: number;
   category?: string;
   tags?: string[];
   difficulty?: 'easy' | 'medium' | 'hard';
@@ -42,37 +43,38 @@ export interface QuizCreationAttributes extends Optional<
 > {}
 
 class Quiz extends Model<QuizAttributes, QuizCreationAttributes> implements QuizAttributes {
-  public id!: number;
-  public title!: string;
-  public description?: string;
-  public coverImageUrl?: string;
-  public creatorId?: number;
-  public organizationId?: number;
-  public category?: string;
-  public tags?: string[];
-  public difficulty?: 'easy' | 'medium' | 'hard';
-  public estimatedTimeMinutes?: number;
-  public passPercentage?: number;
-  public maxAttempts?: number;
-  public shuffleQuestions?: boolean;
-  public shuffleOptions?: boolean;
-  public showCorrectAnswers?: boolean;
-  public showScore?: boolean;
-  public allowReview?: boolean;
-  public timeLimitMinutes?: number;
-  public instructions?: string;
-  public settings?: Record<string, any>;
-  public isPublic?: boolean;
-  public isActive?: boolean;
-  public totalQuestions?: number;
-  public totalPoints?: number;
-  public timesTaken?: number;
-  public averageScore?: number;
-  public metadata?: Record<string, any>;
+  declare id: number;
+  declare title: string;
+  declare description?: string;
+  declare coverImageUrl?: string;
+  declare creatorId?: number;
+  declare organizationId?: number;
+  declare tenantId?: number;
+  declare category?: string;
+  declare tags?: string[];
+  declare difficulty?: 'easy' | 'medium' | 'hard';
+  declare estimatedTimeMinutes?: number;
+  declare passPercentage?: number;
+  declare maxAttempts?: number;
+  declare shuffleQuestions?: boolean;
+  declare shuffleOptions?: boolean;
+  declare showCorrectAnswers?: boolean;
+  declare showScore?: boolean;
+  declare allowReview?: boolean;
+  declare timeLimitMinutes?: number;
+  declare instructions?: string;
+  declare settings?: Record<string, any>;
+  declare isPublic?: boolean;
+  declare isActive?: boolean;
+  declare totalQuestions?: number;
+  declare totalPoints?: number;
+  declare timesTaken?: number;
+  declare averageScore?: number;
+  declare metadata?: Record<string, any>;
   
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
-  public readonly deletedAt?: Date | null;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
+  declare readonly deletedAt?: Date | null;
 }
 
 Quiz.init(
@@ -178,6 +180,11 @@ Quiz.init(
         model: 'organizations',
         key: 'id',
       },
+    },
+    tenantId: {
+      type: DataTypes.INTEGER,
+      field: 'tenant_id',
+      allowNull: true,
     },
     tags: {
       type: DataTypes.ARRAY(DataTypes.STRING),

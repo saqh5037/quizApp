@@ -24,6 +24,7 @@ export interface UserAttributes {
   role: UserRole;
   avatarUrl?: string;
   organizationId?: number;
+  tenant_id?: number; // Multi-tenant support
   isActive: boolean;
   isVerified: boolean;
   verificationToken?: string;
@@ -52,6 +53,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public role!: UserRole;
   public avatarUrl?: string;
   public organizationId?: number;
+  public tenant_id?: number; // Multi-tenant support
   public isActive!: boolean;
   public isVerified!: boolean;
   public verificationToken?: string;
@@ -117,6 +119,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
         email: this.email,
         role: this.role,
         organizationId: this.organizationId,
+        tenant_id: this.tenant_id, // Include tenant_id in token
       },
       env.JWT_SECRET,
       { expiresIn: env.JWT_EXPIRES_IN }
@@ -305,6 +308,14 @@ User.init(
       field: 'organization_id',
       references: {
         model: 'organizations',
+        key: 'id',
+      },
+    },
+    tenant_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'tenants',
         key: 'id',
       },
     },

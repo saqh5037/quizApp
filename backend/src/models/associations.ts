@@ -5,6 +5,10 @@ import Question from './Question.model';
 import QuizSession from './QuizSession.model';
 import Participant from './Participant.model';
 import Answer from './Answer.model';
+import Manual from './Manual.model';
+import ManualChat from './ManualChat.model';
+import AIGeneratedQuiz from './AIGeneratedQuiz.model';
+import ManualSummary from './ManualSummary.model';
 
 export const setupAssociations = (): void => {
   // Organization associations
@@ -20,7 +24,7 @@ export const setupAssociations = (): void => {
   
   // User associations
   User.hasMany(Quiz, {
-    foreignKey: 'userId',
+    foreignKey: 'creatorId',  // Fixed: use creatorId instead of userId
     as: 'quizzes',
   });
 
@@ -36,7 +40,7 @@ export const setupAssociations = (): void => {
 
   // Quiz associations
   Quiz.belongsTo(User, {
-    foreignKey: 'userId',
+    foreignKey: 'creatorId',  // Fixed: use creatorId instead of userId
     as: 'creator',
   });
 
@@ -117,5 +121,82 @@ export const setupAssociations = (): void => {
   Answer.belongsTo(QuizSession, {
     foreignKey: 'sessionId',
     as: 'session',
+  });
+
+  // Manual associations
+  Manual.belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'creator',
+  });
+
+  User.hasMany(Manual, {
+    foreignKey: 'user_id',
+    as: 'manuals',
+  });
+
+  // ManualChat associations
+  ManualChat.belongsTo(Manual, {
+    foreignKey: 'manual_id',
+    as: 'manual',
+  });
+
+  ManualChat.belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user',
+  });
+
+  Manual.hasMany(ManualChat, {
+    foreignKey: 'manual_id',
+    as: 'chats',
+    onDelete: 'CASCADE',
+  });
+
+  User.hasMany(ManualChat, {
+    foreignKey: 'user_id',
+    as: 'manualChats',
+  });
+
+  // AIGeneratedQuiz associations
+  AIGeneratedQuiz.belongsTo(Manual, {
+    foreignKey: 'manual_id',
+    as: 'manual',
+  });
+
+  AIGeneratedQuiz.belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user',
+  });
+
+  Manual.hasMany(AIGeneratedQuiz, {
+    foreignKey: 'manual_id',
+    as: 'generatedQuizzes',
+    onDelete: 'CASCADE',
+  });
+
+  User.hasMany(AIGeneratedQuiz, {
+    foreignKey: 'user_id',
+    as: 'generatedQuizzes',
+  });
+
+  // ManualSummary associations
+  ManualSummary.belongsTo(Manual, {
+    foreignKey: 'manual_id',
+    as: 'manual',
+  });
+
+  ManualSummary.belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user',
+  });
+
+  Manual.hasMany(ManualSummary, {
+    foreignKey: 'manual_id',
+    as: 'summaries',
+    onDelete: 'CASCADE',
+  });
+
+  User.hasMany(ManualSummary, {
+    foreignKey: 'user_id',
+    as: 'manualSummaries',
   });
 };

@@ -5,6 +5,16 @@ import Question from './Question.model';
 import QuizSession from './QuizSession.model';
 import Participant from './Participant.model';
 import Answer from './Answer.model';
+import Tenant from './Tenant.model';
+import Classroom from './Classroom.model';
+import TrainingProgram from './TrainingProgram.model';
+import ClassroomEnrollment from './ClassroomEnrollment.model';
+import ProgramQuiz from './ProgramQuiz.model';
+import Certificate from './Certificate.model';
+import Manual from './Manual.model';
+import ManualChat from './ManualChat.model';
+import AIGeneratedQuiz from './AIGeneratedQuiz.model';
+import ManualSummary from './ManualSummary.model';
 import { 
   Video, 
   VideoCategory, 
@@ -23,6 +33,16 @@ import {
 import { setupAssociations } from './associations';
 import { sequelize } from '../config/database';
 
+// Initialize Multi-tenant models
+Tenant.initModel(sequelize);
+Classroom.initModel(sequelize);
+TrainingProgram.initModel(sequelize);
+ClassroomEnrollment.initModel(sequelize);
+ProgramQuiz.initModel(sequelize);
+Certificate.initModel(sequelize);
+
+// Manual model is already initialized in Manual.model.ts
+
 // Initialize Video models
 Video.initModel(sequelize);
 VideoCategory.initModel(sequelize);
@@ -40,6 +60,46 @@ PlaylistVideo.initModel(sequelize);
 
 // Setup all model associations
 setupAssociations();
+
+// Setup Multi-tenant associations
+Tenant.associate({
+  User,
+  Classroom,
+  TrainingProgram,
+  Quiz,
+  Certificate
+});
+
+Classroom.associate({
+  Tenant,
+  User,
+  TrainingProgram,
+  ClassroomEnrollment
+});
+
+TrainingProgram.associate({
+  Tenant,
+  Classroom,
+  ProgramQuiz,
+  Quiz
+});
+
+ClassroomEnrollment.associate({
+  Tenant,
+  Classroom,
+  User
+});
+
+ProgramQuiz.associate({
+  Tenant,
+  TrainingProgram,
+  Quiz
+});
+
+Certificate.associate({
+  Tenant,
+  User
+});
 
 // Setup Video associations
 Video.associate({
@@ -67,6 +127,16 @@ export {
   QuizSession,
   Participant,
   Answer,
+  Tenant,
+  Classroom,
+  TrainingProgram,
+  ClassroomEnrollment,
+  ProgramQuiz,
+  Certificate,
+  Manual,
+  ManualChat,
+  AIGeneratedQuiz,
+  ManualSummary,
   Video,
   VideoCategory,
   VideoQuality,
@@ -90,6 +160,16 @@ export default {
   QuizSession,
   Participant,
   Answer,
+  Tenant,
+  Classroom,
+  TrainingProgram,
+  ClassroomEnrollment,
+  ProgramQuiz,
+  Certificate,
+  Manual,
+  ManualChat,
+  AIGeneratedQuiz,
+  ManualSummary,
   Video,
   VideoCategory,
   VideoQuality,
