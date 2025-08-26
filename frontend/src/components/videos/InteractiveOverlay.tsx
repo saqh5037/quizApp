@@ -64,7 +64,7 @@ const InteractiveOverlay: React.FC<InteractiveOverlayProps> = ({
     if (showFeedback) return;
     
     setSelectedAnswer(answer);
-    const correct = answer === moment.question.correctAnswer;
+    const correct = answer === moment.question?.correctAnswer;
     setIsCorrect(correct);
     setShowFeedback(true);
     
@@ -76,7 +76,8 @@ const InteractiveOverlay: React.FC<InteractiveOverlayProps> = ({
   const handleShortAnswerSubmit = () => {
     if (!shortAnswer.trim()) return;
     
-    const correct = shortAnswer.toLowerCase().includes(moment.question.correctAnswer.toLowerCase());
+    const correct = moment.question?.correctAnswer ? 
+      shortAnswer.toLowerCase().includes(moment.question.correctAnswer.toLowerCase()) : false;
     setIsCorrect(correct);
     setShowFeedback(true);
     
@@ -99,7 +100,7 @@ const InteractiveOverlay: React.FC<InteractiveOverlayProps> = ({
   };
 
   const getDifficultyColor = () => {
-    switch (moment.question.difficulty) {
+    switch (moment.question?.difficulty) {
       case 'easy':
         return 'text-green-400';
       case 'medium':
@@ -124,9 +125,11 @@ const InteractiveOverlay: React.FC<InteractiveOverlayProps> = ({
               </span>
             </div>
             <div className="flex items-center space-x-4">
-              <span className={`text-sm font-medium ${getDifficultyColor()}`}>
-                {moment.question.difficulty.toUpperCase()}
-              </span>
+              {moment.question?.difficulty && (
+                <span className={`text-sm font-medium ${getDifficultyColor()}`}>
+                  {moment.question.difficulty.toUpperCase()}
+                </span>
+              )}
               <div className="flex items-center space-x-1 text-white">
                 <Clock className="w-4 h-4" />
                 <span className="text-sm font-bold">{timeRemaining}s</span>
@@ -158,11 +161,11 @@ const InteractiveOverlay: React.FC<InteractiveOverlayProps> = ({
         {/* Question */}
         <div className="p-6">
           <p className="text-white text-lg font-medium mb-6">
-            {moment.question.text}
+            {moment.question?.text || 'Pregunta no disponible'}
           </p>
 
           {/* Multiple choice options */}
-          {moment.question.type === 'multiple_choice' && moment.question.options && (
+          {moment.question?.type === 'multiple_choice' && moment.question?.options && (
             <div className="space-y-3">
               {moment.question.options.map((option, index) => (
                 <button
@@ -171,7 +174,7 @@ const InteractiveOverlay: React.FC<InteractiveOverlayProps> = ({
                   disabled={showFeedback}
                   className={`w-full text-left p-4 rounded-lg transition-all duration-200 ${
                     showFeedback
-                      ? option === moment.question.correctAnswer
+                      ? option === moment.question?.correctAnswer
                         ? 'bg-green-600 text-white'
                         : selectedAnswer === option
                         ? 'bg-red-600 text-white'
@@ -185,10 +188,10 @@ const InteractiveOverlay: React.FC<InteractiveOverlayProps> = ({
                     <span>{String.fromCharCode(65 + index)}. {option}</span>
                     {showFeedback && (
                       <>
-                        {option === moment.question.correctAnswer && (
+                        {option === moment.question?.correctAnswer && (
                           <CheckCircle className="w-5 h-5 text-green-200" />
                         )}
-                        {selectedAnswer === option && option !== moment.question.correctAnswer && (
+                        {selectedAnswer === option && option !== moment.question?.correctAnswer && (
                           <XCircle className="w-5 h-5 text-red-200" />
                         )}
                       </>
@@ -200,7 +203,7 @@ const InteractiveOverlay: React.FC<InteractiveOverlayProps> = ({
           )}
 
           {/* True/False options */}
-          {moment.question.type === 'true_false' && (
+          {moment.question?.type === 'true_false' && (
             <div className="flex space-x-4">
               {['Verdadero', 'Falso'].map((option) => (
                 <button
@@ -209,7 +212,7 @@ const InteractiveOverlay: React.FC<InteractiveOverlayProps> = ({
                   disabled={showFeedback}
                   className={`flex-1 p-4 rounded-lg transition-all duration-200 ${
                     showFeedback
-                      ? option === moment.question.correctAnswer
+                      ? option === moment.question?.correctAnswer
                         ? 'bg-green-600 text-white'
                         : selectedAnswer === option
                         ? 'bg-red-600 text-white'
@@ -223,10 +226,10 @@ const InteractiveOverlay: React.FC<InteractiveOverlayProps> = ({
                     <span className="font-medium">{option}</span>
                     {showFeedback && (
                       <>
-                        {option === moment.question.correctAnswer && (
+                        {option === moment.question?.correctAnswer && (
                           <CheckCircle className="w-5 h-5 ml-2 text-green-200" />
                         )}
-                        {selectedAnswer === option && option !== moment.question.correctAnswer && (
+                        {selectedAnswer === option && option !== moment.question?.correctAnswer && (
                           <XCircle className="w-5 h-5 ml-2 text-red-200" />
                         )}
                       </>
@@ -238,7 +241,7 @@ const InteractiveOverlay: React.FC<InteractiveOverlayProps> = ({
           )}
 
           {/* Short answer input */}
-          {moment.question.type === 'short_answer' && (
+          {moment.question?.type === 'short_answer' && (
             <div className="space-y-4">
               <input
                 type="text"
@@ -272,10 +275,12 @@ const InteractiveOverlay: React.FC<InteractiveOverlayProps> = ({
                   <p className={`font-medium ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
                     {isCorrect ? '¡Correcto!' : 'Incorrecto'}
                   </p>
-                  <p className="text-gray-300 text-sm mt-1">
-                    {moment.question.explanation}
-                  </p>
-                  {!isCorrect && (
+                  {moment.question?.explanation && (
+                    <p className="text-gray-300 text-sm mt-1">
+                      {moment.question.explanation}
+                    </p>
+                  )}
+                  {!isCorrect && moment.question?.correctAnswer && (
                     <p className="text-gray-400 text-sm mt-2">
                       Respuesta correcta: <span className="text-white">{moment.question.correctAnswer}</span>
                     </p>

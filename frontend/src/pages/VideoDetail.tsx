@@ -15,7 +15,8 @@ import {
   RiUserLine,
   RiFolderLine,
   RiEditLine,
-  RiDeleteBinLine
+  RiDeleteBinLine,
+  RiGamepadLine
 } from 'react-icons/ri';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -264,6 +265,14 @@ const VideoDetail: React.FC = () => {
                     {isAdmin ? '👑 Admin' : '👨‍🏫 Profesor'}
                   </span>
                 )}
+                
+                <button
+                  onClick={() => navigate(`/videos/${id}/interactive`)}
+                  className="px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 transition-all duration-200 shadow-sm hover:shadow-md font-semibold"
+                >
+                  <RiGamepadLine className="w-4 h-4 mr-1" />
+                  Gestión Interactiva
+                </button>
                 
                 <button
                   onClick={handleEdit}

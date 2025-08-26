@@ -1,12 +1,16 @@
 import { Request, Response } from 'express';
 import { Op } from 'sequelize';
-import { Video } from '../models/Video.model';
-import { InteractiveVideoLayer } from '../models/InteractiveVideoLayer.model';
-import { InteractiveVideoResult } from '../models/InteractiveVideoResult.model';
-import { InteractiveVideoAnswer } from '../models/InteractiveVideoAnswer.model';
-import { User } from '../models/User.model';
+import { 
+  Video,
+  InteractiveVideoLayer,
+  InteractiveVideoResult,
+  InteractiveVideoAnswer,
+  User
+} from '../models';
 import { v4 as uuidv4 } from 'uuid';
 import { videoAIAnalyzerService } from '../services/video-ai-analyzer.service';
+import { videoTranscriptionService } from '../services/video-transcription.service';
+import path from 'path';
 
 interface AuthRequest extends Request {
   user?: {
@@ -95,11 +99,7 @@ export class InteractiveVideoController {
       const { videoId } = req.params;
 
       const layer = await InteractiveVideoLayer.findOne({
-        where: { videoId: parseInt(videoId) },
-        include: [{
-          model: Video,
-          attributes: ['id', 'title', 'description', 'duration']
-        }]
+        where: { videoId: parseInt(videoId) }
       });
 
       if (!layer) {
@@ -119,9 +119,7 @@ export class InteractiveVideoController {
       const { layerId } = req.params;
       const { forceReprocess = false } = req.body;
 
-      const layer = await InteractiveVideoLayer.findByPk(layerId, {
-        include: [Video]
-      });
+      const layer = await InteractiveVideoLayer.findByPk(layerId);
 
       if (!layer) {
         return res.status(404).json({ error: 'Capa interactiva no encontrada' });
@@ -439,10 +437,7 @@ export class InteractiveVideoController {
       }
 
       const results = await InteractiveVideoResult.findAll({
-        where: { interactiveLayerId: parseInt(layerId) },
-        include: [{
-          model: InteractiveVideoAnswer
-        }]
+        where: { interactiveLayerId: parseInt(layerId) }
       });
 
       const analytics = {
@@ -540,6 +535,169 @@ export class InteractiveVideoController {
     } catch (error) {
       console.error('Error deleting interactive layer:', error);
       res.status(500).json({ error: 'Error al eliminar capa interactiva' });
+    }
+  }
+
+  /**
+   * Generate interactive content with transcription and AI questions
+   */
+  async generateInteractiveContent(req: AuthRequest, res: Response) {
+    try {
+      const { layerId } = req.params;
+      const { 
+        numberOfQuestions = 5,
+        difficulty = 'mixed',
+        questionTypes = ['multiple_choice'],
+        focusAreas = []
+      } = req.body;
+
+      // Get the interactive layer
+      const layer = await InteractiveVideoLayer.findByPk(layerId, {
+        include: [{ model: Video }]
+      });
+
+      if (!layer) {
+        return res.status(404).json({ error: 'Capa interactiva no encontrada' });
+      }
+
+      if (layer.processingStatus === 'processing') {
+        return res.status(400).json({ 
+          error: 'El contenido ya se está procesando. Por favor espere.' 
+        });
+      }
+
+      // Update status to processing
+      await layer.update({ 
+        processingStatus: 'processing',
+        processingError: null 
+      });
+
+      // Start async processing
+      this.processVideoInBackground(
+        layer,
+        numberOfQuestions,
+        { difficulty, questionTypes, focusAreas }
+      );
+
+      res.json({
+        message: 'Procesamiento iniciado. La transcripción y generación de preguntas tomará unos minutos.',
+        layerId: layer.id,
+        status: 'processing'
+      });
+
+    } catch (error) {
+      console.error('Error generating interactive content:', error);
+      res.status(500).json({ error: 'Error al generar contenido interactivo' });
+    }
+  }
+
+  /**
+   * Process video in background
+   */
+  private async processVideoInBackground(
+    layer: any,
+    numberOfQuestions: number,
+    options: any
+  ) {
+    try {
+      console.log(`Starting background processing for layer ${layer.id}`);
+      
+      const video = layer.Video || await Video.findByPk(layer.videoId);
+      if (!video) {
+        throw new Error('Video not found');
+      }
+
+      // Get the video file path (from MinIO or local storage)
+      const videoPath = this.getVideoPath(video);
+      
+      // Process video with transcription and question generation
+      const result = await videoTranscriptionService.processVideoForInteractivity(
+        videoPath,
+        numberOfQuestions,
+        options
+      );
+
+      // Update layer with generated content
+      await layer.update({
+        processingStatus: 'ready',
+        aiGeneratedContent: {
+          transcription: result.transcription.fullText,
+          transcriptionSegments: result.transcription.segments,
+          keyMoments: result.keyMoments,
+          metadata: result.metadata
+        },
+        processingCompletedAt: new Date()
+      });
+
+      console.log(`Processing completed for layer ${layer.id}`);
+      
+    } catch (error: any) {
+      console.error(`Error processing video for layer ${layer.id}:`, error);
+      
+      await layer.update({
+        processingStatus: 'error',
+        processingError: error.message || 'Error desconocido durante el procesamiento'
+      });
+    }
+  }
+
+  /**
+   * Get video file path from video model
+   */
+  private getVideoPath(video: any): string {
+    // For MinIO storage, we need to construct the full path
+    if (video.storageProvider === 'minio') {
+      // Assuming videos are stored in a local MinIO instance
+      return path.join(
+        process.cwd(),
+        'storage',
+        'minio-data',
+        'aristotest-videos',
+        video.filePath.replace('aristotest-videos/', '')
+      );
+    }
+    
+    // For local storage
+    return path.join(process.cwd(), video.filePath);
+  }
+
+  /**
+   * Get processing status
+   */
+  async getProcessingStatus(req: AuthRequest, res: Response) {
+    try {
+      const { layerId } = req.params;
+
+      const layer = await InteractiveVideoLayer.findByPk(layerId, {
+        attributes: [
+          'id',
+          'processingStatus',
+          'processingError',
+          'processingCompletedAt',
+          'aiGeneratedContent'
+        ]
+      });
+
+      if (!layer) {
+        return res.status(404).json({ error: 'Capa interactiva no encontrada' });
+      }
+
+      const hasContent = layer.aiGeneratedContent && 
+        layer.aiGeneratedContent.keyMoments && 
+        layer.aiGeneratedContent.keyMoments.length > 0;
+
+      res.json({
+        layerId: layer.id,
+        status: layer.processingStatus,
+        error: layer.processingError,
+        completedAt: layer.processingCompletedAt,
+        hasContent,
+        numberOfQuestions: hasContent ? layer.aiGeneratedContent.keyMoments.length : 0
+      });
+
+    } catch (error) {
+      console.error('Error getting processing status:', error);
+      res.status(500).json({ error: 'Error al obtener estado del procesamiento' });
     }
   }
 }

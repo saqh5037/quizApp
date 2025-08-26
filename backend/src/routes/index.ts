@@ -85,7 +85,7 @@ router.use('/ai', aiRoutes);
 
 // Interactive Video routes
 import interactiveVideoRoutes from './interactive-video.routes';
-router.use('/interactive', interactiveVideoRoutes);
+router.use('/interactive-video', interactiveVideoRoutes);
 
 // Manual routes - direct implementation
 router.get('/manuals/test', (req: Request, res: Response) => {

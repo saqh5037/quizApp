@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import videojs from 'video.js';
 import Player from 'video.js/dist/types/player';
 import 'video.js/dist/video-js.css';
@@ -20,7 +20,14 @@ interface VideoPlayerProps {
   startTime?: number;
 }
 
-export default function VideoPlayer({
+export interface VideoPlayerHandle {
+  play: () => void;
+  pause: () => void;
+  currentTime: () => number | undefined;
+  duration: () => number | undefined;
+}
+
+const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
   videoId,
   src,
   poster,
@@ -33,11 +40,29 @@ export default function VideoPlayer({
   fluid = true,
   aspectRatio = '16:9',
   startTime = 0
-}: VideoPlayerProps) {
+}, ref) => {
   const videoRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
   const { accessToken } = useAuthStore();
   const [isReady, setIsReady] = useState(false);
+
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    play: () => {
+      if (playerRef.current && !playerRef.current.paused()) {
+        return;
+      }
+      playerRef.current?.play();
+    },
+    pause: () => {
+      if (playerRef.current && playerRef.current.paused()) {
+        return;
+      }
+      playerRef.current?.pause();
+    },
+    currentTime: () => playerRef.current?.currentTime(),
+    duration: () => playerRef.current?.duration()
+  }), []);
 
   useEffect(() => {
     // Initialize Video.js player
@@ -290,4 +315,8 @@ export default function VideoPlayer({
       <div ref={videoRef} className="w-full" />
     </div>
   );
-}
+});
+
+VideoPlayer.displayName = 'VideoPlayer';
+
+export default VideoPlayer;

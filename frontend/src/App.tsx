@@ -39,6 +39,7 @@ import VideoUpload from './pages/VideoUpload';
 import VideoDetail from './pages/VideoDetail';
 import VideoEdit from './pages/VideoEdit';
 import VideoPlayerPage from './pages/VideoPlayer';
+import InteractiveVideoManagement from './pages/Videos/InteractiveVideoManagement';
 import ClassroomsIndex from './pages/Classrooms/ClassroomsIndex';
 import NewClassroom from './pages/Classrooms/NewClassroom';
 import ClassroomDetail from './pages/Classrooms/ClassroomDetail';
@@ -148,6 +149,10 @@ const router = createBrowserRouter([
       {
         path: 'videos/:id/play',
         element: <VideoPlayerPage />,
+      },
+      {
+        path: 'videos/:id/interactive',
+        element: <InteractiveVideoManagement />,
       },
       {
         path: 'classrooms',

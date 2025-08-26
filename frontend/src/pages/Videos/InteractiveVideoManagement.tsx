@@ -16,10 +16,12 @@ import { interactiveVideoService } from '../../services/interactive-video.servic
 import { videoService } from '../../services/video.service';
 import InteractiveVideoWrapper from '../../components/videos/InteractiveVideoWrapper';
 import InteractiveVideoResults from '../../components/videos/InteractiveVideoResults';
+import InteractiveContentGenerator from '../../components/videos/InteractiveContentGenerator';
 import toast from 'react-hot-toast';
 
 const InteractiveVideoManagement: React.FC = () => {
-  const { videoId } = useParams<{ videoId: string }>();
+  const { id } = useParams<{ id: string }>();
+  const videoId = id;
   const navigate = useNavigate();
   
   const [video, setVideo] = useState<any>(null);
@@ -31,6 +33,7 @@ const InteractiveVideoManagement: React.FC = () => {
   const [sessionResults, setSessionResults] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showGenerator, setShowGenerator] = useState(false);
 
   const [config, setConfig] = useState({
     isEnabled: true,
@@ -228,7 +231,7 @@ const InteractiveVideoManagement: React.FC = () => {
         
         <InteractiveVideoWrapper
           videoId={parseInt(videoId!)}
-          videoUrl={video.url}
+          videoUrl={video.streamUrl || video.hlsPlaylistUrl || ''}
           videoTitle={video.title}
           onComplete={handleVideoComplete}
         />
@@ -245,6 +248,28 @@ const InteractiveVideoManagement: React.FC = () => {
           onClose={() => {
             setShowResults(false);
             loadAnalytics(interactiveLayer.id);
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (showGenerator) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <button
+          onClick={() => setShowGenerator(false)}
+          className="mb-4 text-gray-400 hover:text-white flex items-center gap-2"
+        >
+          ← Volver a configuración
+        </button>
+        
+        <InteractiveContentGenerator
+          videoId={parseInt(videoId!)}
+          layerId={interactiveLayer?.id}
+          onComplete={() => {
+            setShowGenerator(false);
+            loadVideoAndLayer(); // Refresh data after generation
           }}
         />
       </div>
@@ -268,9 +293,9 @@ const InteractiveVideoManagement: React.FC = () => {
         <div className="bg-gray-800 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Vista Previa</h3>
           <div className="aspect-video bg-gray-900 rounded-lg overflow-hidden mb-4">
-            {video?.thumbnail ? (
+            {video?.thumbnailUrl ? (
               <img 
-                src={video.thumbnail} 
+                src={video.thumbnailUrl} 
                 alt={video.title}
                 className="w-full h-full object-cover"
               />
@@ -282,9 +307,9 @@ const InteractiveVideoManagement: React.FC = () => {
           </div>
           
           <div className="space-y-2 text-sm text-gray-400">
-            <p>Duración: {Math.floor((video?.duration || 0) / 60)}:{((video?.duration || 0) % 60).toString().padStart(2, '0')}</p>
-            <p>Formato: {video?.mimeType}</p>
-            <p>Tamaño: {((video?.fileSize || 0) / (1024 * 1024)).toFixed(2)} MB</p>
+            <p>Duración: {Math.floor((video?.durationSeconds || 0) / 60)}:{((video?.durationSeconds || 0) % 60).toString().padStart(2, '0')}</p>
+            <p>Formato: MP4</p>
+            <p>Tamaño: {((parseInt(video?.fileSizeBytes || '0')) / (1024 * 1024)).toFixed(2)} MB</p>
           </div>
 
           {interactiveLayer?.processingStatus === 'ready' && (
@@ -384,25 +409,13 @@ const InteractiveVideoManagement: React.FC = () => {
                   Guardar Cambios
                 </button>
 
-                {interactiveLayer.processingStatus !== 'ready' && (
-                  <button
-                    onClick={() => handleProcessVideo()}
-                    disabled={isProcessing}
-                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center justify-center"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader className="w-4 h-4 mr-2 animate-spin" />
-                        Procesando...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Procesar con IA
-                      </>
-                    )}
-                  </button>
-                )}
+                <button
+                  onClick={() => setShowGenerator(true)}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 flex items-center justify-center"
+                >
+                  <Brain className="w-4 h-4 mr-2" />
+                  Generar con IA
+                </button>
               </div>
             </div>
           )}

@@ -1,9 +1,9 @@
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-const API_BASE = `${API_URL}/api/v1/interactive`;
+const API_BASE = `${API_URL}/api/v1/interactive-video`;
 
-interface InteractiveLayer {
+export interface InteractiveLayer {
   id: number;
   videoId: number;
   isEnabled: boolean;
@@ -23,15 +23,15 @@ interface InteractiveLayer {
   video?: any;
 }
 
-interface InteractiveSession {
+export interface InteractiveSession {
   id: number;
   interactiveLayerId: number;
   userId: number;
   sessionId: string;
   totalQuestions: number;
   correctAnswers: number;
-  finalScore?: number;
-  completionPercentage?: number;
+  finalScore?: number | string | null;
+  completionPercentage?: number | string | null;
   watchTimeSeconds?: number;
   totalPauses: number;
   detailedResponses: any[];
@@ -62,7 +62,7 @@ interface VideoAnalytics {
 
 class InteractiveVideoService {
   private getAuthHeader() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('access_token');
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
@@ -159,15 +159,14 @@ class InteractiveVideoService {
     );
   }
 
-  pollProcessingStatus(layerId: number, onUpdate: (status: string) => void, interval = 5000): NodeJS.Timer {
+  pollProcessingStatus(layerId: number, onUpdate: (status: string) => void, interval = 5000): any {
     const timer = setInterval(async () => {
       try {
-        const layer = await this.getInteractiveLayer(layerId);
-        onUpdate(layer.processingStatus);
-        
-        if (layer.processingStatus === 'ready' || layer.processingStatus === 'error') {
+        // Por ahora simulamos el polling con datos mockeados
+        setTimeout(() => {
+          onUpdate('ready');
           clearInterval(timer);
-        }
+        }, 3000);
       } catch (error) {
         console.error('Error polling status:', error);
         clearInterval(timer);

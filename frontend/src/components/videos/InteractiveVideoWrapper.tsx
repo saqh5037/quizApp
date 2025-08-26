@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import VideoPlayer from './VideoPlayer';
+import VideoPlayer, { VideoPlayerHandle } from '../VideoPlayer';
 import InteractiveOverlay from './InteractiveOverlay';
 import { interactiveVideoService } from '../../services/interactive-video.service';
 import type { InteractiveLayer, InteractiveSession } from '../../services/interactive-video.service';
@@ -29,7 +29,7 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
   const [watchTimeStart, setWatchTimeStart] = useState(Date.now());
   const [totalPauses, setTotalPauses] = useState(0);
 
-  const videoRef = useRef<any>(null);
+  const videoRef = useRef<VideoPlayerHandle>(null);
   const responseStartTime = useRef<number>(0);
 
   useEffect(() => {
@@ -100,7 +100,8 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
     setCurrentMoment(moment);
     responseStartTime.current = Date.now();
     
-    if (interactiveLayer?.autoPause && videoRef.current) {
+    // Siempre pausar el video cuando aparece una pregunta
+    if (videoRef.current) {
       videoRef.current.pause();
       setIsPaused(true);
       setTotalPauses(prev => prev + 1);
@@ -142,19 +143,19 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
     if (!currentMoment) return;
     
     setAnsweredMoments(prev => new Set(prev).add(currentMoment.id));
-    setCurrentMoment(null);
     
-    if (videoRef.current && isPaused) {
-      videoRef.current.play();
-      setIsPaused(false);
-    }
+    // Limpiar el momento actual y continuar el video después de un breve delay
+    setTimeout(() => {
+      setCurrentMoment(null);
+      if (videoRef.current && isPaused) {
+        videoRef.current.play();
+        setIsPaused(false);
+      }
+    }, 500); // Medio segundo de delay para que el usuario vea que saltó la pregunta
   };
 
-  const handleVideoProgress = (time: number) => {
+  const handleVideoTimeUpdate = (time: number, dur: number) => {
     setCurrentTime(time);
-  };
-
-  const handleVideoDuration = (dur: number) => {
     setDuration(dur);
   };
 
@@ -192,12 +193,12 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
     return (
       <div className="bg-gray-900 rounded-lg p-8">
         <VideoPlayer
-          videoUrl={videoUrl}
-          title={videoTitle}
-          onProgress={handleVideoProgress}
-          onDuration={handleVideoDuration}
-          onEnded={handleVideoEnd}
           ref={videoRef}
+          videoId={videoId}
+          src={videoUrl}
+          title={videoTitle}
+          onTimeUpdate={handleVideoTimeUpdate}
+          onEnded={handleVideoEnd}
         />
       </div>
     );
@@ -206,19 +207,19 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
   const progress = session ? {
     totalQuestions: interactiveLayer?.aiGeneratedContent?.keyMoments?.length || 0,
     answeredQuestions: answeredMoments.size,
-    correctAnswers: session.correctAnswers,
-    currentScore: session.finalScore || 0
+    correctAnswers: session.correctAnswers || 0,
+    currentScore: Number(session.finalScore) || 0
   } : null;
 
   return (
     <div className="relative bg-gray-900 rounded-lg overflow-hidden">
       <VideoPlayer
-        videoUrl={videoUrl}
-        title={videoTitle}
-        onProgress={handleVideoProgress}
-        onDuration={handleVideoDuration}
-        onEnded={handleVideoEnd}
         ref={videoRef}
+        videoId={videoId}
+        src={videoUrl}
+        title={videoTitle}
+        onTimeUpdate={handleVideoTimeUpdate}
+        onEnded={handleVideoEnd}
       />
       
       {currentMoment && (
@@ -236,8 +237,8 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
           <div className="text-sm">
             <p>Preguntas: {answeredMoments.size} / {interactiveLayer?.aiGeneratedContent?.keyMoments?.length || 0}</p>
             <p>Correctas: {session.correctAnswers}</p>
-            {session.finalScore !== null && (
-              <p>Puntuación: {session.finalScore.toFixed(1)}%</p>
+            {session.finalScore !== null && session.finalScore !== undefined && (
+              <p>Puntuación: {Number(session.finalScore).toFixed(1)}%</p>
             )}
           </div>
         </div>
