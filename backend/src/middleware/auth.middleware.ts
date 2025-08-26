@@ -35,12 +35,11 @@ export const authenticate = async (
     }
 
     const payload = verifyAccessToken(token);
-    req.user = payload;
-
+    
     // Optionally load full user data
-    console.log('Looking for user with ID:', payload.id);
+    // console.log('Looking for user with ID:', payload.id);
     const user = await User.findByPk(payload.id, {
-      attributes: ['id', 'email', 'firstName', 'lastName', 'role', 'isActive', 'isVerified']
+      attributes: ['id', 'email', 'firstName', 'lastName', 'role', 'tenant_id', 'isActive', 'isVerified']
     });
     console.log('User found:', user ? `${user.email} (active: ${user.get('isActive')})` : 'null');
     
@@ -48,6 +47,11 @@ export const authenticate = async (
       throw new AuthenticationError('User not found or inactive');
     }
 
+    // Update payload with tenant_id from database if not in token
+    req.user = {
+      ...payload,
+      tenant_id: payload.tenant_id || user.get('tenant_id')
+    };
     req.currentUser = user;
     next();
   } catch (error) {

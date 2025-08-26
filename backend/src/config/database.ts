@@ -62,10 +62,10 @@ const buildDatabaseConfig = (): DatabaseConfig => {
       timestamps: true,
       underscored: true,
       freezeTableName: true,
-      paranoid: true, // Enable soft deletes globally
+      paranoid: false, // Disable soft deletes globally (tables don't have deleted_at column)
       createdAt: 'created_at',
       updatedAt: 'updated_at',
-      deletedAt: 'deleted_at',
+      // deletedAt: 'deleted_at', // Commented out as we're not using soft deletes
     },
     
     // Query configuration

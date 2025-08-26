@@ -24,15 +24,48 @@ export default function PublicQuizShare({ quizId, quizTitle }: PublicQuizSharePr
   
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(publicUrl);
-      setCopied(true);
-      toast.success(t('publicQuiz.linkCopied'));
-      
-      // Reset copied state after 2 seconds
-      setTimeout(() => setCopied(false), 2000);
+      // Check if clipboard API is available
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(publicUrl);
+        setCopied(true);
+        toast.success(t('publicQuiz.linkCopied') || 'Enlace copiado');
+        
+        // Reset copied state after 2 seconds
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement('textarea');
+        textArea.value = publicUrl;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+          const successful = document.execCommand('copy');
+          if (successful) {
+            setCopied(true);
+            toast.success(t('publicQuiz.linkCopied') || 'Enlace copiado');
+            setTimeout(() => setCopied(false), 2000);
+          } else {
+            throw new Error('Copy command failed');
+          }
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
     } catch (error) {
       console.error('Failed to copy link:', error);
-      toast.error('Failed to copy link');
+      // Manual fallback - select the input field
+      const input = document.querySelector('input[readonly]') as HTMLInputElement;
+      if (input) {
+        input.select();
+        toast.info('Presiona Ctrl+C o Cmd+C para copiar');
+      } else {
+        toast.error('No se pudo copiar el enlace');
+      }
     }
   };
   

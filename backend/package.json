@@ -18,6 +18,7 @@
     "db:reset": "sequelize-cli db:drop && sequelize-cli db:create && npm run migrate && npm run seed"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@types/bcrypt": "^6.0.0",
     "@types/fluent-ffmpeg": "^2.1.27",
     "@types/multer-s3": "^3.0.3",
@@ -43,6 +44,7 @@
     "node-cron": "^3.0.3",
     "node-fetch": "^2.7.0",
     "nodemailer": "^7.0.5",
+    "pdf-parse": "^1.1.1",
     "pdfkit": "^0.14.0",
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.4",

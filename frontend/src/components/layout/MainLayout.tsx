@@ -11,7 +11,8 @@ import {
   RiLogoutBoxLine,
   RiNotification3Line,
   RiVideoLine,
-  RiFileTextLine
+  RiFileTextLine,
+  RiSettings3Line
 } from 'react-icons/ri';
 
 export default function MainLayout() {
@@ -31,6 +32,8 @@ export default function MainLayout() {
   const navItems = [
     { path: '/dashboard', label: t('navigation.dashboard', { defaultValue: 'Dashboard' }), key: 'launch' },
     { path: '/quizzes', label: t('navigation.assessments', { defaultValue: 'Evaluaciones' }), key: 'library' },
+    { path: '/classrooms', label: 'Salones', key: 'classrooms' },
+    { path: '/manuals', label: 'Manuales', key: 'manuals' },
     { path: '/videos', label: 'Videos', key: 'videos' },
     { path: '/sessions', label: t('navigation.sessions', { defaultValue: 'Sesiones' }), key: 'rooms' },
     { path: '/public-results', label: 'Resultados', key: 'reports' },
@@ -101,6 +104,14 @@ export default function MainLayout() {
                   {isAdmin && (
                     <>
                       <hr className="border-gray-200" />
+                      <Link 
+                        to="/tenant-settings" 
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setIsProfileOpen(false)}
+                      >
+                        <RiSettings3Line className="w-4 h-4 mr-2" />
+                        Configuración de Organización
+                      </Link>
                       <Link 
                         to="/docs" 
                         className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"

@@ -4,6 +4,7 @@ import { Plus, Trash2, GripVertical, Save, ArrowLeft, Copy, Eye, CheckCircle, Al
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../stores/authStore';
 import { buildApiUrl } from '../config/api.config';
+import QuizPreviewModal from '../components/quiz/QuizPreviewModal';
 
 interface Question {
   id: string | number;
@@ -38,6 +39,7 @@ export default function EditQuiz() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'details' | 'questions' | 'settings'>('details');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+  const [showPreview, setShowPreview] = useState(false);
   const [quiz, setQuiz] = useState<QuizForm>({
     title: '',
     description: '',
@@ -77,21 +79,31 @@ export default function EditQuiz() {
       
       const quizData = await quizResponse.json();
       
-      // Fetch quiz questions
-      const questionsResponse = await fetch(buildApiUrl(`/quizzes/${id}/questions`), {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
+      // Check if this is an AI quiz (ID > 100000) or if questions are already included
+      let questionsToFormat = [];
+      const numericId = parseInt(id);
       
-      if (!questionsResponse.ok) {
-        throw new Error('Failed to fetch questions');
+      if (numericId > 100000 || (quizData.data && quizData.data.questions)) {
+        // For AI quizzes or when questions are included, use the questions from the quiz response
+        questionsToFormat = quizData.data.questions || [];
+      } else {
+        // For regular quizzes, fetch questions separately
+        const questionsResponse = await fetch(buildApiUrl(`/quizzes/${id}/questions`), {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
+        if (!questionsResponse.ok) {
+          throw new Error('Failed to fetch questions');
+        }
+        
+        const questionsData = await questionsResponse.json();
+        questionsToFormat = questionsData.data || [];
       }
       
-      const questionsData = await questionsResponse.json();
-      
       // Format the data for the form
-      const formattedQuestions = questionsData.data.map((q: any) => {
+      const formattedQuestions = questionsToFormat.map((q: any) => {
         let correctAnswer;
         
         // Parse correct answer based on question type
@@ -354,7 +366,7 @@ export default function EditQuiz() {
           </div>
           <div className="flex items-center space-x-3">
             <button
-              onClick={() => toast('Preview not implemented yet', { icon: 'ℹ️' })}
+              onClick={() => setShowPreview(true)}
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2"
             >
               <Eye className="w-4 h-4" />
@@ -949,6 +961,26 @@ export default function EditQuiz() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Preview Modal */}
+      {showPreview && (
+        <QuizPreviewModal
+          isOpen={showPreview}
+          onClose={() => setShowPreview(false)}
+          quiz={{
+            title: quiz.title,
+            description: quiz.description || '',
+            category: quiz.category || 'General',
+            difficulty: quiz.difficulty || 'medium',
+            timeLimit: quiz.timeLimit,
+            passingScore: quiz.passingScore,
+            questions: quiz.questions.map(q => ({
+              ...q,
+              correct_answer: q.correctAnswer
+            }))
+          }}
+        />
       )}
     </div>
   );

@@ -6,6 +6,7 @@ export interface TokenPayload {
   id: number;
   email: string;
   role: string;
+  tenant_id?: number;
 }
 
 export interface RefreshTokenPayload extends TokenPayload {
@@ -17,6 +18,7 @@ export const generateAccessToken = (user: User): string => {
     id: user.id,
     email: user.email,
     role: user.role,
+    tenant_id: user.tenant_id,
   };
 
   return jwt.sign(payload, env.JWT_SECRET, {
@@ -29,6 +31,7 @@ export const generateRefreshToken = (user: User): string => {
     id: user.id,
     email: user.email,
     role: user.role,
+    tenant_id: user.tenant_id,
     tokenVersion: 1, // Can be used to invalidate tokens
   };
 

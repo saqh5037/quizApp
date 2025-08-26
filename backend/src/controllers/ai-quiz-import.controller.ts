@@ -103,19 +103,23 @@ export const importAIQuizToEvaluations = async (req: Request, res: Response) => 
         }
 
         questionData.options = options;
-        questionData.correctAnswers = correctAnswer;  // Use camelCase - Sequelize maps to correct_answers
+        // correctAnswers must be an array for the database
+        questionData.correctAnswers = [correctAnswer];  // Wrap in array
         questionData.metadata = {
           ...questionData.metadata,
-          original_correct_index: aiQuestion.correct_answer
+          original_correct_index: aiQuestion.correct_answer,
+          original_correct_value: correctAnswer
         };
       } else if (questionData.questionType === 'true_false') {
         questionData.options = ['Verdadero', 'Falso'];
-        questionData.correctAnswers = aiQuestion.correct_answer === true || 
-                                    aiQuestion.correct_answer === 'true' || 
-                                    aiQuestion.correct_answer === 'Verdadero' 
-                                    ? 'Verdadero' : 'Falso';
+        const trueFalseAnswer = aiQuestion.correct_answer === true || 
+                                aiQuestion.correct_answer === 'true' || 
+                                aiQuestion.correct_answer === 'Verdadero' 
+                                ? 'Verdadero' : 'Falso';
+        questionData.correctAnswers = [trueFalseAnswer];  // Wrap in array
       } else if (questionData.questionType === 'short_answer' || questionData.questionType === 'open_text') {
-        questionData.correctAnswers = aiQuestion.correct_answer || aiQuestion.answer || '';
+        const textAnswer = aiQuestion.correct_answer || aiQuestion.answer || '';
+        questionData.correctAnswers = [textAnswer];  // Wrap in array
         questionData.options = null;
       }
 
@@ -229,7 +233,10 @@ export const createQuizFromManual = async (req: Request, res: Response) => {
         orderPosition: i + 1,
         explanation: q.explanation || null,
         options: q.options || [],
-        correctAnswers: q.correctAnswer || q.correct_answer || '',
+        // Ensure correctAnswers is always an array
+        correctAnswers: Array.isArray(q.correctAnswer) 
+          ? q.correctAnswer 
+          : [q.correctAnswer || q.correct_answer || ''],
         metadata: q.metadata || {}
       };
 
