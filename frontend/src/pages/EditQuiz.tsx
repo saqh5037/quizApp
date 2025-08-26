@@ -108,18 +108,36 @@ export default function EditQuiz() {
         
         // Parse correct answer based on question type
         if (q.question_type === 'multiple_choice' || q.type === 'multiple_choice') {
-          // For multiple choice, correct_answers is an array with the index
+          // For multiple choice, correct_answers might be an array with the answer value or index
           if (q.correct_answers && Array.isArray(q.correct_answers) && q.correct_answers.length > 0) {
-            correctAnswer = q.correct_answers[0]; // Get the index from the array
+            const answer = q.correct_answers[0];
+            // Check if it's a number (index) or string (value)
+            if (typeof answer === 'number') {
+              correctAnswer = answer;
+            } else if (typeof answer === 'string' && q.options) {
+              // Convert answer value to index
+              const options = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+              const index = options.findIndex((opt: string) => opt === answer);
+              correctAnswer = index !== -1 ? index : null;
+            } else {
+              correctAnswer = null;
+            }
           } else if (q.correct_answer !== undefined) {
             correctAnswer = parseInt(q.correct_answer);
           } else {
             correctAnswer = null;
           }
         } else if (q.question_type === 'true_false' || q.type === 'true_false') {
-          // For true/false, correct_answers is [true] or [false]
+          // For true/false, correct_answers might be [true], [false], ["Verdadero"], or ["Falso"]
           if (q.correct_answers && Array.isArray(q.correct_answers) && q.correct_answers.length > 0) {
-            correctAnswer = q.correct_answers[0] === true ? 0 : 1; // Convert boolean to index
+            const answer = q.correct_answers[0];
+            if (answer === true || answer === 'true' || answer === 'Verdadero' || answer === 'True') {
+              correctAnswer = 0; // True is index 0
+            } else if (answer === false || answer === 'false' || answer === 'Falso' || answer === 'False') {
+              correctAnswer = 1; // False is index 1
+            } else {
+              correctAnswer = null;
+            }
           } else if (q.correct_answer !== undefined) {
             correctAnswer = parseInt(q.correct_answer);
           } else {
