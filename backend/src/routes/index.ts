@@ -83,6 +83,10 @@ router.use('/certificates', certificateRoutes);
 import aiRoutes from './ai.routes';
 router.use('/ai', aiRoutes);
 
+// Interactive Video routes
+import interactiveVideoRoutes from './interactive-video.routes';
+router.use('/interactive', interactiveVideoRoutes);
+
 // Manual routes - direct implementation
 router.get('/manuals/test', (req: Request, res: Response) => {
   res.json({ success: true, message: 'Manual routes working' });

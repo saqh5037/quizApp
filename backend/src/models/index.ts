@@ -30,6 +30,9 @@ import {
   VideoPlaylist,
   PlaylistVideo
 } from './Video';
+import InteractiveVideoLayer from './InteractiveVideoLayer.model';
+import InteractiveVideoResult from './InteractiveVideoResult.model';
+import InteractiveVideoAnswer from './InteractiveVideoAnswer.model';
 import { setupAssociations } from './associations';
 import { sequelize } from '../config/database';
 
@@ -57,6 +60,11 @@ VideoAnalytics.initModel(sequelize);
 VideoQuizPoint.initModel(sequelize);
 VideoPlaylist.initModel(sequelize);
 PlaylistVideo.initModel(sequelize);
+
+// Initialize Interactive Video models
+InteractiveVideoLayer.initModel(sequelize);
+InteractiveVideoResult.initModel(sequelize);
+InteractiveVideoAnswer.initModel(sequelize);
 
 // Setup all model associations
 setupAssociations();
@@ -149,7 +157,10 @@ export {
   VideoAnalytics,
   VideoQuizPoint,
   VideoPlaylist,
-  PlaylistVideo
+  PlaylistVideo,
+  InteractiveVideoLayer,
+  InteractiveVideoResult,
+  InteractiveVideoAnswer
 };
 
 export default {
@@ -182,5 +193,8 @@ export default {
   VideoAnalytics,
   VideoQuizPoint,
   VideoPlaylist,
-  PlaylistVideo
+  PlaylistVideo,
+  InteractiveVideoLayer,
+  InteractiveVideoResult,
+  InteractiveVideoAnswer
 };

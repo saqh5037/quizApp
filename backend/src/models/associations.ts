@@ -9,6 +9,12 @@ import Manual from './Manual.model';
 import ManualChat from './ManualChat.model';
 import AIGeneratedQuiz from './AIGeneratedQuiz.model';
 import ManualSummary from './ManualSummary.model';
+import { Video } from './Video';
+import InteractiveVideoLayer from './InteractiveVideoLayer.model';
+import InteractiveVideoResult from './InteractiveVideoResult.model';
+import InteractiveVideoAnswer from './InteractiveVideoAnswer.model';
+import Certificate from './Certificate.model';
+import Tenant from './Tenant.model';
 
 export const setupAssociations = (): void => {
   // Organization associations
@@ -198,5 +204,94 @@ export const setupAssociations = (): void => {
   User.hasMany(ManualSummary, {
     foreignKey: 'user_id',
     as: 'manualSummaries',
+  });
+
+  // Interactive Video associations
+  // InteractiveVideoLayer - Video
+  InteractiveVideoLayer.belongsTo(Video, {
+    foreignKey: 'videoId',
+    as: 'video'
+  });
+
+  Video.hasOne(InteractiveVideoLayer, {
+    foreignKey: 'videoId',
+    as: 'interactiveLayer'
+  });
+
+  // InteractiveVideoLayer - User (creator)
+  InteractiveVideoLayer.belongsTo(User, {
+    foreignKey: 'createdBy',
+    as: 'creator'
+  });
+
+  User.hasMany(InteractiveVideoLayer, {
+    foreignKey: 'createdBy',
+    as: 'createdInteractiveLayers'
+  });
+
+  // InteractiveVideoLayer - Tenant
+  InteractiveVideoLayer.belongsTo(Tenant, {
+    foreignKey: 'tenantId',
+    as: 'tenant'
+  });
+
+  Tenant.hasMany(InteractiveVideoLayer, {
+    foreignKey: 'tenantId',
+    as: 'interactiveLayers'
+  });
+
+  // InteractiveVideoResult - InteractiveVideoLayer
+  InteractiveVideoResult.belongsTo(InteractiveVideoLayer, {
+    foreignKey: 'interactiveLayerId',
+    as: 'interactiveLayer'
+  });
+
+  InteractiveVideoLayer.hasMany(InteractiveVideoResult, {
+    foreignKey: 'interactiveLayerId',
+    as: 'results'
+  });
+
+  // InteractiveVideoResult - User
+  InteractiveVideoResult.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user'
+  });
+
+  User.hasMany(InteractiveVideoResult, {
+    foreignKey: 'userId',
+    as: 'interactiveVideoResults'
+  });
+
+  // InteractiveVideoResult - Certificate
+  InteractiveVideoResult.belongsTo(Certificate, {
+    foreignKey: 'certificateId',
+    as: 'certificate'
+  });
+
+  Certificate.hasMany(InteractiveVideoResult, {
+    foreignKey: 'certificateId',
+    as: 'interactiveVideoResults'
+  });
+
+  // InteractiveVideoResult - Tenant
+  InteractiveVideoResult.belongsTo(Tenant, {
+    foreignKey: 'tenantId',
+    as: 'tenant'
+  });
+
+  Tenant.hasMany(InteractiveVideoResult, {
+    foreignKey: 'tenantId',
+    as: 'interactiveVideoResults'
+  });
+
+  // InteractiveVideoAnswer - InteractiveVideoResult
+  InteractiveVideoAnswer.belongsTo(InteractiveVideoResult, {
+    foreignKey: 'resultId',
+    as: 'result'
+  });
+
+  InteractiveVideoResult.hasMany(InteractiveVideoAnswer, {
+    foreignKey: 'resultId',
+    as: 'interactiveVideoAnswers'
   });
 };
