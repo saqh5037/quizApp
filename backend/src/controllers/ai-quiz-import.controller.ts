@@ -91,20 +91,29 @@ export const importAIQuizToEvaluations = async (req: Request, res: Response) => 
         // Ensure options array exists
         const options = aiQuestion.options || aiQuestion.answers || [];
         
-        // Convert correct_answer index to actual answer value if needed
-        let correctAnswer = aiQuestion.correct_answer;
+        // Get correct answer from various possible fields
+        let correctAnswer = aiQuestion.correct_answer !== undefined ? aiQuestion.correct_answer : 
+                           aiQuestion.correctAnswer !== undefined ? aiQuestion.correctAnswer : null;
         
         if (typeof correctAnswer === 'number' && options.length > 0) {
           // If correct_answer is an index, get the actual value
-          correctAnswer = options[correctAnswer] || options[0];
+          correctAnswer = options[correctAnswer];
+        } else if (typeof correctAnswer === 'string') {
+          // Already have the answer value, use it
+          // Verify it exists in options
+          if (!options.includes(correctAnswer) && options.length > 0) {
+            console.warn(`Correct answer "${correctAnswer}" not found in options, using first option`);
+            correctAnswer = options[0];
+          }
         } else if (!correctAnswer && options.length > 0) {
           // Default to first option if no correct answer specified
+          console.warn('No correct answer specified, defaulting to first option');
           correctAnswer = options[0];
         }
 
         questionData.options = options;
         // correctAnswers must be an array for the database
-        questionData.correctAnswers = [correctAnswer];  // Wrap in array
+        questionData.correctAnswers = correctAnswer ? [correctAnswer] : [];  // Wrap in array
         questionData.metadata = {
           ...questionData.metadata,
           original_correct_index: aiQuestion.correct_answer,
@@ -112,14 +121,17 @@ export const importAIQuizToEvaluations = async (req: Request, res: Response) => 
         };
       } else if (questionData.questionType === 'true_false') {
         questionData.options = ['Verdadero', 'Falso'];
-        const trueFalseAnswer = aiQuestion.correct_answer === true || 
-                                aiQuestion.correct_answer === 'true' || 
-                                aiQuestion.correct_answer === 'Verdadero' 
+        const answer = aiQuestion.correct_answer !== undefined ? aiQuestion.correct_answer :
+                      aiQuestion.correctAnswer !== undefined ? aiQuestion.correctAnswer : false;
+        const trueFalseAnswer = answer === true || 
+                                answer === 'true' || 
+                                answer === 'Verdadero' 
                                 ? 'Verdadero' : 'Falso';
         questionData.correctAnswers = [trueFalseAnswer];  // Wrap in array
       } else if (questionData.questionType === 'short_answer' || questionData.questionType === 'open_text') {
-        const textAnswer = aiQuestion.correct_answer || aiQuestion.answer || '';
-        questionData.correctAnswers = [textAnswer];  // Wrap in array
+        const textAnswer = aiQuestion.correct_answer || aiQuestion.correctAnswer || 
+                          aiQuestion.answer || '';
+        questionData.correctAnswers = textAnswer ? [textAnswer] : [];  // Wrap in array
         questionData.options = null;
       }
 
