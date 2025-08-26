@@ -38,9 +38,14 @@ export const importAIQuizToEvaluations = async (req: Request, res: Response) => 
     const userId = req.user?.id || 2; // Default to admin user
     const tenantId = req.tenantId || req.user?.tenant_id || 1; // Get tenant from request
 
+    // Ensure title meets validation requirements (min 3 chars)
+    const quizTitle = aiQuiz.title && aiQuiz.title.length >= 3 
+      ? aiQuiz.title 
+      : `Evaluación AI #${aiQuizId}`;
+
     // Create the main quiz (use camelCase for Sequelize model fields)
     const quiz = await Quiz.create({
-      title: aiQuiz.title,
+      title: quizTitle,
       description: aiQuiz.description || `Evaluación generada desde el manual`,
       creatorId: userId,  // Use camelCase - Sequelize maps to creator_id
       tenantId: tenantId,  // Add tenant ID
@@ -184,10 +189,13 @@ export const createQuizFromManual = async (req: Request, res: Response) => {
     const userId = req.user?.id || 2;
     const tenantId = req.tenantId || req.user?.tenant_id || 1;
 
+    // Ensure title meets validation requirements (min 3 chars)
+    const finalTitle = title && title.length >= 3 ? title : `Evaluación del Manual ${manualId}`;
+
     // Create quiz with all settings (use camelCase for model fields)
     const quiz = await Quiz.create({
-      title: title || 'Evaluación del Manual',
-      description: description || 'Evaluación generada automáticamente',
+      title: finalTitle,
+      description: description || 'Evaluación generada automáticamente desde el manual',
       creatorId: userId,  // Use camelCase
       tenantId: tenantId,  // Add tenant ID
       isPublic: settings.isPublic || false,
