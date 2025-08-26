@@ -12,23 +12,34 @@ import { buildApiUrl } from '../config/api.config';
 
 interface ResultDetail {
   id: number;
-  quiz_id: number;
-  quiz_title: string;
-  participant_name: string;
-  participant_email: string;
+  result_type?: 'quiz' | 'video';
+  content_title: string;
+  // Quiz fields
+  quiz_id?: number;
+  participant_name?: string;
+  participant_email?: string;
   participant_organization?: string;
+  total_points?: number;
+  earned_points?: number;
+  time_spent_seconds?: number;
+  started_at?: string;
+  // Video fields  
+  video_id?: number;
+  student_name?: string;
+  student_email?: string;
+  student_phone?: string;
+  duration_seconds?: number;
+  layer_id?: number;
+  // Common fields
   score: number;
-  total_points: number;
-  earned_points: number;
   correct_answers: number;
   total_questions: number;
-  time_spent_seconds: number;
-  started_at: string;
   completed_at: string;
   answers: Record<string, any>;
   passed?: boolean;
   category?: string;
   difficulty?: string;
+  pass_percentage?: number;
 }
 
 interface Question {
@@ -41,7 +52,7 @@ interface Question {
 }
 
 export default function ResultDetail() {
-  const { id } = useParams();
+  const { id, resultType } = useParams();
   const navigate = useNavigate();
   const { accessToken } = useAuthStore();
   const certificateRef = useRef<HTMLDivElement>(null);
@@ -53,13 +64,13 @@ export default function ResultDetail() {
 
   useEffect(() => {
     fetchResultDetail();
-  }, [id]);
+  }, [id, resultType]);
 
   const fetchResultDetail = async () => {
     try {
       // Using the new endpoint without auth for testing
       const response = await fetch(
-        buildApiUrl(`/results/public/detail/${id}`),
+        buildApiUrl(`/results/public/detail/${resultType || 'quiz'}/${id}`),
         {
           headers: {
             'Content-Type': 'application/json'
@@ -110,7 +121,7 @@ export default function ResultDetail() {
     }
 
     try {
-      console.log('Generating PDF for result:', result.participant_name);
+      console.log('Generating PDF for result:', result.participant_name || result.student_name);
       setShowCertificate(true);
       
       // Wait for the certificate to render
@@ -144,7 +155,8 @@ export default function ResultDetail() {
       
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       
-      const filename = `certificado_${result.participant_name.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.pdf`;
+      const participantName = result.participant_name || result.student_name || 'participante';
+      const filename = `certificado_${participantName.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.pdf`;
       console.log('Saving PDF as:', filename);
       pdf.save(filename);
       
@@ -196,7 +208,7 @@ export default function ResultDetail() {
             </button>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Detalle del Resultado</h1>
-              <p className="text-gray-600">{result.quiz_title}</p>
+              <p className="text-gray-600">{result.content_title}</p>
             </div>
           </div>
           
@@ -224,9 +236,9 @@ export default function ResultDetail() {
           </div>
           
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            {result.participant_name}
+            {result.participant_name || result.student_name}
           </h2>
-          <p className="text-gray-600">{result.participant_email}</p>
+          <p className="text-gray-600">{result.participant_email || result.student_email}</p>
           {result.participant_organization && (
             <p className="text-sm text-gray-500">{result.participant_organization}</p>
           )}
@@ -251,7 +263,7 @@ export default function ResultDetail() {
           
           <div className="text-center">
             <div className="text-2xl font-bold text-gray-900 mb-2">
-              {formatTime(result.time_spent_seconds || 0)}
+              {formatTime(result.time_spent_seconds || result.duration_seconds || 0)}
             </div>
             <p className="text-sm text-gray-600">Tiempo Total</p>
           </div>
@@ -287,10 +299,12 @@ export default function ResultDetail() {
               <span className="text-gray-600">Total de Preguntas:</span>
               <span className="font-medium">{result.total_questions}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Puntos Totales:</span>
-              <span className="font-medium">{result.earned_points}/{result.total_points}</span>
-            </div>
+            {result.total_points && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Puntos Totales:</span>
+                <span className="font-medium">{result.earned_points}/{result.total_points}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -310,7 +324,7 @@ export default function ResultDetail() {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Duración:</span>
-              <span className="font-medium">{formatTime(result.time_spent_seconds || 0)}</span>
+              <span className="font-medium">{formatTime(result.time_spent_seconds || result.duration_seconds || 0)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">ID de Resultado:</span>
@@ -431,9 +445,9 @@ export default function ResultDetail() {
               <div className="mb-8">
                 <p style={{ fontSize: '20px', marginBottom: '16px' }}>Se certifica que</p>
                 <h2 style={{ fontSize: '48px', fontWeight: 'bold', marginBottom: '16px', lineHeight: '1.1' }}>
-                  {result.participant_name}
+                  {result.participant_name || result.student_name}
                 </h2>
-                <p style={{ fontSize: '18px', marginBottom: '8px' }}>{result.participant_email}</p>
+                <p style={{ fontSize: '18px', marginBottom: '8px' }}>{result.participant_email || result.student_email}</p>
                 {result.participant_organization && (
                   <p style={{ fontSize: '18px' }}>{result.participant_organization}</p>
                 )}
@@ -446,7 +460,7 @@ export default function ResultDetail() {
                     : 'Ha completado la evaluación'}
                 </p>
                 <h3 style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '16px', lineHeight: '1.2' }}>
-                  "{result.quiz_title}"
+                  "{result.content_title}"
                 </h3>
                 <p style={{ fontSize: '18px' }}>
                   Con una puntuación de <span style={{ fontWeight: 'bold', fontSize: '24px' }}>

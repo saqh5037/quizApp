@@ -28,6 +28,8 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
   const [answeredMoments, setAnsweredMoments] = useState<Set<string>>(new Set());
   const [watchTimeStart, setWatchTimeStart] = useState(Date.now());
   const [totalPauses, setTotalPauses] = useState(0);
+  const [videoCompleted, setVideoCompleted] = useState(false);
+  const [completedResults, setCompletedResults] = useState<any>(null);
 
   const videoRef = useRef<VideoPlayerHandle>(null);
   const responseStartTime = useRef<number>(0);
@@ -69,7 +71,13 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
       
       // Iniciar sesión
       const newSession = await interactiveVideoService.startInteractiveSession(layer.id);
-      setSession(newSession);
+      
+      // Asegurar que totalQuestions esté correcta basado en los keyMoments
+      const totalQuestions = layer.aiGeneratedContent?.keyMoments?.length || 0;
+      setSession({
+        ...newSession,
+        totalQuestions
+      });
       
       setIsLoading(false);
     } catch (err: any) {
@@ -125,6 +133,15 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
       // Marcar momento como respondido
       setAnsweredMoments(prev => new Set(prev).add(currentMoment.id));
       
+      // Actualizar la sesión local con el nuevo puntaje
+      if (session && result.currentScore !== undefined) {
+        setSession(prev => prev ? {
+          ...prev,
+          correctAnswers: result.progress.correctAnswers,
+          finalScore: result.currentScore
+        } : null);
+      }
+      
       // Mostrar resultado brevemente
       setTimeout(() => {
         setCurrentMoment(null);
@@ -165,13 +182,50 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
     const watchTimeSeconds = Math.floor((Date.now() - watchTimeStart) / 1000);
     
     try {
-      const results = await interactiveVideoService.completeSession(session.sessionId, {
+      // Preparar los resultados pero no completar la sesión aún
+      const totalQuestions = interactiveLayer?.aiGeneratedContent?.keyMoments?.length || 0;
+      const correctAnswers = session.correctAnswers || 0;
+      const calculatedScore = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+      
+      const results = {
+        sessionId: session.sessionId,
+        totalQuestions,
+        answeredQuestions: answeredMoments.size,
+        correctAnswers,
+        currentScore: calculatedScore,
         watchTimeSeconds,
         totalPauses
+      };
+      
+      setCompletedResults(results);
+      setVideoCompleted(true);
+      
+    } catch (error) {
+      console.error('Error preparing results:', error);
+    }
+  };
+
+  const handleSubmitEvaluation = async () => {
+    if (!completedResults || !session) return;
+
+    try {
+      const finalResults = await interactiveVideoService.completeSession(session.sessionId, {
+        watchTimeSeconds: completedResults.watchTimeSeconds,
+        totalPauses: completedResults.totalPauses
       });
 
       if (onComplete) {
-        onComplete(results);
+        // Enviar los datos en el formato esperado por PublicInteractiveVideo
+        onComplete({
+          result: {
+            score: completedResults.currentScore,
+            totalQuestions: completedResults.totalQuestions,
+            correctAnswers: completedResults.correctAnswers,
+            passed: completedResults.currentScore >= 70,
+            answers: session.detailedResponses || []
+          },
+          sessionData: finalResults
+        });
       }
     } catch (error) {
       console.error('Error completing session:', error);
@@ -261,6 +315,53 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
               />
             );
           })}
+        </div>
+      )}
+
+      {/* Overlay de finalización */}
+      {videoCompleted && completedResults && (
+        <div className="absolute inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md mx-4 text-center">
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">¡Video Completado!</h3>
+              <p className="text-gray-600 mb-6">Has terminado de ver el video y responder las preguntas.</p>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="text-sm text-gray-600 space-y-2">
+                <div className="flex justify-between">
+                  <span>Total de preguntas:</span>
+                  <span className="font-medium">{completedResults.totalQuestions}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Preguntas respondidas:</span>
+                  <span className="font-medium">{completedResults.answeredQuestions}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Respuestas correctas:</span>
+                  <span className="font-medium text-green-600">{completedResults.correctAnswers}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Puntuación final:</span>
+                  <span className={completedResults.currentScore >= 70 ? 'text-green-600' : 'text-red-600'}>
+                    {completedResults.currentScore.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSubmitEvaluation}
+              className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              Finalizar Evaluación
+            </button>
+          </div>
         </div>
       )}
     </div>

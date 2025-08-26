@@ -10,13 +10,15 @@ import {
   RefreshCw,
   Loader,
   AlertCircle,
-  BarChart
+  BarChart,
+  QrCode
 } from 'lucide-react';
 import { interactiveVideoService } from '../../services/interactive-video.service';
 import { videoService } from '../../services/video.service';
 import InteractiveVideoWrapper from '../../components/videos/InteractiveVideoWrapper';
 import InteractiveVideoResults from '../../components/videos/InteractiveVideoResults';
 import InteractiveContentGenerator from '../../components/videos/InteractiveContentGenerator';
+import VideoShareModal from '../../components/video/VideoShareModal';
 import toast from 'react-hot-toast';
 
 const InteractiveVideoManagement: React.FC = () => {
@@ -34,6 +36,7 @@ const InteractiveVideoManagement: React.FC = () => {
   const [analytics, setAnalytics] = useState<any>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showGenerator, setShowGenerator] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const [config, setConfig] = useState({
     isEnabled: true,
@@ -313,13 +316,23 @@ const InteractiveVideoManagement: React.FC = () => {
           </div>
 
           {interactiveLayer?.processingStatus === 'ready' && (
-            <button
-              onClick={() => setShowPlayer(true)}
-              className="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center"
-            >
-              <Play className="w-5 h-5 mr-2" />
-              Reproducir Modo Interactivo
-            </button>
+            <div className="mt-4 space-y-2">
+              <button
+                onClick={() => setShowPlayer(true)}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center"
+              >
+                <Play className="w-5 h-5 mr-2" />
+                Reproducir Modo Interactivo
+              </button>
+              
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center justify-center"
+              >
+                <QrCode className="w-5 h-5 mr-2" />
+                Compartir con QR
+              </button>
+            </div>
           )}
         </div>
 
@@ -442,6 +455,65 @@ const InteractiveVideoManagement: React.FC = () => {
             </div>
           </div>
 
+          {/* Transcription Section */}
+          {interactiveLayer.aiGeneratedContent.transcription && (
+            <div className="mb-6">
+              <h4 className="text-md font-medium text-white mb-3 flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Transcripción del Video
+              </h4>
+              
+              {/* Full transcription text */}
+              {(interactiveLayer.aiGeneratedContent.transcription.fullText || 
+                interactiveLayer.aiGeneratedContent.transcription) && (
+                <div className="bg-gray-700 p-4 rounded-lg mb-4">
+                  <h5 className="text-sm font-medium text-gray-300 mb-2">Transcripción Completa</h5>
+                  <div className="max-h-48 overflow-y-auto">
+                    <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+                      {interactiveLayer.aiGeneratedContent.transcription.fullText || 
+                       interactiveLayer.aiGeneratedContent.transcription}
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Transcription segments with timestamps */}
+              {interactiveLayer.aiGeneratedContent.transcriptionSegments && 
+               interactiveLayer.aiGeneratedContent.transcriptionSegments.length > 0 && (
+                <div className="bg-gray-750 rounded-lg p-4">
+                  <h5 className="text-sm font-medium text-gray-300 mb-3 flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Segmentos por Tiempo
+                  </h5>
+                  <div className="max-h-64 overflow-y-auto space-y-2">
+                    {interactiveLayer.aiGeneratedContent.transcriptionSegments.map((segment: any, idx: number) => (
+                      <div key={idx} className="flex items-start space-x-3 p-3 bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors">
+                        <div className="flex-shrink-0">
+                          <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-blue-400 bg-blue-900 rounded">
+                            {Math.floor(segment.start / 60).toString().padStart(2, '0')}:
+                            {Math.floor(segment.start % 60).toString().padStart(2, '0')}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-300">
+                            {segment.text}
+                          </p>
+                          <span className="text-xs text-gray-500 mt-1 inline-block">
+                            Duración: {Math.round(segment.end - segment.start)}s
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <h4 className="text-md font-medium text-white mb-3">
             Momentos Clave ({interactiveLayer.aiGeneratedContent.keyMoments.length})
           </h4>
@@ -504,6 +576,16 @@ const InteractiveVideoManagement: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && video && (
+        <VideoShareModal
+          videoId={parseInt(videoId!)}
+          videoTitle={video.title}
+          isInteractive={true}
+          onClose={() => setShowShareModal(false)}
+        />
       )}
     </div>
   );

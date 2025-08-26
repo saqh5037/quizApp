@@ -65,7 +65,7 @@ const corsOptions = {
   },
   credentials: env.CORS_CREDENTIALS,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-student-info'],
 };
 
 app.use(cors(corsOptions));
@@ -79,6 +79,7 @@ app.use(generalRateLimiter);
 
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/storage', express.static(path.join(__dirname, '../storage')));
 
 // Health check
 app.get('/health', (req, res) => {

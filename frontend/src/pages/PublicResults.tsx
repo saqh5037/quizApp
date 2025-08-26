@@ -12,15 +12,27 @@ import { buildApiUrl } from '../config/api.config';
 
 interface QuizResult {
   id: number;
-  participant_name: string;
-  participant_email: string;
+  result_type?: 'quiz' | 'video';
+  content_id?: number;
+  content_title?: string;
+  participant_name?: string;
+  student_name?: string;
+  participant_email?: string;
+  student_email?: string;
+  participant_phone?: string;
+  student_phone?: string;
   participant_organization?: string;
+  category?: string;
+  difficulty?: string;
   score: number;
-  earned_points: number;
-  total_points: number;
+  earned_points?: number;
+  total_points?: number;
   correct_answers: number;
   total_questions: number;
-  time_spent_seconds: number;
+  time_spent_seconds?: number;
+  time_taken?: number;
+  passed?: boolean;
+  passing_score?: number;
   completed_at: string;
 }
 
@@ -206,7 +218,11 @@ export default function PublicResults() {
     if (sortBy === 'score') {
       filtered.sort((a, b) => parseFloat(b.score) - parseFloat(a.score));
     } else if (sortBy === 'name') {
-      filtered.sort((a, b) => a.participant_name.localeCompare(b.participant_name));
+      filtered.sort((a, b) => {
+        const nameA = a.participant_name || a.student_name || '';
+        const nameB = b.participant_name || b.student_name || '';
+        return nameA.localeCompare(nameB);
+      });
     } else {
       filtered.sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
     }
@@ -216,14 +232,15 @@ export default function PublicResults() {
 
   const exportToCSV = () => {
     const csvContent = [
-      ['Nombre', 'Email', 'Organización', 'Puntuación', 'Respuestas Correctas', 'Tiempo', 'Fecha'],
+      ['Tipo', 'Nombre', 'Email', 'Contenido', 'Puntuación', 'Respuestas Correctas', 'Tiempo', 'Fecha'],
       ...results.map(r => [
-        r.participant_name,
-        r.participant_email,
-        r.participant_organization || '',
+        r.result_type === 'video' ? 'Video' : 'Quiz',
+        r.participant_name || r.student_name || '',
+        r.participant_email || r.student_email || '',
+        r.content_title || quiz?.title || '',
         parseFloat(r.score).toFixed(2),
         `${r.correct_answers}/${r.total_questions}`,
-        formatTime(r.time_spent_seconds),
+        formatTime(r.time_spent_seconds || r.time_taken || 0),
         formatDate(r.completed_at)
       ])
     ].map(row => row.join(',')).join('\n');
@@ -383,7 +400,10 @@ export default function PublicResults() {
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Participante
+                  Tipo / Participante
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Contenido
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Puntuación
@@ -414,13 +434,29 @@ export default function PublicResults() {
                     <td className="px-6 py-4">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {result.participant_name}
+                          {result.participant_name || result.student_name}
                         </div>
-                        <div className="text-xs text-gray-500">{result.participant_email}</div>
-                        {result.participant_organization && (
-                          <div className="text-xs text-gray-400">{result.participant_organization}</div>
+                        <div className="text-xs text-gray-500">{result.participant_email || result.student_email}</div>
+                        {result.result_type && (
+                          <div className="text-xs text-gray-400">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                              result.result_type === 'video' 
+                                ? 'bg-purple-100 text-purple-800' 
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {result.result_type === 'video' ? 'Video Interactivo' : 'Evaluación'}
+                            </span>
+                          </div>
                         )}
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {result.content_title || quiz?.title || 'Sin título'}
+                      </div>
+                      {result.category && (
+                        <div className="text-xs text-gray-500">{result.category}</div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
@@ -458,7 +494,7 @@ export default function PublicResults() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <button
-                        onClick={() => navigate(`/results/detail/${result.id}`)}
+                        onClick={() => navigate(`/results/detail/${result.result_type || 'quiz'}/${result.id}`)}
                         className="text-blue-600 hover:text-blue-700 transition-colors"
                       >
                         <Eye className="w-4 h-4" />

@@ -34,6 +34,12 @@ router.get('/',
 
 router.get('/:id', videoController.getVideo.bind(videoController));
 
+// Public video routes (no authentication required)
+router.get('/:id/public', videoController.getPublicVideo.bind(videoController));
+router.get('/:id/public-interactive', videoController.getPublicInteractiveVideo.bind(videoController));
+router.post('/:id/track-completion', videoController.trackPublicCompletion.bind(videoController));
+router.post('/:id/interactive-results', videoController.saveInteractiveResults.bind(videoController));
+
 // Protected routes - require authentication
 router.use(authenticate);
 

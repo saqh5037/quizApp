@@ -1,0 +1,13 @@
+export { default as Video } from './Video.model';
+export { default as VideoCategory } from './VideoCategory.model';
+export { default as VideoQuality } from './VideoQuality.model';
+export { default as VideoChapter } from './VideoChapter.model';
+export { default as VideoTranscription } from './VideoTranscription.model';
+export { default as VideoProgress } from './VideoProgress.model';
+export { default as VideoNote } from './VideoNote.model';
+export { default as VideoBookmark } from './VideoBookmark.model';
+export { default as VideoComment } from './VideoComment.model';
+export { default as VideoAnalytics } from './VideoAnalytics.model';
+export { default as VideoQuizPoint } from './VideoQuizPoint.model';
+export { default as VideoPlaylist } from './VideoPlaylist.model';
+export { default as PlaylistVideo } from './PlaylistVideo.model';

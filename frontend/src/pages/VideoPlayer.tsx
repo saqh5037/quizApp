@@ -9,7 +9,8 @@ import {
   RiCheckLine,
   RiTimeLine,
   RiBookOpenLine,
-  RiAwardLine
+  RiAwardLine,
+  RiQrCodeLine
 } from 'react-icons/ri';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -17,6 +18,7 @@ import toast from 'react-hot-toast';
 import { apiConfig } from '../config/api.config';
 import { useAuthStore } from '../stores/authStore';
 import VideoPlayer from '../components/VideoPlayer';
+import VideoShareModal from '../components/video/VideoShareModal';
 
 interface Video {
   id: number;
@@ -56,6 +58,7 @@ export default function VideoPlayerPage() {
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
   const [completed, setCompleted] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   
   // Check if user is admin or teacher
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
@@ -170,6 +173,15 @@ export default function VideoPlayerPage() {
             </Link>
             
             <div className="flex items-center gap-4">
+              {/* Share Button */}
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-lg flex items-center gap-2 transition-colors"
+              >
+                <RiQrCodeLine className="w-4 h-4" />
+                <span>Compartir</span>
+              </button>
+              
               {/* Admin/Teacher Management Button */}
               {canManage && (
                 <button
@@ -394,6 +406,16 @@ export default function VideoPlayerPage() {
           </div>
         </div>
       </div>
+
+      {/* Share Modal */}
+      {showShareModal && video && (
+        <VideoShareModal
+          videoId={video.id}
+          videoTitle={video.title}
+          isInteractive={false}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </div>
   );
 }

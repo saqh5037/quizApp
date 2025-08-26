@@ -16,7 +16,8 @@ import {
   RiFolderLine,
   RiEditLine,
   RiDeleteBinLine,
-  RiGamepadLine
+  RiGamepadLine,
+  RiQrCodeLine
 } from 'react-icons/ri';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -24,6 +25,7 @@ import toast from 'react-hot-toast';
 import { apiConfig } from '../config/api.config';
 import { useAuthStore } from '../stores/authStore';
 import VideoPlayer from '../components/VideoPlayer';
+import VideoShareModal from '../components/video/VideoShareModal';
 
 interface Video {
   id: number;
@@ -72,6 +74,7 @@ const VideoDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
     fetchVideo();
@@ -138,9 +141,7 @@ const VideoDetail: React.FC = () => {
   };
 
   const handleShare = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    toast.success('Enlace copiado al portapapeles');
+    setShowShareModal(true);
   };
 
   const handleEdit = () => {
@@ -405,9 +406,12 @@ const VideoDetail: React.FC = () => {
                   </button>
                   <button
                     onClick={handleShare}
-                    className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                    className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 relative group"
                   >
-                    <RiShareLine className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    <RiQrCodeLine className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      Compartir con QR
+                    </span>
                   </button>
                   {video.allowDownload && (
                     <button
@@ -551,6 +555,16 @@ const VideoDetail: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Share Modal */}
+      {showShareModal && video && (
+        <VideoShareModal
+          videoId={video.id}
+          videoTitle={video.title}
+          isInteractive={false}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </div>
   );
 };

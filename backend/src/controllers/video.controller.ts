@@ -589,6 +589,221 @@ export class VideoController {
       .replace(/^-+|-+$/g, '')
       .substring(0, 100);
   }
+
+  // Public video access (no authentication required)
+  async getPublicVideo(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const studentInfo = req.headers['x-student-info'] as string;
+      
+      const video = await Video.findByPk(id, {
+        where: {
+          status: 'ready',
+          isPublic: true
+        },
+        attributes: ['id', 'title', 'description', 'thumbnailUrl', 'durationSeconds', 'processedPath', 'hlsPlaylistUrl', 'originalPath', 'status'],
+      });
+
+      if (!video) {
+        return res.status(404).json({ message: 'Video no encontrado o no disponible públicamente' });
+      }
+
+      // Log access if student info provided
+      if (studentInfo) {
+        try {
+          const info = JSON.parse(studentInfo);
+          console.log('Public video access:', { videoId: id, student: info });
+        } catch (e) {
+          console.error('Error parsing student info:', e);
+        }
+      }
+
+      // Get stream URL
+      const videoData = video.toJSON() as any;
+      
+      // Build complete streaming URL
+      // Use the host from the request for proper URL construction
+      const host = req.get('host')?.split(':')[0] || 'localhost';
+      
+      // For public access, prefer MP4 over HLS for better compatibility
+      if (videoData.originalPath) {
+        // Use original MP4 file served from backend
+        videoData.streamUrl = `http://${host}:3001/${videoData.originalPath}`;
+      } else if (videoData.processedPath) {
+        // Direct file URL from MinIO
+        videoData.streamUrl = `http://${host}:9000/aristotest-videos/${videoData.processedPath}`;
+      } else if (videoData.hlsPlaylistUrl) {
+        // HLS streaming URL from MinIO (requires HLS.js support)
+        videoData.streamUrl = `http://${host}:9000/aristotest-videos/${videoData.hlsPlaylistUrl}`;
+      }
+
+      res.json(videoData);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Get public interactive video
+  async getPublicInteractiveVideo(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const studentInfo = req.headers['x-student-info'] as string;
+      
+      const video = await Video.findByPk(id, {
+        where: {
+          status: 'ready',
+          isPublic: true
+        },
+        attributes: ['id', 'title', 'description', 'thumbnailUrl', 'processedPath', 'hlsPlaylistUrl', 'originalPath', 'status'],
+        include: [{
+          model: require('../models/InteractiveVideoLayer.model').default,
+          as: 'interactiveLayer',
+          where: {
+            isEnabled: true,
+            processingStatus: 'ready'
+          },
+          required: true
+        }]
+      });
+
+      if (!video) {
+        return res.status(404).json({ message: 'Video interactivo no encontrado o no disponible públicamente' });
+      }
+
+      // Log access if student info provided  
+      if (studentInfo) {
+        try {
+          const info = JSON.parse(studentInfo);
+          console.log('Public interactive video access:', { videoId: id, student: info });
+        } catch (e) {
+          console.error('Error parsing student info:', e);
+        }
+      }
+
+      // Get stream URL
+      const videoData = video.toJSON() as any;
+      
+      // Build complete streaming URL
+      // Use the host from the request for proper URL construction
+      const host = req.get('host')?.split(':')[0] || 'localhost';
+      
+      // For public access, prefer MP4 over HLS for better compatibility
+      if (videoData.originalPath) {
+        // Use original MP4 file served from backend
+        videoData.streamUrl = `http://${host}:3001/${videoData.originalPath}`;
+      } else if (videoData.processedPath) {
+        // Direct file URL from MinIO
+        videoData.streamUrl = `http://${host}:9000/aristotest-videos/${videoData.processedPath}`;
+      } else if (videoData.hlsPlaylistUrl) {
+        // HLS streaming URL from MinIO (requires HLS.js support)
+        videoData.streamUrl = `http://${host}:9000/aristotest-videos/${videoData.hlsPlaylistUrl}`;
+      }
+
+      res.json(videoData);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Track public video completion
+  async trackPublicCompletion(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const studentInfo = req.headers['x-student-info'] as string;
+      
+      if (!studentInfo) {
+        return res.status(400).json({ message: 'Student information required' });
+      }
+
+      const info = JSON.parse(studentInfo);
+      const ipAddress = req.ip || req.connection.remoteAddress;
+      const userAgent = req.get('user-agent');
+      
+      // Store in database
+      const { sequelize } = require('../config/database');
+      await sequelize.query(
+        `INSERT INTO public_video_completions 
+        (video_id, student_name, student_email, student_phone, completed, completed_at, ip_address, user_agent, created_at)
+        VALUES (:videoId, :name, :email, :phone, true, NOW(), :ip, :agent, NOW())`,
+        {
+          replacements: {
+            videoId: id,
+            name: info.name,
+            email: info.email,
+            phone: info.phone || null,
+            ip: ipAddress,
+            agent: userAgent
+          }
+        }
+      );
+      
+      console.log('Video completion tracked:', {
+        videoId: id,
+        student: info,
+        completedAt: new Date()
+      });
+      
+      res.json({ success: true, message: 'Completion tracked' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Save interactive video results
+  async saveInteractiveResults(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { studentInfo, results, completedAt } = req.body;
+      
+      const ipAddress = req.ip || req.connection.remoteAddress;
+      const userAgent = req.get('user-agent');
+      
+      // Store in database
+      const { sequelize } = require('../config/database');
+      const [result] = await sequelize.query(
+        `INSERT INTO public_interactive_video_results 
+        (video_id, student_name, student_email, student_phone, score, total_questions, 
+         correct_answers, passed, passing_score, answers, completed_at, ip_address, 
+         user_agent, created_at, updated_at)
+        VALUES (:videoId, :name, :email, :phone, :score, :totalQuestions, 
+                :correctAnswers, :passed, :passingScore, :answers, :completedAt, 
+                :ip, :agent, NOW(), NOW())
+        RETURNING id`,
+        {
+          replacements: {
+            videoId: id,
+            name: studentInfo.name,
+            email: studentInfo.email,
+            phone: studentInfo.phone || null,
+            score: results.score || 0,
+            totalQuestions: results.totalQuestions || 0,
+            correctAnswers: results.correctAnswers || 0,
+            passed: results.passed || false,
+            passingScore: 70,
+            answers: JSON.stringify(results.answers || []),
+            completedAt: completedAt || new Date(),
+            ip: ipAddress,
+            agent: userAgent
+          }
+        }
+      );
+      
+      console.log('Interactive video results saved:', {
+        videoId: id,
+        student: studentInfo,
+        results,
+        resultId: result[0].id
+      });
+      
+      res.json({ 
+        success: true, 
+        message: 'Results saved successfully',
+        resultId: result[0].id
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new VideoController();

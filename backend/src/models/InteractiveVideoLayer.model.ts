@@ -61,6 +61,8 @@ class InteractiveVideoLayer
   declare passingScore: number;
   declare maxAttempts: number;
   declare processingStatus: 'pending' | 'processing' | 'ready' | 'error';
+  declare processingError?: string;
+  declare processingCompletedAt?: Date;
   declare processingLog?: string;
   declare createdBy?: number;
   declare tenantId?: number;
@@ -135,6 +137,16 @@ class InteractiveVideoLayer
           type: DataTypes.ENUM('pending', 'processing', 'ready', 'error'),
           defaultValue: 'pending',
           field: 'processing_status'
+        },
+        processingError: {
+          type: DataTypes.TEXT,
+          allowNull: true,
+          field: 'processing_error'
+        },
+        processingCompletedAt: {
+          type: DataTypes.DATE,
+          allowNull: true,
+          field: 'processing_completed_at'
         },
         processingLog: {
           type: DataTypes.TEXT,

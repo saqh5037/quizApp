@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import { 
   Video,
   InteractiveVideoLayer,
@@ -313,6 +313,7 @@ export class InteractiveVideoController {
         },
         include: [{
           model: InteractiveVideoLayer,
+          as: 'interactiveLayer',
           attributes: ['passingScore']
         }]
       });
@@ -361,17 +362,21 @@ export class InteractiveVideoController {
         include: [
           {
             model: InteractiveVideoLayer,
+            as: 'interactiveLayer',
             include: [{
               model: Video,
+              as: 'video',
               attributes: ['id', 'title']
             }]
           },
           {
             model: InteractiveVideoAnswer,
+            as: 'interactiveVideoAnswers',
             order: [['createdAt', 'ASC']]
           },
           {
             model: User,
+            as: 'user',
             attributes: ['id', 'firstName', 'lastName', 'email']
           }
         ]
@@ -397,8 +402,10 @@ export class InteractiveVideoController {
         where: { userId },
         include: [{
           model: InteractiveVideoLayer,
+          as: 'interactiveLayer',
           include: [{
             model: Video,
+            as: 'video',
             attributes: ['id', 'title', 'thumbnail']
           }]
         }],
@@ -553,7 +560,10 @@ export class InteractiveVideoController {
 
       // Get the interactive layer
       const layer = await InteractiveVideoLayer.findByPk(layerId, {
-        include: [{ model: Video }]
+        include: [{ 
+          model: Video,
+          as: 'video'
+        }]
       });
 
       if (!layer) {
@@ -602,10 +612,35 @@ export class InteractiveVideoController {
     try {
       console.log(`Starting background processing for layer ${layer.id}`);
       
-      const video = layer.Video || await Video.findByPk(layer.videoId);
-      if (!video) {
-        throw new Error('Video not found');
+      let video = layer.video;
+      
+      // If video is not loaded or missing required fields, reload it
+      if (!video || (!video.originalPath && !video.original_path && !video.processedPath && !video.processed_path)) {
+        console.log(`Reloading video ${layer.videoId} with all fields...`);
+        
+        // Manually fetch with raw query to ensure we get all fields
+        const sequelize = InteractiveVideoLayer.sequelize;
+        const videos = await sequelize.query(
+          `SELECT * FROM videos WHERE id = :videoId`,
+          {
+            replacements: { videoId: layer.videoId },
+            type: QueryTypes.SELECT
+          }
+        );
+        
+        video = videos[0];
+        
+        if (!video) {
+          throw new Error('Video not found');
+        }
       }
+
+      console.log('Video data:', {
+        id: video.id,
+        originalPath: video.originalPath || video.original_path,
+        processedPath: video.processedPath || video.processed_path,
+        storageProvider: video.storageProvider || video.storage_provider
+      });
 
       // Get the video file path (from MinIO or local storage)
       const videoPath = this.getVideoPath(video);
@@ -645,20 +680,32 @@ export class InteractiveVideoController {
    * Get video file path from video model
    */
   private getVideoPath(video: any): string {
+    // Check for different path fields
+    const videoPath = video.filePath || video.originalPath || video.original_path || video.processedPath || video.processed_path;
+    
+    if (!videoPath) {
+      throw new Error('No se encontró la ruta del archivo de video');
+    }
+    
     // For MinIO storage, we need to construct the full path
-    if (video.storageProvider === 'minio') {
+    if (video.storageProvider === 'minio' || video.storage_provider === 'minio') {
       // Assuming videos are stored in a local MinIO instance
       return path.join(
         process.cwd(),
         'storage',
         'minio-data',
         'aristotest-videos',
-        video.filePath.replace('aristotest-videos/', '')
+        videoPath.replace('aristotest-videos/', '').replace('storage/', '')
       );
     }
     
-    // For local storage
-    return path.join(process.cwd(), video.filePath);
+    // For local storage, check if it's a relative or absolute path
+    if (videoPath.startsWith('/')) {
+      return videoPath; // Absolute path
+    }
+    
+    // Relative path from backend directory
+    return path.join(process.cwd(), videoPath);
   }
 
   /**

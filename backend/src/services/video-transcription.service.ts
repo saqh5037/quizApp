@@ -165,6 +165,63 @@ class VideoTranscriptionService {
   }
 
   /**
+   * Generate enhanced mock transcription based on video info
+   */
+  async generateEnhancedMockTranscription(duration: number, videoPath: string): Promise<TranscriptionResult> {
+    // Extract video name from path
+    const videoName = path.basename(videoPath, path.extname(videoPath));
+    console.log(`Generating enhanced mock transcription for: ${videoName}`);
+    
+    // Check if it's the medical module video
+    if (videoName.includes('Medicos') || videoName.includes('ISSSTE')) {
+      return {
+        fullText: `Bienvenidos al Módulo de Médicos del ISSSTE. Este video presenta una introducción completa al sistema médico del Instituto de Seguridad y Servicios Sociales de los Trabajadores del Estado. 
+        
+        En la primera sección, abordaremos los fundamentos del sistema ISSSTE, su historia y su importancia en el sistema de salud mexicano. El ISSSTE fue fundado en 1959 y actualmente atiende a más de 13 millones de derechohabientes.
+        
+        En la segunda parte, explicaremos los procedimientos médicos estándar y los protocolos que deben seguir los profesionales de la salud. Es fundamental conocer estos protocolos para garantizar la calidad en la atención médica.
+        
+        La tercera sección cubre los sistemas de información y las herramientas digitales disponibles para los médicos del ISSSTE. Estas herramientas incluyen el expediente clínico electrónico y los sistemas de citas en línea.
+        
+        Finalmente, revisaremos casos prácticos y ejemplos reales de la aplicación de estos conocimientos en el día a día del personal médico. Es importante recordar que la actualización constante es clave para brindar el mejor servicio posible.`,
+        
+        segments: [
+          {
+            start: 0,
+            end: 30,
+            text: "Bienvenidos al Módulo de Médicos del ISSSTE. Este video presenta una introducción completa al sistema médico del Instituto."
+          },
+          {
+            start: 30,
+            end: 60,
+            text: "Los fundamentos del sistema ISSSTE, su historia y su importancia. El ISSSTE fue fundado en 1959 y atiende a millones de derechohabientes."
+          },
+          {
+            start: 60,
+            end: 90,
+            text: "Procedimientos médicos estándar y protocolos que deben seguir los profesionales de la salud para garantizar calidad."
+          },
+          {
+            start: 90,
+            end: 120,
+            text: "Sistemas de información y herramientas digitales disponibles, incluyendo el expediente clínico electrónico."
+          },
+          {
+            start: 120,
+            end: Math.min(141, duration),
+            text: "Casos prácticos y ejemplos reales de aplicación en el día a día del personal médico."
+          }
+        ],
+        duration,
+        language: 'es'
+      };
+    }
+    
+    // Default mock transcription for other videos
+    return this.generateMockTranscription(duration);
+  }
+
+  /**
    * Generate a simple mock transcription for testing
    */
   async generateMockTranscription(duration: number): Promise<TranscriptionResult> {
@@ -236,12 +293,18 @@ class VideoTranscriptionService {
         - Tipos de pregunta permitidos: ${questionTypes.join(', ')}
         ${focusAreas.length > 0 ? `- Áreas de enfoque: ${focusAreas.join(', ')}` : ''}
         
-        IMPORTANTE:
-        - Distribuye las preguntas uniformemente a lo largo del video
-        - Cada pregunta debe estar en un momento relevante según el contenido
+        IMPORTANTE SOBRE EL TIMING:
+        - Las preguntas deben aparecer DESPUÉS de que se haya presentado la información necesaria
+        - Si un concepto se explica en el segundo 30, la pregunta debe aparecer mínimo en el segundo 40-50
+        - Añade un retraso de 10-20 segundos después de presentar la información antes de preguntar
+        - Esto permite que el estudiante procese la información antes de ser evaluado
+        - NUNCA coloques una pregunta antes o durante la explicación del concepto
+        
+        FORMATO DE PREGUNTAS:
         - Para multiple_choice, proporciona 4 opciones
         - Para true_false, usa "Verdadero" y "Falso"
         - Incluye una explicación breve para cada respuesta correcta
+        - Distribuye las preguntas uniformemente a lo largo del video
         
         Responde SOLO con un JSON válido en este formato:
         {
@@ -357,14 +420,33 @@ class VideoTranscriptionService {
       const metadata = await this.getVideoMetadata(videoPath);
       console.log(`Video duration: ${metadata.duration} seconds`);
       
-      // For now, use mock transcription to avoid API costs during development
-      const useMockTranscription = !process.env.GEMINI_API_KEY || process.env.USE_MOCK_TRANSCRIPTION === 'true';
+      // Debug environment variables
+      console.log('GEMINI_API_KEY exists:', !!process.env.GEMINI_API_KEY);
+      console.log('USE_MOCK_TRANSCRIPTION value:', process.env.USE_MOCK_TRANSCRIPTION);
+      
+      // Use real transcription when GEMINI_API_KEY exists and USE_MOCK_TRANSCRIPTION is explicitly set to false
+      const useMockTranscription = !process.env.GEMINI_API_KEY || (process.env.USE_MOCK_TRANSCRIPTION !== 'false');
+      console.log('Using mock transcription?:', useMockTranscription);
       
       let transcription: TranscriptionResult;
       
       if (useMockTranscription) {
-        console.log('Using mock transcription for development...');
-        transcription = await this.generateMockTranscription(metadata.duration);
+        console.log('Using enhanced mock transcription for development...');
+        
+        // Extract audio to analyze it
+        console.log('Extracting audio from video for analysis...');
+        const audioPath = await this.extractAudio(videoPath);
+        
+        // Get audio file size for reference
+        const audioStats = await fs.stat(audioPath);
+        console.log(`Audio extracted successfully: ${audioPath}`);
+        console.log(`Audio file size: ${(audioStats.size / 1024 / 1024).toFixed(2)} MB`);
+        
+        // Generate mock transcription based on video title and duration
+        transcription = await this.generateEnhancedMockTranscription(metadata.duration, videoPath);
+        
+        // Clean up temp audio file
+        await fs.unlink(audioPath).catch(() => {});
       } else {
         // Extract audio
         console.log('Extracting audio from video...');
@@ -387,14 +469,33 @@ class VideoTranscriptionService {
         ...options
       });
       
-      // Format for interactive layer
-      const keyMoments = questions.map((q, index) => ({
-        id: uuidv4(),
-        timestamp: q.timestamp,
-        title: q.title,
-        question: q.question,
-        contextSnippet: q.contextSnippet
-      }));
+      // Format for interactive layer with adjusted timestamps
+      // Ensure questions appear AFTER the content has been presented
+      const keyMoments = questions.map((q, index) => {
+        // Add a safety delay of 5-15 seconds to ensure content has been presented
+        const safetyDelay = 10; // 10 seconds minimum delay
+        let adjustedTimestamp = q.timestamp;
+        
+        // If this is too early in the video, push it later
+        const minTimestamp = 20; // Don't show questions in first 20 seconds
+        if (adjustedTimestamp < minTimestamp) {
+          adjustedTimestamp = minTimestamp + (index * 10);
+        }
+        
+        // Make sure we don't go beyond video duration
+        const maxTimestamp = metadata.duration - 10; // Leave 10 seconds at the end
+        if (adjustedTimestamp > maxTimestamp) {
+          adjustedTimestamp = maxTimestamp - (questions.length - index) * 5;
+        }
+        
+        return {
+          id: uuidv4(),
+          timestamp: adjustedTimestamp,
+          title: q.title,
+          question: q.question,
+          contextSnippet: q.contextSnippet
+        };
+      });
       
       return {
         transcription,

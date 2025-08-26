@@ -2,42 +2,99 @@ import { Request, Response } from 'express';
 import { sequelize } from '../config/database';
 import { QueryTypes } from 'sequelize';
 
-// Get all public quiz results for authenticated user's quizzes
+// Get all public quiz and video results for authenticated user's content
 export const getPublicQuizResults = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
-    const { quizId, startDate, endDate, limit = 50, offset = 0 } = req.query;
+    const { quizId, videoId, type, startDate, endDate, limit = 50, offset = 0 } = req.query;
 
+    // Combined query for both quiz and video results
     let query = `
-      SELECT 
-        pr.*,
-        q.title as quiz_title,
-        q.category,
-        q.difficulty,
-        q.pass_percentage
-      FROM public_quiz_results pr
-      INNER JOIN quizzes q ON pr.quiz_id = q.id
-      WHERE q.creator_id = :userId
+      WITH combined_results AS (
+        -- Quiz Results
+        SELECT 
+          'quiz' as result_type,
+          pr.id,
+          pr.quiz_id as content_id,
+          q.title as content_title,
+          q.category,
+          q.difficulty,
+          pr.participant_name as student_name,
+          pr.participant_email as student_email,
+          pr.participant_phone as student_phone,
+          pr.score,
+          pr.total_questions,
+          pr.correct_answers,
+          pr.time_spent_seconds as time_taken,
+          CASE WHEN pr.score >= COALESCE(q.pass_percentage, 70) THEN true ELSE false END as passed,
+          pr.completed_at,
+          pr.ip_address,
+          pr.user_agent,
+          q.pass_percentage as passing_score
+        FROM public_quiz_results pr
+        INNER JOIN quizzes q ON pr.quiz_id = q.id
+        WHERE q.creator_id = :userId
+        
+        UNION ALL
+        
+        -- Interactive Video Results
+        SELECT 
+          'video' as result_type,
+          pvr.id,
+          pvr.video_id as content_id,
+          v.title as content_title,
+          'Video Interactivo' as category,
+          NULL as difficulty,
+          pvr.student_name,
+          pvr.student_email,
+          pvr.student_phone,
+          pvr.score,
+          pvr.total_questions,
+          pvr.correct_answers,
+          pvr.duration_seconds as time_taken,
+          pvr.passed,
+          pvr.completed_at,
+          pvr.ip_address,
+          pvr.user_agent,
+          pvr.passing_score
+        FROM public_interactive_video_results pvr
+        INNER JOIN videos v ON pvr.video_id = v.id
+        WHERE v.creator_id = :userId
+      )
+      SELECT * FROM combined_results
+      WHERE 1=1
     `;
 
     const replacements: any = { userId };
 
+    // Filter by type (quiz or video)
+    if (type === 'quiz') {
+      query += ` AND result_type = 'quiz'`;
+    } else if (type === 'video') {
+      query += ` AND result_type = 'video'`;
+    }
+
     if (quizId) {
-      query += ' AND pr.quiz_id = :quizId';
+      query += ' AND result_type = \'quiz\' AND content_id = :quizId';
       replacements.quizId = quizId;
     }
 
+    if (videoId) {
+      query += ' AND result_type = \'video\' AND content_id = :videoId';
+      replacements.videoId = videoId;
+    }
+
     if (startDate) {
-      query += ' AND pr.completed_at >= :startDate';
+      query += ' AND completed_at >= :startDate';
       replacements.startDate = startDate;
     }
 
     if (endDate) {
-      query += ' AND pr.completed_at <= :endDate';
+      query += ' AND completed_at <= :endDate';
       replacements.endDate = endDate;
     }
 
-    query += ' ORDER BY pr.completed_at DESC LIMIT :limit OFFSET :offset';
+    query += ' ORDER BY completed_at DESC LIMIT :limit OFFSET :offset';
     replacements.limit = parseInt(limit as string);
     replacements.offset = parseInt(offset as string);
 
@@ -48,18 +105,17 @@ export const getPublicQuizResults = async (req: Request, res: Response) => {
 
     // Get total count
     let countQuery = `
-      SELECT COUNT(*) as total
-      FROM public_quiz_results pr
-      INNER JOIN quizzes q ON pr.quiz_id = q.id
-      WHERE q.creator_id = :userId
+      SELECT 
+        (SELECT COUNT(*) FROM public_quiz_results pr
+         INNER JOIN quizzes q ON pr.quiz_id = q.id
+         WHERE q.creator_id = :userId) +
+        (SELECT COUNT(*) FROM public_interactive_video_results pvr
+         INNER JOIN videos v ON pvr.video_id = v.id
+         WHERE v.creator_id = :userId) as total
     `;
 
-    if (quizId) {
-      countQuery += ' AND pr.quiz_id = :quizId';
-    }
-
     const [{ total }] = await sequelize.query(countQuery, {
-      replacements: { userId, quizId },
+      replacements: { userId },
       type: QueryTypes.SELECT
     }) as any;
 
@@ -75,7 +131,7 @@ export const getPublicQuizResults = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching public quiz results:', error);
+    console.error('Error fetching public results:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch results'

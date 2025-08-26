@@ -40,6 +40,8 @@ import VideoDetail from './pages/VideoDetail';
 import VideoEdit from './pages/VideoEdit';
 import VideoPlayerPage from './pages/VideoPlayer';
 import InteractiveVideoManagement from './pages/Videos/InteractiveVideoManagement';
+import PublicVideoPlayer from './pages/Videos/PublicVideoPlayer';
+import PublicInteractiveVideo from './pages/Videos/PublicInteractiveVideo';
 import ClassroomsIndex from './pages/Classrooms/ClassroomsIndex';
 import NewClassroom from './pages/Classrooms/NewClassroom';
 import ClassroomDetail from './pages/Classrooms/ClassroomDetail';
@@ -155,6 +157,14 @@ const router = createBrowserRouter([
         element: <InteractiveVideoManagement />,
       },
       {
+        path: 'videos/:id/public',
+        element: <PublicVideoPlayer />,
+      },
+      {
+        path: 'videos/:id/public-interactive',
+        element: <PublicInteractiveVideo />,
+      },
+      {
         path: 'classrooms',
         element: <ClassroomsIndex />,
       },
@@ -223,7 +233,7 @@ const router = createBrowserRouter([
         element: <PublicResults />,
       },
       {
-        path: 'results/detail/:id',
+        path: 'results/detail/:resultType/:id',
         element: <ResultDetail />,
       },
       {
