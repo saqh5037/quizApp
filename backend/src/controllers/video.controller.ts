@@ -385,15 +385,23 @@ export class VideoController {
         });
       }
 
-      // Get streaming URL - Use public URL
+      // Get streaming URL - Use HLS playlist if available, otherwise fallback to original path
       let streamUrl = null;
+      const hlsPlaylistUrl = video.get('hlsPlaylistUrl') as string;
       const originalPath = video.get('originalPath') as string;
-      // Get streaming URL from original path
+      const requestHost = req.get('host');
       
-      if (originalPath) {
-        // Use public URL directly since we configured the bucket policy
-        // Pass the request host to generate the correct URL for network access
-        const requestHost = req.get('host');
+      if (hlsPlaylistUrl) {
+        // Use HLS playlist URL for streaming
+        // Replace localhost/127.0.0.1 with actual host if needed
+        if (hlsPlaylistUrl.includes('://localhost') || hlsPlaylistUrl.includes('://127.0.0.1')) {
+          streamUrl = hlsPlaylistUrl.replace(/localhost|127\.0\.0\.1/g, requestHost?.split(':')[0] || 'localhost');
+        } else {
+          streamUrl = hlsPlaylistUrl;
+        }
+        // HLS stream URL generated successfully
+      } else if (originalPath) {
+        // Fallback to original path if no HLS playlist
         streamUrl = minioService.getPublicUrl(originalPath, requestHost);
         // Stream URL generated successfully
       }

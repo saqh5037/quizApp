@@ -81,7 +81,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
         poster,
         sources: [{
           src,
-          type: 'video/mp4'  // Force MP4 type for now
+          type: src.endsWith('.m3u8') ? 'application/x-mpegURL' : 'video/mp4'
         }],
         controlBar: {
           volumePanel: {
