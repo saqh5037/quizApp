@@ -2,7 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { interactiveVideoService } from '../../services/interactive-video.service';
 import { apiConfig } from '../../config/api.config';
 import { useAuthStore } from '../../stores/authStore';
-import { Play, Settings, Loader, AlertCircle, CheckCircle, FileText, Brain, HelpCircle } from 'lucide-react';
+import { 
+  Play, 
+  Settings, 
+  Loader, 
+  AlertCircle, 
+  CheckCircle, 
+  FileText, 
+  Brain, 
+  HelpCircle,
+  Clock,
+  Activity,
+  Zap,
+  ChevronRight
+} from 'lucide-react';
 
 interface InteractiveContentGeneratorProps {
   videoId: number;
@@ -36,6 +49,9 @@ const InteractiveContentGenerator: React.FC<InteractiveContentGeneratorProps> = 
   const [statusCheckInterval, setStatusCheckInterval] = useState<NodeJS.Timeout | null>(null);
   const [transcription, setTranscription] = useState<string | null>(null);
   const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
+  const [processingStep, setProcessingStep] = useState<'idle' | 'extracting' | 'transcribing' | 'generating' | 'completed' | 'error'>('idle');
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [estimatedTime, setEstimatedTime] = useState<number>(0);
 
   useEffect(() => {
     checkExistingLayer();
@@ -46,6 +62,22 @@ const InteractiveContentGenerator: React.FC<InteractiveContentGeneratorProps> = 
       }
     };
   }, [videoId]);
+
+  // Timer for elapsed time display
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    
+    if (isGenerating && startTime) {
+      timer = setInterval(() => {
+        // Force re-render to update elapsed time
+        setEstimatedTime(prev => prev);
+      }, 1000);
+    }
+    
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isGenerating, startTime]);
 
   const checkExistingLayer = async () => {
     try {
@@ -111,6 +143,11 @@ const InteractiveContentGenerator: React.FC<InteractiveContentGeneratorProps> = 
     
     setIsGenerating(true);
     setError(null);
+    setProcessingStep('extracting');
+    setStartTime(new Date());
+    
+    // Estimate time based on video duration (rough estimate)
+    setEstimatedTime(180); // Default 3 minutes
     
     const selectedTypes = Object.entries(questionTypes)
       .filter(([_, selected]) => selected)
@@ -164,9 +201,19 @@ const InteractiveContentGenerator: React.FC<InteractiveContentGeneratorProps> = 
         
         setProcessingStatus(data.status);
         
+        // Update processing step based on message
+        if (data.message?.includes('Extrayendo')) {
+          setProcessingStep('extracting');
+        } else if (data.message?.includes('Transcribiendo')) {
+          setProcessingStep('transcribing');
+        } else if (data.message?.includes('Generando')) {
+          setProcessingStep('generating');
+        }
+        
         if (data.status === 'ready') {
           clearInterval(interval);
           setIsGenerating(false);
+          setProcessingStep('completed');
           
           // Load the generated content
           const layer = await interactiveVideoService.getInteractiveLayer(videoId);
@@ -181,6 +228,7 @@ const InteractiveContentGenerator: React.FC<InteractiveContentGeneratorProps> = 
         } else if (data.status === 'error') {
           clearInterval(interval);
           setIsGenerating(false);
+          setProcessingStep('error');
           setError(data.error || 'Error durante el procesamiento');
         }
       } catch (error) {
@@ -197,12 +245,130 @@ const InteractiveContentGenerator: React.FC<InteractiveContentGeneratorProps> = 
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getElapsedTime = () => {
+    if (!startTime) return '0:00';
+    const elapsed = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
+    return formatTimestamp(elapsed);
+  };
+
+  const getStepIcon = (step: string) => {
+    switch (step) {
+      case 'extracting':
+        return <Activity className="animate-pulse" size={20} />;
+      case 'transcribing':
+        return <FileText className="animate-pulse" size={20} />;
+      case 'generating':
+        return <Brain className="animate-pulse" size={20} />;
+      case 'completed':
+        return <CheckCircle className="text-green-500" size={20} />;
+      case 'error':
+        return <AlertCircle className="text-red-500" size={20} />;
+      default:
+        return <Clock className="text-gray-400" size={20} />;
+    }
+  };
+
+  const getStepText = (step: string) => {
+    switch (step) {
+      case 'extracting':
+        return 'Extrayendo audio del video';
+      case 'transcribing':
+        return 'Transcribiendo contenido';
+      case 'generating':
+        return 'Generando preguntas con IA';
+      case 'completed':
+        return 'Procesamiento completado';
+      case 'error':
+        return 'Error en el procesamiento';
+      default:
+        return 'Esperando...';
+    }
+  };
+
   return (
     <div className="bg-gray-800 rounded-lg p-6">
       <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
         <Brain className="text-orange-500" />
         Generador de Contenido Interactivo con IA
       </h2>
+
+      {/* Status Bar */}
+      {(isGenerating || processingStep !== 'idle') && (
+        <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              {getStepIcon(processingStep)}
+              <div>
+                <p className="text-white font-medium">{getStepText(processingStep)}</p>
+                <p className="text-sm text-gray-400">
+                  {processingStatus || 'Procesando...'}
+                </p>
+              </div>
+            </div>
+            {processingStep !== 'completed' && processingStep !== 'error' && (
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-xs text-gray-400">Tiempo transcurrido</p>
+                  <p className="text-white font-mono">{getElapsedTime()}</p>
+                </div>
+                {estimatedTime > 0 && (
+                  <div className="text-right">
+                    <p className="text-xs text-gray-400">Tiempo estimado</p>
+                    <p className="text-white font-mono">{formatTimestamp(estimatedTime)}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Progress Steps */}
+          <div className="flex items-center gap-2 mt-4">
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
+              processingStep === 'extracting' ? 'bg-orange-500/20 text-orange-300 border border-orange-500' : 
+              ['transcribing', 'generating', 'completed'].includes(processingStep) ? 'bg-green-500/20 text-green-300' : 
+              'bg-gray-700 text-gray-400'
+            }`}>
+              {processingStep === 'extracting' ? <Loader className="animate-spin" size={16} /> : 
+               ['transcribing', 'generating', 'completed'].includes(processingStep) ? <CheckCircle size={16} /> : 
+               <Activity size={16} />}
+              Extrayendo audio
+            </div>
+            
+            <ChevronRight className="text-gray-600" size={16} />
+            
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
+              processingStep === 'transcribing' ? 'bg-orange-500/20 text-orange-300 border border-orange-500' : 
+              ['generating', 'completed'].includes(processingStep) ? 'bg-green-500/20 text-green-300' : 
+              'bg-gray-700 text-gray-400'
+            }`}>
+              {processingStep === 'transcribing' ? <Loader className="animate-spin" size={16} /> : 
+               ['generating', 'completed'].includes(processingStep) ? <CheckCircle size={16} /> : 
+               <FileText size={16} />}
+              Transcribiendo
+            </div>
+            
+            <ChevronRight className="text-gray-600" size={16} />
+            
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
+              processingStep === 'generating' ? 'bg-orange-500/20 text-orange-300 border border-orange-500' : 
+              processingStep === 'completed' ? 'bg-green-500/20 text-green-300' : 
+              'bg-gray-700 text-gray-400'
+            }`}>
+              {processingStep === 'generating' ? <Loader className="animate-spin" size={16} /> : 
+               processingStep === 'completed' ? <CheckCircle size={16} /> : 
+               <Brain size={16} />}
+              Generando preguntas
+            </div>
+          </div>
+
+          {/* Additional Info */}
+          {processingStep !== 'idle' && processingStep !== 'error' && (
+            <div className="mt-3 text-xs text-gray-400">
+              Este proceso puede tomar varios minutos dependiendo de la duración del video.
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-900/50 border border-red-500 text-red-200 p-4 rounded-lg mb-6 flex items-start gap-2">
