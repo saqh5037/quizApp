@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import { Manual, User } from '@models/index';
+import { Manual, User } from '../models/index';
 import { Op } from 'sequelize';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
-import { getTenantContext } from '@middleware/tenant.middleware';
+import { getTenantContext } from '../middleware/tenant.middleware';
 
 // Configure multer for PDF uploads
 const storage = multer.diskStorage({

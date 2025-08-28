@@ -9,9 +9,9 @@ import {
   Tenant,
   QuizSession,
   Participant
-} from '@models/index';
-import { getTenantContext } from '@middleware/tenant.middleware';
-import { sequelize } from '@config/database';
+} from '../models/index';
+import { getTenantContext } from '../middleware/tenant.middleware';
+import { sequelize } from '../config/database';
 import { Op } from 'sequelize';
 // import PDFDocument from 'pdfkit';  // Commented out for now, will implement later
 import fs from 'fs';

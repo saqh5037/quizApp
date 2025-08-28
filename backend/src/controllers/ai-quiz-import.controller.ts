@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { sequelize } from '@config/database';
-import Quiz from '@models/Quiz.model';
-import Question from '@models/Question.model';
-import AIGeneratedQuiz from '@models/AIGeneratedQuiz.model';
+import { sequelize } from '../config/database';
+import Quiz from '../models/Quiz.model';
+import Question from '../models/Question.model';
+import AIGeneratedQuiz from '../models/AIGeneratedQuiz.model';
 
 /**
  * Import an AI generated quiz to the main evaluations system

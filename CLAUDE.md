@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AristoTest is a multi-tenant interactive assessment and learning platform, built with TypeScript, React, Node.js, and PostgreSQL. It features real-time quiz sessions using Socket.io, AI-powered content generation with Google Gemini, video streaming with MinIO, PDF manual processing, and comprehensive quiz management capabilities.
+AristoTest is a multi-tenant interactive assessment and learning platform featuring real-time quiz sessions, AI-powered content generation with Google Gemini, video streaming, PDF manual processing, and comprehensive quiz management. Built with TypeScript throughout for type safety.
 
 ## Development Commands
 
@@ -19,11 +19,13 @@ npm run start             # Start production server
 npm run start:prod        # Start with PM2 process manager
 npm run test              # Run Jest tests
 npm run test:watch        # Run tests in watch mode
+npm run test -- path/to/test.spec.ts  # Run single test file
 npm run lint              # Run ESLint on TypeScript files
 npm run format            # Format code with Prettier
 npm run migrate           # Run Sequelize database migrations
 npm run seed              # Seed database with demo data
 npm run db:reset          # Drop, create, migrate and seed database
+npx sequelize-cli migration:generate --name migration-name  # Create new migration
 ```
 
 ### Frontend
@@ -31,238 +33,272 @@ npm run db:reset          # Drop, create, migrate and seed database
 cd frontend
 npm install               # Install dependencies
 npm run dev               # Start Vite dev server with host network access (port 5173)
+HOST=0.0.0.0 npm run dev  # Expose to network for mobile testing
 npm run build             # Build for production
 npm run preview           # Preview production build
 npm run test              # Run Vitest tests
 npm run test:ui           # Run tests with UI interface
+npm run test path/to/test.spec.tsx  # Run single test file
 npm run lint              # Run ESLint on TypeScript/TSX files
 npm run format            # Format code with Prettier
 ```
 
-### Database Commands (PostgreSQL)
+### Database Commands
 ```bash
-# Connect to database (requires PGPASSWORD environment variable)
+# Connect to database
 PGPASSWORD=AristoTest2024 psql -U aristotest -d aristotest -h localhost
 
-# Common database queries
-psql -c "SELECT * FROM tenants;"         # View all tenants
-psql -c "SELECT * FROM users;"           # View all users
-psql -c "SELECT * FROM classrooms;"      # View classrooms
-psql -c "\dt"                             # List all tables
+# Common queries for debugging
+PGPASSWORD=AristoTest2024 psql -U aristotest -d aristotest -h localhost -c "SELECT * FROM tenants;"
+PGPASSWORD=AristoTest2024 psql -U aristotest -d aristotest -h localhost -c "SELECT * FROM users WHERE email='admin@aristotest.com';"
+PGPASSWORD=AristoTest2024 psql -U aristotest -d aristotest -h localhost -c "\dt"  # List all tables
+PGPASSWORD=AristoTest2024 psql -U aristotest -d aristotest -h localhost -c "\d table_name"  # Describe table
 ```
 
 ### MinIO Storage
 ```bash
-# Start MinIO server (for video/file storage)
-./scripts/start-minio.sh
+# Start MinIO server
+./backend/scripts/start-minio.sh
 
-# MinIO runs on:
-# - API: http://localhost:9000
-# - Console: http://localhost:9001
-# - Default credentials: minioadmin/minioadmin
+# MinIO endpoints
+# API: http://localhost:9000
+# Console: http://localhost:9001
+# Credentials: aristotest / AristoTest2024!
+```
+
+### Deployment
+```bash
+# Deploy to AWS QA environment
+./scripts/deploy-aws-qa.sh
+
+# Deploy directly to AWS production
+./scripts/deploy-direct-aws.sh
+
+# Health check
+./scripts/health-check.sh
+
+# Note: For AWS deployment, ensure environment variables are configured:
+# AWS credentials, EC2 instance details, and database connection strings
 ```
 
 ## Architecture Overview
 
-### Backend Architecture
-- **Express Server**: Main HTTP server with middleware pipeline (helmet, cors, compression, rate limiting)
-- **Socket.io Server**: Real-time WebSocket communication for quiz sessions
-- **Database**: PostgreSQL with Sequelize ORM, multi-tenant architecture with tenant isolation
-- **Authentication**: JWT-based with access and refresh tokens, role-based access control
-- **AI Integration**: Google Gemini API for content generation, quiz creation, and chat
-- **Storage**: MinIO S3-compatible storage for videos and files
-- **File Structure**:
-  - Controllers handle HTTP requests and business logic (including AI controllers)
-  - Models define database schemas using Sequelize with tenant isolation
-  - Routes organize API endpoints by domain (auth, quiz, session, ai, manual, video)
-  - Socket handlers manage real-time events separately
-  - Middleware provides auth, tenant isolation, validation, rate limiting, and error handling
-  - Services contain business logic (Gemini AI service for content generation)
-  - Validators contain express-validator schemas for input validation
+### Backend Structure
+```
+backend/src/
+├── controllers/      # HTTP request handlers with business logic
+├── models/          # Sequelize models with tenant isolation
+├── routes/          # API endpoint definitions
+├── middleware/      # Auth, tenant, validation, rate limiting
+├── services/        # Business logic (GeminiService for AI)
+├── socket/          # Real-time event handlers
+├── validators/      # Express-validator schemas
+└── server.ts        # Entry point
+```
 
-### Frontend Architecture
-- **React SPA**: Built with Vite, using React Router for navigation
-- **State Management**: Zustand stores for auth, quiz, and session state, tenant context
-- **Real-time**: Socket.io-client for live quiz participation
-- **Data Fetching**: React Query/Axios for server state management
-- **Styling**: Tailwind CSS with custom components
-- **Form Handling**: React Hook Form for validation
-- **Media**: Video.js for video playback, PDF viewer for manuals
-- **Key Pages**: Dashboard, Quiz management, Session hosting, Quiz playing, Video library, Manual management, AI chat, Classrooms
+Key middleware pipeline: helmet → cors → compression → rate limiting → auth → tenant isolation
+
+### Frontend Structure
+```
+frontend/src/
+├── pages/           # Route components
+├── components/      # Reusable UI components
+├── stores/          # Zustand state management
+├── services/        # API client services
+├── hooks/           # Custom React hooks
+├── types/           # TypeScript definitions
+└── App.tsx          # Root component with routing
+```
 
 ### Real-time Flow
-1. Host creates session → generates unique session code
-2. Participants join via code or QR → enter waiting room
-3. Host controls session flow (start, pause, next question)
-4. Participants receive questions in real-time
-5. Answers submitted → instant scoring with speed bonus
-6. Live leaderboard updates after each question
-7. Final results exportable to Excel/PDF
+1. Host creates session → generates unique 6-digit code
+2. Participants join via code/QR → WebSocket connection established
+3. Host controls flow → Socket events broadcast to room
+4. Participants submit answers → Server calculates score with speed bonus
+5. Leaderboard updates → Broadcast to all participants
+6. Session ends → Results stored, exportable to Excel/PDF
 
 ## Database Schema
 
-### Core Models (Multi-tenant)
-- **Tenant**: Organization/company with settings and branding
-- **User**: Teachers/hosts with authentication and tenant association
-- **Quiz**: Quiz templates with settings (tenant-scoped)
-- **Question**: Questions linked to quizzes (multiple choice, true/false, short answer)
-- **QuizSession**: Active quiz instances with unique codes
-- **Participant**: Session participants (authenticated or anonymous)
-- **Answer**: Participant responses with scoring
+### Multi-tenant Core
+All models with `tenant_id` field are automatically filtered by tenant context via Sequelize hooks.
 
-### AI & Content Models
-- **Manual**: PDF/document storage with extracted text
-- **ManualChat**: Chat history with AI about manuals
-- **ManualSummary**: AI-generated summaries of manuals
-- **AIGeneratedQuiz**: Quizzes created by AI from manual content
-- **Video**: Video content with streaming URLs
+- **Tenant**: Organization with settings (id, name, type, is_active)
+- **User**: Authentication + tenant association (tenant_id, email, role)
+- **Quiz**: Quiz templates (tenant_id, creator_id, title, settings)
+- **Question**: Quiz questions (quiz_id, type, question_text, options, correct_answers)
+- **QuizSession**: Active sessions (quiz_id, host_id, session_code, status)
+- **Participant**: Session participants (session_id, name, user_id)
+- **Answer**: Responses with scoring (participant_id, question_id, answer, score)
 
-### Training & Education Models
-- **Classroom**: Virtual classrooms with enrollment codes
-- **ClassroomEnrollment**: Student enrollments in classrooms
-- **TrainingProgram**: Structured training programs with quizzes
-- **ProgramQuiz**: Association between programs and quizzes
-- **Certificate**: Completion certificates for programs
+### AI & Content
+- **Manual**: PDF storage (tenant_id, file_path, extracted_text)
+- **ManualChat**: AI conversations (manual_id, messages)
+- **AIGeneratedQuiz**: AI-created quizzes (manual_id, quiz_data)
+- **Video**: Video content (tenant_id, file_path, stream_url)
+- **InteractiveVideoLayer**: AI-generated video overlays
 
-### Model Associations
-- Tenant has many Users, Quizzes, Manuals, Videos, Classrooms
-- User belongs to Tenant, has many Quizzes, Videos, Manuals
-- Quiz has many Questions, QuizSessions
-- Manual has many ManualChats, ManualSummaries, AIGeneratedQuizzes
-- Classroom has many ClassroomEnrollments
-- TrainingProgram has many ProgramQuizzes
+### Education
+- **Classroom**: Virtual classes (tenant_id, code, name)
+- **ClassroomEnrollment**: Student enrollments
+- **TrainingProgram**: Program structure
+- **Certificate**: Completion certificates
 
-## API Structure
+## API Endpoints
 
-Base URL: `/api/v1`
+Base: `/api/v1`
 
-### Main Endpoints
-- `/auth/*` - Authentication (login, register, refresh, logout)
-- `/quizzes/*` - Quiz CRUD operations (tenant-scoped)
-- `/sessions/*` - Session management and results
-- `/grading/*` - Automated grading system
-- `/results/*` - Session results and reporting
-- `/videos/*` - Video upload, streaming, management
-- `/manuals/*` - Manual upload, processing, text extraction
-- `/ai/*` - AI operations (chat, quiz generation, summaries)
-- `/classrooms/*` - Classroom management and enrollment
-- `/training-programs/*` - Training program management
-- `/certificates/*` - Certificate generation and validation
-- `/tenants/*` - Tenant management (super admin only)
+### Core Routes
+- `/auth/*` - Login, register, refresh token, logout
+- `/quizzes/*` - CRUD operations (tenant-scoped)
+- `/sessions/*` - Create, join, manage sessions
+- `/results/*` - Session results, analytics
+- `/videos/*` - Upload, stream, manage videos
+- `/manuals/*` - Upload PDFs, extract text
+- `/ai/*` - Chat, quiz generation, summaries
+- `/classrooms/*` - Classroom management
+- `/tenants/*` - Super admin only
 
 ### Socket Events
-- Session: create_session, join_session, leave_session, start_session, end_session, pause_session, resume_session
-- Quiz: next_question, previous_question, submit_answer, skip_question
-- Results: show_results, hide_results, leaderboard_update
+```javascript
+// Session management
+'create_session', 'join_session', 'leave_session', 
+'start_session', 'end_session', 'pause_session'
+
+// Quiz flow
+'next_question', 'previous_question', 'submit_answer'
+
+// Results
+'leaderboard_update', 'show_results'
+```
 
 ## Environment Configuration
 
 ### Backend (.env)
-- Database: PostgreSQL connection (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)
-- JWT: JWT_SECRET and JWT_REFRESH_SECRET
-- Redis: REDIS_HOST and REDIS_PORT for caching (optional)
-- CORS: Allowed origins (CORS_ORIGIN)
-- Rate limiting: Request limits (RATE_LIMIT_MAX_REQUESTS)
-- AI: GEMINI_API_KEY for Google Gemini integration
-- Storage: MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY
-- File uploads: MAX_FILE_SIZE, UPLOAD_DIR
+```env
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=aristotest
+DB_USER=aristotest
+DB_PASSWORD=AristoTest2024
+
+# Auth
+JWT_SECRET=your-secret-key
+JWT_REFRESH_SECRET=your-refresh-secret
+
+# AI
+GEMINI_API_KEY=your-gemini-api-key
+
+# Storage
+MINIO_ENDPOINT=localhost
+MINIO_PORT=9000
+MINIO_ACCESS_KEY=aristotest
+MINIO_SECRET_KEY=AristoTest2024!
+
+# Optional
+REDIS_HOST=localhost
+REDIS_PORT=6379
+RATE_LIMIT_MAX_REQUESTS=100
+```
 
 ### Frontend (.env)
-- VITE_API_URL: Backend endpoint (e.g., http://localhost:3001)
-- VITE_SOCKET_URL: WebSocket endpoint
+```env
+VITE_API_URL=http://localhost:3001
+VITE_SOCKET_URL=http://localhost:3001
+```
 
-## Testing Approach
+## Testing
 
-### Backend
-- Jest with ts-jest for TypeScript support
+### Backend Testing
+- Jest with ts-jest for TypeScript
 - Test files in `/backend/tests`
-- Coverage reports in `/backend/coverage`
-- Path aliases configured for clean imports
+- Path aliases configured (@models, @services, etc.)
+- Setup file at `/backend/tests/setup.ts`
 
-### Frontend
-- Vitest for unit and integration tests
-- Testing Library for React components
-- Interactive UI available with `npm run test:ui`
+### Frontend Testing  
+- Vitest with Testing Library
+- Interactive UI with `npm run test:ui`
+- Path aliases configured (@components, @pages, etc.)
 
 ## Key Technical Decisions
 
-1. **TypeScript Throughout**: Strong typing for better IDE support and fewer runtime errors
-2. **Multi-tenant Architecture**: Complete data isolation between organizations using tenant_id
-3. **Sequelize ORM**: Database abstraction with automatic tenant filtering via hooks
-4. **Socket.io**: Proven real-time communication with fallback support
-5. **Google Gemini AI**: For content generation, quiz creation, and interactive chat
-6. **MinIO Storage**: S3-compatible object storage for videos and large files
-7. **Zustand**: Lightweight state management without Redux boilerplate
-8. **Vite**: Fast development builds with HMR
-9. **Tailwind CSS**: Utility-first styling for rapid UI development
-10. **JWT Auth**: Stateless authentication with refresh token rotation and role-based access
-11. **PDF Processing**: pdf-parse for extracting text from manual uploads
+1. **Multi-tenant Architecture**: Complete data isolation using tenant_id with automatic Sequelize hooks
+2. **TypeScript Throughout**: Strong typing, better IDE support, fewer runtime errors
+3. **Real-time with Socket.io**: WebSocket with polling fallback for quiz sessions
+4. **Google Gemini AI**: Content generation, quiz creation, interactive chat
+5. **MinIO Storage**: S3-compatible object storage for videos/files
+6. **JWT Authentication**: Stateless auth with refresh token rotation
+7. **Zustand State Management**: Lightweight alternative to Redux
+8. **Vite Build Tool**: Fast HMR, optimized production builds
+9. **Sequelize ORM**: Database abstraction with migrations
+10. **Express Middleware Pipeline**: Security headers, CORS, rate limiting, compression
 
 ## Common Development Tasks
 
-### Multi-tenant Considerations
-- All models with tenant_id field are automatically filtered by tenant
-- Use tenantMiddleware in routes to enforce tenant isolation
-- Super admin role can perform cross-tenant operations
-- Tenant context is available in req.tenantId after auth
+### Working with Multi-tenancy
+- All models with `tenant_id` are automatically filtered
+- Tenant context available in `req.tenantId` after auth
+- Use `tenantMiddleware` in routes for enforcement
+- Super admin bypasses tenant filtering
 
-### Working with AI Features
-1. Ensure GEMINI_API_KEY is set in environment
-2. Use GeminiService for AI operations:
-   - generateQuiz(): Create quiz from manual content
-   - chatWithManual(): Interactive Q&A about manuals
-   - generateSummary(): Create manual summaries
-3. AI-generated content is stored in ai_generated_quizzes table
+### AI Integration
+- Ensure `GEMINI_API_KEY` is set
+- Use `gemini.service.ts` methods:
+  - `generateQuiz()`: Create quiz from manual
+  - `chatWithManual()`: Q&A about documents
+  - `generateVideoContent()`: Interactive video layers
+- AI responses stored in respective tables
 
-### Adding a New API Endpoint
+### Adding New API Endpoint
 1. Create controller in `/backend/src/controllers/`
 2. Add route in `/backend/src/routes/`
-3. Apply middleware: authMiddleware, tenantMiddleware
-4. Update API documentation
-5. Add frontend service in `/frontend/src/services/`
+3. Apply middleware stack: `authMiddleware, tenantMiddleware, validators`
+4. Add service in `/frontend/src/services/`
+5. Update TypeScript types in both backend and frontend
 
 ### Database Migration
-1. Create migration: `npx sequelize-cli migration:generate --name your-migration-name`
-2. Edit migration file in `/backend/migrations/`
-3. Run migration: `npm run migrate`
-4. Update models in `/backend/src/models/`
-5. Update TypeScript types
-
-## Role-Based Access Control
-
-### User Roles
-- **super_admin**: Dynamtek internal, full system access
-- **tenant_admin**: Organization admin, manages tenant settings
-- **admin**: Legacy admin role (being phased out)
-- **instructor/teacher**: Can create quizzes, view results
-- **student**: Can take quizzes, view own results
-
-### Middleware Protection
-- `superAdminOnly`: For system-wide operations
-- `tenantAdminOnly`: For tenant management
-- `instructorOnly`: For content creation
-- `tenantMiddleware`: Automatic tenant isolation
-
-## Performance Considerations
-
-- Socket.io configured for WebSocket with polling fallback
-- Rate limiting on API endpoints (100 requests per 15 minutes default)
-- Database connection pooling configured (max: 10, min: 2)
-- React Query/Axios caching for API responses
-- Compression middleware for HTTP responses
-- File upload limit configurable (default 5MB)
-- MinIO for efficient video streaming
-- Lazy loading for frontend routes
+```bash
+cd backend
+npx sequelize-cli migration:generate --name your-migration
+# Edit migration in /backend/migrations/
+npm run migrate
+# Update model in /backend/src/models/
+# Update TypeScript types
+```
 
 ## Security Measures
 
-- Helmet.js for security headers
-- CORS properly configured with credentials
-- Input validation with express-validator
-- SQL injection prevention via Sequelize parameterized queries
-- XSS protection through React
-- Rate limiting on sensitive endpoints
-- JWT secrets in environment variables
-- Password hashing with bcrypt (salt rounds: 10)
-- Tenant isolation enforced at database level
-- File type validation for uploads
+- **Helmet.js**: Security headers
+- **CORS**: Configured with credentials
+- **Rate Limiting**: 100 requests/15 minutes default
+- **Input Validation**: express-validator on all endpoints
+- **SQL Injection Prevention**: Parameterized queries via Sequelize
+- **Password Security**: bcrypt with 10 salt rounds
+- **Tenant Isolation**: Database-level enforcement
+- **File Validation**: Type checking on uploads
+- **JWT Secrets**: Environment variables only
+
+## Performance Optimizations
+
+- Database connection pooling (max: 10, min: 2)
+- React Query caching for API responses
+- Compression middleware for HTTP responses
+- Lazy loading for frontend routes
+- Manual chunks in Vite build (vendor, socket, charts, forms)
+- MinIO for efficient video streaming
+- WebSocket for real-time updates instead of polling
+
+## Role-Based Access Control
+
+### Roles
+- **super_admin**: Full system access, cross-tenant operations
+- **tenant_admin**: Manage organization settings
+- **instructor/teacher**: Create content, view results
+- **student**: Take quizzes, view own results
+
+### Middleware Protection
+- `superAdminOnly`: System-wide operations
+- `tenantAdminOnly`: Tenant management
+- `instructorOnly`: Content creation
+- `tenantMiddleware`: Automatic tenant isolation

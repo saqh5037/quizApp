@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import TrainingProgramController from '@controllers/training-program.controller';
-import { authenticate } from '@middleware/auth.middleware';
+import TrainingProgramController from '../controllers/training-program.controller';
+import { authenticate } from '../middleware/auth.middleware';
 import { 
   tenantMiddleware, 
   instructorOnly 
-} from '@middleware/tenant.middleware';
+} from '../middleware/tenant.middleware';
 
 const router = Router();
 

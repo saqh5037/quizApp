@@ -90,7 +90,7 @@ requiredEnvVars.forEach((varName) => {
 export const env: Environment = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: parseInt(process.env.PORT || '3001', 10),
-  HOST: process.env.HOST || 'localhost',
+  HOST: process.env.HOST || '0.0.0.0',
   
   // Database
   DB_HOST: process.env.DB_HOST!,

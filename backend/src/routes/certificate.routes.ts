@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import CertificateController from '@controllers/certificate.controller';
-import { authenticate } from '@middleware/auth.middleware';
-import { tenantMiddleware } from '@middleware/tenant.middleware';
+import CertificateController from '../controllers/certificate.controller';
+import { authenticate } from '../middleware/auth.middleware';
+import { tenantMiddleware } from '../middleware/tenant.middleware';
 
 const router = Router();
 

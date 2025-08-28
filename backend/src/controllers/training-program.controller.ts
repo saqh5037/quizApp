@@ -6,9 +6,9 @@ import {
   Quiz,
   QuizSession,
   Participant
-} from '@models/index';
-import { getTenantContext } from '@middleware/tenant.middleware';
-import { sequelize } from '@config/database';
+} from '../models/index';
+import { getTenantContext } from '../middleware/tenant.middleware';
+import { sequelize } from '../config/database';
 import { Op } from 'sequelize';
 
 export class TrainingProgramController {

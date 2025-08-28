@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import TenantController from '@controllers/tenant.controller';
-import { simpleAuth } from '@middleware/auth.simple.middleware';
+import TenantController from '../controllers/tenant.controller';
+import { simpleAuth } from '../middleware/auth.simple.middleware';
 import { 
   tenantMiddleware, 
   superAdminOnly, 
   tenantAdminOnly 
-} from '@middleware/tenant.middleware';
+} from '../middleware/tenant.middleware';
 
 const router = Router();
 

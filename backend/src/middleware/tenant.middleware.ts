@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { Tenant } from '@models/index';
+import { Tenant } from '../models/index';
 import jwt from 'jsonwebtoken';
 
 // Extend Request type to include tenant information

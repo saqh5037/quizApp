@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import ClassroomController from '@controllers/classroom.controller';
-import { simpleAuth } from '@middleware/auth.simple.middleware';
+import ClassroomController from '../controllers/classroom.controller';
+import { simpleAuth } from '../middleware/auth.simple.middleware';
 import { 
   tenantMiddleware, 
   tenantAdminOnly,
   instructorOnly 
-} from '@middleware/tenant.middleware';
+} from '../middleware/tenant.middleware';
 
 const router = Router();
 

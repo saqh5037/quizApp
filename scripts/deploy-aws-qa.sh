@@ -121,7 +121,7 @@ deploy_to_server() {
     
     # Copy deployment package
     log "Uploading deployment package..."
-    scp -i "$SSH_KEY" "$package_file" "$SSH_USER@$SSH_HOST:/tmp/"
+    scp -i "$SSH_KEY" -o StrictHostKeyChecking=no "$package_file" "$SSH_USER@$SSH_HOST:/tmp/"
     
     # Extract and setup on server
     ssh -i "$SSH_KEY" "$SSH_USER@$SSH_HOST" << 'REMOTE_SCRIPT'

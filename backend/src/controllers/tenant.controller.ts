@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { Tenant, User, Classroom, TrainingProgram, Certificate } from '@models/index';
-import { superAdminOnly, getTenantContext } from '@middleware/tenant.middleware';
-import { sequelize } from '@config/database';
+import { Tenant, User, Classroom, TrainingProgram, Certificate } from '../models/index';
+import { superAdminOnly, getTenantContext } from '../middleware/tenant.middleware';
+import { sequelize } from '../config/database';
 
 export class TenantController {
   /**

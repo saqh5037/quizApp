@@ -16,7 +16,7 @@ import classroomRoutes from './classroom.routes';
 import trainingProgramRoutes from './training-program.routes';
 import certificateRoutes from './certificate.routes';
 // import aiRoutes from './ai.routes';
-// import { authenticateToken } from '@middleware/auth.middleware';
+// import { authenticateToken } from '../middleware/auth.middleware';
 // Manual routes disabled temporarily - direct implementation below
 
 const router = Router();
