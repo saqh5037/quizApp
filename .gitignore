@@ -45,6 +45,19 @@ uploads/
 tmp/
 temp/
 
+# Video processing files
+backend/storage/processed/
+backend/storage/uploads/
+backend/storage/minio-data/
+
+# Temporary scripts
+backend/*.js
+!backend/src/**/*.js
+
+# Backup files
+backup-*.sql
+*-backup-*/
+
 # Redis dump
 dump.rdb
 
