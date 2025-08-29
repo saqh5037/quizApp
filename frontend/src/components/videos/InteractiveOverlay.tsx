@@ -113,8 +113,8 @@ const InteractiveOverlay: React.FC<InteractiveOverlayProps> = ({
   };
 
   return (
-    <div className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[100] p-4 backdrop-blur-sm" style={{ pointerEvents: 'auto' }}>
+      <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto animate-scale-in" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-t-xl">
           <div className="flex items-center justify-between mb-2">

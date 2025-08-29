@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { apiConfig } from '../config/api.config';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-const API_BASE = `${API_URL}/api/v1/interactive-video`;
+// Use dynamic API URL that detects the current hostname
+const getApiBase = () => `${apiConfig.apiURL}/api/v1/interactive-video`;
 
 export interface InteractiveLayer {
   id: number;
@@ -68,7 +69,7 @@ class InteractiveVideoService {
 
   async createInteractiveLayer(videoId: number, config?: any): Promise<InteractiveLayer> {
     const response = await axios.post(
-      `${API_BASE}/videos/${videoId}/interactive-layer`,
+      `${getApiBase()}/videos/${videoId}/interactive-layer`,
       config || {},
       { headers: this.getAuthHeader() }
     );
@@ -77,7 +78,7 @@ class InteractiveVideoService {
 
   async updateInteractiveLayer(layerId: number, updates: any): Promise<InteractiveLayer> {
     const response = await axios.put(
-      `${API_BASE}/interactive-layers/${layerId}`,
+      `${getApiBase()}/interactive-layers/${layerId}`,
       updates,
       { headers: this.getAuthHeader() }
     );
@@ -86,7 +87,7 @@ class InteractiveVideoService {
 
   async getInteractiveLayer(videoId: number): Promise<InteractiveLayer> {
     const response = await axios.get(
-      `${API_BASE}/videos/${videoId}/interactive-layer`,
+      `${getApiBase()}/videos/${videoId}/interactive-layer`,
       { headers: this.getAuthHeader() }
     );
     return response.data;
@@ -94,7 +95,7 @@ class InteractiveVideoService {
 
   async processVideoWithAI(layerId: number, forceReprocess = false): Promise<any> {
     const response = await axios.post(
-      `${API_BASE}/interactive-layers/${layerId}/process`,
+      `${getApiBase()}/interactive-layers/${layerId}/process`,
       { forceReprocess },
       { headers: this.getAuthHeader() }
     );
@@ -103,7 +104,7 @@ class InteractiveVideoService {
 
   async startInteractiveSession(layerId: number): Promise<InteractiveSession> {
     const response = await axios.post(
-      `${API_BASE}/interactive-layers/${layerId}/start-session`,
+      `${getApiBase()}/interactive-layers/${layerId}/start-session`,
       {},
       { headers: this.getAuthHeader() }
     );
@@ -112,7 +113,7 @@ class InteractiveVideoService {
 
   async submitAnswer(sessionId: string, answer: AnswerSubmission): Promise<any> {
     const response = await axios.post(
-      `${API_BASE}/interactive-sessions/${sessionId}/answer`,
+      `${getApiBase()}/interactive-sessions/${sessionId}/answer`,
       answer,
       { headers: this.getAuthHeader() }
     );
@@ -121,7 +122,7 @@ class InteractiveVideoService {
 
   async completeSession(sessionId: string, stats: { watchTimeSeconds: number; totalPauses: number }): Promise<any> {
     const response = await axios.post(
-      `${API_BASE}/interactive-sessions/${sessionId}/complete`,
+      `${getApiBase()}/interactive-sessions/${sessionId}/complete`,
       stats,
       { headers: this.getAuthHeader() }
     );
@@ -130,7 +131,7 @@ class InteractiveVideoService {
 
   async getSessionResults(sessionId: string): Promise<InteractiveSession> {
     const response = await axios.get(
-      `${API_BASE}/interactive-sessions/${sessionId}/results`,
+      `${getApiBase()}/interactive-sessions/${sessionId}/results`,
       { headers: this.getAuthHeader() }
     );
     return response.data;
@@ -138,15 +139,15 @@ class InteractiveVideoService {
 
   async getUserVideoHistory(userId?: number): Promise<any> {
     const url = userId 
-      ? `${API_BASE}/users/${userId}/interactive-video-history`
-      : `${API_BASE}/my-interactive-video-history`;
+      ? `${getApiBase()}/users/${userId}/interactive-video-history`
+      : `${getApiBase()}/my-interactive-video-history`;
     const response = await axios.get(url, { headers: this.getAuthHeader() });
     return response.data;
   }
 
   async getVideoAnalytics(layerId: number): Promise<VideoAnalytics> {
     const response = await axios.get(
-      `${API_BASE}/interactive-layers/${layerId}/analytics`,
+      `${getApiBase()}/interactive-layers/${layerId}/analytics`,
       { headers: this.getAuthHeader() }
     );
     return response.data;
@@ -154,7 +155,7 @@ class InteractiveVideoService {
 
   async deleteInteractiveLayer(layerId: number): Promise<void> {
     await axios.delete(
-      `${API_BASE}/interactive-layers/${layerId}`,
+      `${getApiBase()}/interactive-layers/${layerId}`,
       { headers: this.getAuthHeader() }
     );
   }
@@ -174,6 +175,46 @@ class InteractiveVideoService {
     }, interval);
     
     return timer;
+  }
+
+  // ============= MÉTODOS PÚBLICOS (Sin autenticación) =============
+  
+  async getPublicInteractiveLayer(videoId: number): Promise<InteractiveLayer> {
+    const response = await axios.get(
+      `${getApiBase()}/public/videos/${videoId}/interactive-layer`
+    );
+    return response.data;
+  }
+
+  async startPublicSession(layerId: number, studentInfo: any): Promise<any> {
+    const response = await axios.post(
+      `${getApiBase()}/public/interactive-layers/${layerId}/start-session`,
+      studentInfo
+    );
+    return response.data;
+  }
+
+  async submitPublicAnswer(sessionId: string, answer: AnswerSubmission): Promise<any> {
+    const response = await axios.post(
+      `${getApiBase()}/public/interactive-sessions/${sessionId}/answer`,
+      answer
+    );
+    return response.data;
+  }
+
+  async completePublicSession(sessionId: string, stats: any): Promise<any> {
+    const response = await axios.post(
+      `${getApiBase()}/public/interactive-sessions/${sessionId}/complete`,
+      stats
+    );
+    return response.data;
+  }
+
+  async getPublicSessionResults(sessionId: string): Promise<any> {
+    const response = await axios.get(
+      `${getApiBase()}/public/interactive-sessions/${sessionId}/results`
+    );
+    return response.data;
   }
 }
 

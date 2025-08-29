@@ -281,6 +281,7 @@ class VideoUploadService {
       generateHLS?: boolean;
       generateMultipleQualities?: boolean;
       qualities?: string[];
+      onProgress?: (percent: number) => void;
     } = {}
   ): Promise<{
     thumbnail?: string;
@@ -311,12 +312,18 @@ class VideoUploadService {
         const masterPlaylist = await ffmpegService.generateMultiQualityHLS(
           videoPath,
           hlsDir,
-          qualities
+          qualities,
+          options.onProgress
         );
         
         // Upload HLS files to MinIO
         const files = await this.uploadDirectory(hlsDir, `videos/hls/${videoId}`);
-        result.hlsPath = `videos/hls/${videoId}/master.m3u8`;
+        
+        // Fix playlist URLs to use absolute paths
+        await this.fixPlaylistUrls(videoId);
+        
+        // Return full MinIO URL
+        result.hlsPath = minioService.getPublicUrl(`videos/hls/${videoId}/master.m3u8`);
         result.qualities = [];
         
         for (const quality of qualities) {
@@ -369,6 +376,52 @@ class VideoUploadService {
     
     await walkDir(localDir, minioPrefix);
     return uploadedFiles;
+  }
+
+  private async fixPlaylistUrls(videoId: number): Promise<void> {
+    const baseUrl = minioService.getPublicUrl('');
+    
+    // Fix master playlist
+    const masterContent = `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-STREAM-INF:BANDWIDTH=800000,RESOLUTION=640x360
+${baseUrl}videos/hls/${videoId}/360p/playlist.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=1400000,RESOLUTION=854x480
+${baseUrl}videos/hls/${videoId}/480p/playlist.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=2800000,RESOLUTION=1280x720
+${baseUrl}videos/hls/${videoId}/720p/playlist.m3u8
+`;
+    
+    await minioService.uploadContent(
+      `videos/hls/${videoId}/master.m3u8`,
+      masterContent,
+      'application/vnd.apple.mpegurl'
+    );
+    
+    // Fix quality playlists
+    const qualities = ['360p', '480p', '720p'];
+    for (const quality of qualities) {
+      try {
+        const playlistPath = `videos/hls/${videoId}/${quality}/playlist.m3u8`;
+        const playlistContent = await minioService.getFileContent(playlistPath);
+        
+        // Replace relative paths with absolute URLs
+        const updatedContent = playlistContent.split('\n').map((line: string) => {
+          if (line.endsWith('.ts')) {
+            return `${baseUrl}videos/hls/${videoId}/${quality}/${line}`;
+          }
+          return line;
+        }).join('\n');
+        
+        await minioService.uploadContent(
+          playlistPath,
+          updatedContent,
+          'application/vnd.apple.mpegurl'
+        );
+      } catch (error) {
+        console.error(`Error fixing ${quality} playlist:`, error);
+      }
+    }
   }
 
   getChunkSize(): number {

@@ -81,7 +81,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
         poster,
         sources: [{
           src,
-          type: 'video/mp4'  // Force MP4 type for now
+          type: src.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4'
         }],
         controlBar: {
           volumePanel: {
@@ -270,7 +270,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
   }, [isReady, videoId, accessToken, onTimeUpdate]);
 
   return (
-    <div className="video-player-wrapper">
+    <div className="video-player-wrapper relative">
       <style>
         {`
           .video-js {
@@ -309,6 +309,13 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
           .vjs-playback-rate .vjs-menu-button-popup .vjs-menu {
             width: 4em;
             left: -1em;
+          }
+          /* Ensure overlays work in fullscreen */
+          .video-js.vjs-fullscreen {
+            position: relative;
+          }
+          .video-js.vjs-fullscreen ~ * {
+            z-index: 9999;
           }
         `}
       </style>

@@ -190,27 +190,9 @@ class InteractiveVideoLayer
   }
 
   static associate(models: any) {
-    InteractiveVideoLayer.belongsTo(models.Video, {
-      foreignKey: 'videoId',
-      as: 'video'
-    });
-
-    InteractiveVideoLayer.belongsTo(models.User, {
-      foreignKey: 'createdBy',
-      as: 'creator'
-    });
-
-    InteractiveVideoLayer.hasMany(models.InteractiveVideoResult, {
-      foreignKey: 'interactiveLayerId',
-      as: 'results'
-    });
-
-    if (models.Tenant) {
-      InteractiveVideoLayer.belongsTo(models.Tenant, {
-        foreignKey: 'tenantId',
-        as: 'tenant'
-      });
-    }
+    // Associations are already defined in associations.ts
+    // Just set the model references for TypeScript
+    this.associations = {};
   }
 }
 

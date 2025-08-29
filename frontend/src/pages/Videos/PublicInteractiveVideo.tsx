@@ -11,7 +11,7 @@ import {
 } from 'react-icons/ri';
 import toast from 'react-hot-toast';
 import { apiConfig } from '../../config/api.config';
-import InteractiveVideoWrapper from '../../components/videos/InteractiveVideoWrapper';
+import PublicInteractiveVideoWrapper from '../../components/videos/PublicInteractiveVideoWrapper';
 
 interface StudentInfo {
   name: string;
@@ -366,10 +366,12 @@ export default function PublicInteractiveVideo() {
 
       {/* Interactive Video Player */}
       <div className="container mx-auto px-4 py-6">
-        <InteractiveVideoWrapper
+        <PublicInteractiveVideoWrapper
           videoId={video.id}
-          videoUrl={video.streamUrl || ''}
+          videoUrl={video.streamUrl || video.hlsPlaylistUrl || ''}
           videoTitle={video.title}
+          layerId={video.interactiveLayer?.id}
+          studentInfo={studentInfo!}
           onComplete={handleVideoComplete}
         />
       </div>

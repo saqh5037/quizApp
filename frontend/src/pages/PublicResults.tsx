@@ -216,7 +216,7 @@ export default function PublicResults() {
 
     // Sort
     if (sortBy === 'score') {
-      filtered.sort((a, b) => parseFloat(b.score) - parseFloat(a.score));
+      filtered.sort((a, b) => (parseFloat(b.score) || 0) - (parseFloat(a.score) || 0));
     } else if (sortBy === 'name') {
       filtered.sort((a, b) => {
         const nameA = a.participant_name || a.student_name || '';
@@ -426,11 +426,11 @@ export default function PublicResults() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {getFilteredResults().map((result) => {
+              {getFilteredResults().map((result, index) => {
                 const passed = parseFloat(result.score) >= (quiz?.pass_percentage || 70);
                 
                 return (
-                  <tr key={result.id} className="hover:bg-gray-50">
+                  <tr key={`result-${result.id}-${index}`} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
@@ -463,7 +463,7 @@ export default function PublicResults() {
                         <div className={`text-lg font-bold ${
                           passed ? 'text-green-600' : 'text-red-600'
                         }`}>
-                          {parseFloat(result.score).toFixed(1)}%
+                          {(parseFloat(result.score) || 0).toFixed(1)}%
                         </div>
                       </div>
                     </td>

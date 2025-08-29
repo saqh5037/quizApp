@@ -20,6 +20,8 @@ const InteractiveContentGenerator: React.FC<InteractiveContentGeneratorProps> = 
   const [isCreating, setIsCreating] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<string | null>(null);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingStep, setProcessingStep] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   
   // Form state
@@ -152,6 +154,17 @@ const InteractiveContentGenerator: React.FC<InteractiveContentGeneratorProps> = 
   };
 
   const startStatusChecking = (id: number) => {
+    // Don't start polling if id is invalid
+    if (!id || id <= 0) {
+      console.warn('Invalid layer ID, skipping status checking');
+      return;
+    }
+    
+    // Clear any existing interval before starting a new one
+    if (statusCheckInterval) {
+      clearInterval(statusCheckInterval);
+    }
+    
     const interval = setInterval(async () => {
       try {
         const response = await fetch(`${apiConfig.baseURL}/interactive-video/interactive-layers/${id}/status`, {
@@ -160,9 +173,34 @@ const InteractiveContentGenerator: React.FC<InteractiveContentGeneratorProps> = 
           }
         });
         
+        // If we get 404, stop polling
+        if (response.status === 404) {
+          console.log('Layer not found, stopping status checks');
+          clearInterval(interval);
+          setIsGenerating(false);
+          setProcessingStatus(null);
+          return;
+        }
+        
         const data = await response.json();
         
         setProcessingStatus(data.status);
+        
+        // Update progress based on processing status
+        if (data.processingLog) {
+          setProcessingStep(data.processingLog);
+          
+          // Calculate approximate progress
+          if (data.processingLog.includes('Extrayendo audio')) {
+            setProcessingProgress(25);
+          } else if (data.processingLog.includes('Transcribiendo')) {
+            setProcessingProgress(50);
+          } else if (data.processingLog.includes('Generando preguntas')) {
+            setProcessingProgress(75);
+          } else if (data.processingLog.includes('completado')) {
+            setProcessingProgress(100);
+          }
+        }
         
         if (data.status === 'ready') {
           clearInterval(interval);
@@ -365,10 +403,38 @@ const InteractiveContentGenerator: React.FC<InteractiveContentGeneratorProps> = 
           <h3 className="text-lg font-semibold text-white text-center mb-2">
             Procesando Video...
           </h3>
-          <p className="text-gray-300 text-center">
-            Estamos transcribiendo el audio y generando las preguntas interactivas.
+          <p className="text-gray-300 text-center mb-4">
+            {processingStep || 'Iniciando procesamiento...'}
           </p>
-          <p className="text-sm text-gray-400 text-center mt-2">
+          
+          {/* Progress Bar */}
+          <div className="w-full bg-gray-600 rounded-full h-3 mb-2">
+            <div 
+              className="bg-gradient-to-r from-orange-500 to-orange-600 h-3 rounded-full transition-all duration-500"
+              style={{ width: `${processingProgress}%` }}
+            />
+          </div>
+          <p className="text-sm text-gray-400 text-center">
+            {processingProgress}% completado
+          </p>
+          
+          {/* Processing Steps */}
+          <div className="mt-6 space-y-2">
+            <div className={`flex items-center gap-2 ${processingProgress >= 25 ? 'text-green-400' : 'text-gray-500'}`}>
+              {processingProgress >= 25 ? <CheckCircle size={16} /> : <Loader size={16} className="animate-spin" />}
+              <span className="text-sm">Extrayendo audio del video</span>
+            </div>
+            <div className={`flex items-center gap-2 ${processingProgress >= 50 ? 'text-green-400' : 'text-gray-500'}`}>
+              {processingProgress >= 50 ? <CheckCircle size={16} /> : <Loader size={16} className={processingProgress >= 25 ? 'animate-spin' : ''} />}
+              <span className="text-sm">Transcribiendo contenido</span>
+            </div>
+            <div className={`flex items-center gap-2 ${processingProgress >= 75 ? 'text-green-400' : 'text-gray-500'}`}>
+              {processingProgress >= 75 ? <CheckCircle size={16} /> : <Loader size={16} className={processingProgress >= 50 ? 'animate-spin' : ''} />}
+              <span className="text-sm">Generando preguntas con IA</span>
+            </div>
+          </div>
+          
+          <p className="text-sm text-gray-400 text-center mt-4">
             Este proceso puede tomar varios minutos dependiendo de la duración del video.
           </p>
           <div className="mt-4 space-y-2">

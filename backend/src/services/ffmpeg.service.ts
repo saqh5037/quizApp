@@ -128,7 +128,8 @@ class FFmpegService {
   async convertToHLS(
     inputPath: string,
     outputDir: string,
-    quality = '720p'
+    quality = '720p',
+    onProgress?: (percent: number) => void
   ): Promise<string> {
     const preset = this.qualityPresets[quality];
     const playlistPath = path.join(outputDir, 'playlist.m3u8');
@@ -152,7 +153,11 @@ class FFmpegService {
         .on('end', () => resolve(playlistPath))
         .on('error', reject)
         .on('progress', (progress) => {
-          console.log(`Processing: ${progress.percent}% done`);
+          const percent = Math.round(progress.percent || 0);
+          console.log(`Processing ${quality}: ${percent}% done`);
+          if (onProgress) {
+            onProgress(percent);
+          }
         })
         .run();
     });
@@ -161,15 +166,34 @@ class FFmpegService {
   async generateMultiQualityHLS(
     inputPath: string,
     outputDir: string,
-    qualities: string[] = ['360p', '480p', '720p']
+    qualities: string[] = ['360p', '480p', '720p'],
+    onProgress?: (percent: number) => void
   ): Promise<string> {
     const masterPlaylistPath = path.join(outputDir, 'master.m3u8');
     const playlists: Array<{ quality: string; path: string; bandwidth: number }> = [];
 
     // Process each quality
+    let currentQualityIndex = 0;
     for (const quality of qualities) {
       const qualityDir = path.join(outputDir, quality);
-      const playlistPath = await this.convertToHLS(inputPath, qualityDir, quality);
+      
+      // Calculate progress for this quality
+      const progressPerQuality = 100 / qualities.length;
+      const startProgress = currentQualityIndex * progressPerQuality;
+      
+      const playlistPath = await this.convertToHLS(
+        inputPath, 
+        qualityDir, 
+        quality,
+        (localProgress) => {
+          if (onProgress) {
+            // Calculate overall progress
+            const overallProgress = startProgress + (localProgress * progressPerQuality / 100);
+            onProgress(Math.round(overallProgress));
+          }
+        }
+      );
+      
       const preset = this.qualityPresets[quality];
       
       playlists.push({
@@ -177,6 +201,8 @@ class FFmpegService {
         path: `./${quality}/playlist.m3u8`,
         bandwidth: parseInt(preset.bitrate) * 1000
       });
+      
+      currentQualityIndex++;
     }
 
     // Create master playlist

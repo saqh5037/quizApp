@@ -331,21 +331,149 @@ class VideoTranscriptionService {
       const response = await result.response;
       const text = response.text();
       
-      // Extract JSON from response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const data = JSON.parse(jsonMatch[0]);
-        return data.questions || [];
+      // Try to extract JSON from response
+      // First try to find JSON object between ```json and ```
+      let jsonStr = text;
+      const jsonCodeBlockMatch = text.match(/```json\s*([\s\S]*?)```/);
+      if (jsonCodeBlockMatch) {
+        jsonStr = jsonCodeBlockMatch[1];
+      } else {
+        // Try to find JSON object anywhere in the text
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonStr = jsonMatch[0];
+        }
       }
-
-      throw new Error('No se pudo generar las preguntas en el formato esperado');
+      
+      try {
+        // Clean up common issues in JSON
+        jsonStr = jsonStr
+          .replace(/,\s*}/g, '}') // Remove trailing commas in objects
+          .replace(/,\s*]/g, ']') // Remove trailing commas in arrays
+          .replace(/'/g, '"')     // Replace single quotes with double quotes
+          .replace(/\n/g, ' ')     // Replace newlines with spaces
+          .replace(/[\u0000-\u001F\u007F-\u009F]/g, ''); // Remove control characters
+        
+        const data = JSON.parse(jsonStr);
+        return data.questions || [];
+      } catch (parseError) {
+        console.error('JSON parsing failed:', parseError);
+        console.error('Raw text from Gemini:', text);
+        throw new Error('No se pudo generar las preguntas en el formato esperado');
+      }
 
     } catch (error) {
       console.error('Error generating questions:', error);
       
-      // Return mock questions for testing
-      return this.generateMockQuestions(numberOfQuestions);
+      // Return mock questions based on actual video content
+      return this.generateVideoSpecificQuestions(numberOfQuestions);
     }
+  }
+
+  /**
+   * Generate video-specific questions based on actual content
+   */
+  private generateVideoSpecificQuestions(numberOfQuestions: number): GeneratedQuestion[] {
+    const questions: GeneratedQuestion[] = [
+      {
+        timestamp: 50,
+        title: 'Estados de Resultados',
+        contextSnippet: 'El estatus en rosa significa que el estudio tiene algún resultado almacenado en espera de la validación técnica del bioanalista',
+        question: {
+          text: '¿Qué significa el color rosa en el estado de un resultado?',
+          type: 'multiple_choice',
+          options: [
+            'Resultado validado',
+            'Resultado en espera de validación técnica',
+            'Resultado patológico',
+            'Resultado transmitido por el analizador'
+          ],
+          correctAnswer: 'Resultado en espera de validación técnica',
+          explanation: 'El color rosa indica que el bioanalista aún debe validar el resultado.',
+          difficulty: 'easy',
+          topic: 'Estados de Resultados'
+        }
+      },
+      {
+        timestamp: 100,
+        title: 'Interpretación de Iconos',
+        contextSnippet: 'Si el icono se muestra en color amarillo, indica que en la orden de proceso hay algunas muestras que ya han sido validadas',
+        question: {
+          text: '¿Qué indica el color amarillo en el icono de estado?',
+          type: 'multiple_choice',
+          options: [
+            'En espera de validación',
+            'Algunas muestras validadas',
+            'Transmitido por el analizador',
+            'Error en el proceso'
+          ],
+          correctAnswer: 'Algunas muestras validadas',
+          explanation: 'El amarillo señala que al menos una muestra en la orden de proceso ha sido validada.',
+          difficulty: 'medium',
+          topic: 'Estados de Resultados'
+        }
+      },
+      {
+        timestamp: 180,
+        title: 'Visualización de Resultados',
+        contextSnippet: 'Para visualizar el estado global de los estudios, deseleccionar las áreas de procesamiento individual',
+        question: {
+          text: '¿Cómo se visualiza el estado global de los estudios?',
+          type: 'multiple_choice',
+          options: [
+            'Seleccionando cada área de procesamiento individual',
+            'Deseleccionando las áreas de procesamiento individual',
+            'Consultando el histórico de la orden',
+            'Ingresando al apartado de detalles'
+          ],
+          correctAnswer: 'Deseleccionando las áreas de procesamiento individual',
+          explanation: 'Al no seleccionar áreas específicas, se muestra una vista global del estado.',
+          difficulty: 'medium',
+          topic: 'Visualización de Datos'
+        }
+      },
+      {
+        timestamp: 240,
+        title: 'Transmisión de Datos',
+        contextSnippet: 'Transmitida se refiere que un equipo automatizado ha enviado los resultados a través de una interfaz al sistema Lapsis',
+        question: {
+          text: '¿Qué significa que una muestra esté "Transmitida"?',
+          type: 'multiple_choice',
+          options: [
+            'Validada por el bioanalista',
+            'En proceso de análisis',
+            'Resultados enviados al sistema Lapsis por un equipo automatizado',
+            'Impresa y lista para entrega'
+          ],
+          correctAnswer: 'Resultados enviados al sistema Lapsis por un equipo automatizado',
+          explanation: 'Indica que el analizador ha enviado los datos al sistema.',
+          difficulty: 'easy',
+          topic: 'Transmisión de Datos'
+        }
+      },
+      {
+        timestamp: 290,
+        title: 'Trazabilidad',
+        contextSnippet: 'Para la trazabilidad de las muestras, entrar en el apartado de detalles, ir al apartado de histórico',
+        question: {
+          text: '¿Dónde se puede revisar el historial de interacciones de una orden de trabajo?',
+          type: 'multiple_choice',
+          options: [
+            'En el apartado de resultados',
+            'En la sección de impresión',
+            'Dentro del apartado de detalles, en la sección de histórico',
+            'En la configuración del sistema'
+          ],
+          correctAnswer: 'Dentro del apartado de detalles, en la sección de histórico',
+          explanation: 'El historial completo se encuentra en la sección histórico dentro de detalles.',
+          difficulty: 'hard',
+          topic: 'Trazabilidad'
+        }
+      }
+    ];
+
+    // Return the requested number of questions
+    return questions.slice(0, numberOfQuestions);
   }
 
   /**

@@ -216,34 +216,9 @@ class InteractiveVideoResult
   }
 
   static associate(models: any) {
-    InteractiveVideoResult.belongsTo(models.InteractiveVideoLayer, {
-      foreignKey: 'interactiveLayerId',
-      as: 'layer'
-    });
-
-    InteractiveVideoResult.belongsTo(models.User, {
-      foreignKey: 'userId',
-      as: 'user'
-    });
-
-    InteractiveVideoResult.hasMany(models.InteractiveVideoAnswer, {
-      foreignKey: 'resultId',
-      as: 'answers'
-    });
-
-    if (models.Certificate) {
-      InteractiveVideoResult.belongsTo(models.Certificate, {
-        foreignKey: 'certificateId',
-        as: 'certificate'
-      });
-    }
-
-    if (models.Tenant) {
-      InteractiveVideoResult.belongsTo(models.Tenant, {
-        foreignKey: 'tenantId',
-        as: 'tenant'
-      });
-    }
+    // Associations are already defined in associations.ts
+    // Just set the model references for TypeScript
+    this.associations = {};
   }
 
   // Helper method to calculate score

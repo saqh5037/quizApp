@@ -123,10 +123,9 @@ class InteractiveVideoAnswer
   }
 
   static associate(models: any) {
-    InteractiveVideoAnswer.belongsTo(models.InteractiveVideoResult, {
-      foreignKey: 'resultId',
-      as: 'result'
-    });
+    // Associations are already defined in associations.ts
+    // Just set the model references for TypeScript
+    this.associations = {};
   }
 }
 

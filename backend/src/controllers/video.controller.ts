@@ -136,14 +136,20 @@ export class VideoController {
 
   // Process video asynchronously
   private async processVideoAsync(videoId: number, videoPath: string) {
+    console.log(`🎬 Starting video processing for ID: ${videoId}`);
     try {
       const video = await Video.findByPk(videoId);
-      if (!video) return;
+      if (!video) {
+        console.error(`Video ${videoId} not found`);
+        return;
+      }
 
       // Update processing progress
+      console.log(`📊 Updating progress to 10%`);
       await video.update({ processingProgress: 10 });
 
-      // Generate thumbnail
+      // Generate thumbnail and HLS
+      console.log(`🎨 Generating thumbnail and HLS...`);
       const thumbnailResult = await videoUploadService.processVideo(
         videoPath,
         videoId,
@@ -151,16 +157,31 @@ export class VideoController {
           generateThumbnail: true,
           generateHLS: true,
           generateMultipleQualities: true,
-          qualities: ['360p', '480p', '720p']
+          qualities: ['360p', '480p', '720p'],
+          onProgress: async (percent: number) => {
+            // Map FFmpeg progress (0-100) to our progress (10-90)
+            const mappedProgress = Math.floor(10 + (percent * 0.8));
+            console.log(`🔄 FFmpeg progress: ${percent}% => Mapped: ${mappedProgress}%`);
+            
+            // Update progress in database
+            const updateResult = await video.update({ processingProgress: mappedProgress });
+            console.log(`📝 Database update result:`, updateResult ? 'Success' : 'Failed');
+            
+            // Verify the update
+            await video.reload();
+            console.log(`✅ Verified progress in DB: ${video.processingProgress}%`);
+          }
         }
       );
 
+      console.log(`📊 Updating progress to 50%`);
       await video.update({ 
         processingProgress: 50,
         thumbnailUrl: thumbnailResult.thumbnail
       });
 
       // Save quality information
+      console.log(`💾 Saving quality information...`);
       if (thumbnailResult.qualities) {
         for (const quality of thumbnailResult.qualities) {
           await VideoQuality.create({
@@ -173,21 +194,25 @@ export class VideoController {
       }
 
       // Update HLS path
+      console.log(`📊 Updating progress to 90%`);
       await video.update({
         hlsPlaylistUrl: thumbnailResult.hlsPath,
         processingProgress: 90
       });
 
-      // Generate slug
-      const slug = this.generateSlug(video.get('title') as string);
+      // Generate unique slug
+      const slug = await this.generateUniqueSlug(video.get('title') as string, videoId);
       
       // Final update - mark as ready
+      console.log(`✅ Video processing complete! Marking as ready with slug: ${slug}`);
       await video.update({
         slug,
         status: 'ready',
         processingProgress: 100,
         publishedAt: new Date()
       });
+      
+      console.log(`🎉 Video ${videoId} is now ready!`);
 
     } catch (error) {
       console.error('Error processing video:', error);
@@ -385,17 +410,25 @@ export class VideoController {
         });
       }
 
-      // Get streaming URL - Use public URL
+      // Get streaming URL - Use HLS playlist if available, fallback to original
       let streamUrl = null;
+      const requestHost = req.get('host');
+      const hlsPlaylistUrl = video.get('hlsPlaylistUrl') as string;
       const originalPath = video.get('originalPath') as string;
-      // Get streaming URL from original path
       
-      if (originalPath) {
-        // Use public URL directly since we configured the bucket policy
-        // Pass the request host to generate the correct URL for network access
-        const requestHost = req.get('host');
-        streamUrl = minioService.getPublicUrl(originalPath, requestHost);
-        // Stream URL generated successfully
+      if (hlsPlaylistUrl) {
+        // Use HLS playlist URL for streaming
+        // If it's already a full URL, use it as is
+        if (hlsPlaylistUrl.includes('://')) {
+          streamUrl = hlsPlaylistUrl;
+        } else {
+          // Otherwise, construct the MinIO URL
+          streamUrl = minioService.getPublicUrl(hlsPlaylistUrl, requestHost);
+        }
+      } else if (originalPath) {
+        // Fallback to original file if HLS is not available
+        // Serve the original file through the backend
+        streamUrl = `http://${requestHost}/${originalPath}`;
       }
 
       // Transform thumbnail URL if needed
@@ -571,13 +604,13 @@ export class VideoController {
     }
   }
 
-  // Helper function to generate slug
-  private generateSlug(title: string | undefined): string {
+  // Helper function to generate unique slug
+  private async generateUniqueSlug(title: string | undefined, videoId: number): Promise<string> {
     if (!title) {
       return `video-${Date.now()}`;
     }
     
-    return title
+    let baseSlug = title
       .toLowerCase()
       .replace(/[áàäâ]/g, 'a')
       .replace(/[éèëê]/g, 'e')
@@ -588,6 +621,29 @@ export class VideoController {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .substring(0, 100);
+    
+    // Check if slug already exists
+    let slug = baseSlug;
+    let counter = 1;
+    
+    while (true) {
+      const existingVideo = await Video.findOne({
+        where: {
+          slug: slug,
+          id: { [Op.ne]: videoId } // Exclude current video
+        }
+      });
+      
+      if (!existingVideo) {
+        break;
+      }
+      
+      // Append counter to make it unique
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+    
+    return slug;
   }
 
   // Public video access (no authentication required)

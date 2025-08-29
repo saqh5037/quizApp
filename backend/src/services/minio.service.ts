@@ -202,6 +202,59 @@ class MinioService {
     // Placeholder for custom multipart handling
     return;
   }
+
+  async uploadContent(
+    objectName: string, 
+    content: string | Buffer,
+    contentType?: string
+  ): Promise<void> {
+    // Ensure bucket exists
+    const exists = await this.client.bucketExists(this.bucketName);
+    if (!exists) {
+      await this.client.makeBucket(this.bucketName, 'us-east-1');
+    }
+    
+    const buffer = typeof content === 'string' ? Buffer.from(content) : content;
+    
+    const metadata: Record<string, string> = {};
+    if (contentType) {
+      metadata['Content-Type'] = contentType;
+    }
+    
+    await this.client.putObject(
+      this.bucketName,
+      objectName,
+      buffer,
+      buffer.length,
+      metadata
+    );
+  }
+
+  async getFileContent(objectName: string): Promise<string> {
+    // Ensure bucket exists
+    const exists = await this.client.bucketExists(this.bucketName);
+    if (!exists) {
+      throw new Error(`Bucket ${this.bucketName} does not exist`);
+    }
+    
+    return new Promise((resolve, reject) => {
+      this.client.getObject(this.bucketName, objectName, (error, stream) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        
+        let data = '';
+        stream.on('data', chunk => {
+          data += chunk.toString();
+        });
+        stream.on('end', () => {
+          resolve(data);
+        });
+        stream.on('error', reject);
+      });
+    });
+  }
 }
 
 export default new MinioService();

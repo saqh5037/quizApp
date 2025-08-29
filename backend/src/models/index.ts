@@ -75,7 +75,9 @@ Tenant.associate({
   Classroom,
   TrainingProgram,
   Quiz,
-  Certificate
+  Certificate,
+  InteractiveVideoLayer,
+  InteractiveVideoResult
 });
 
 Classroom.associate({
@@ -106,7 +108,8 @@ ProgramQuiz.associate({
 
 Certificate.associate({
   Tenant,
-  User
+  User,
+  InteractiveVideoResult
 });
 
 // Setup Video associations
@@ -124,7 +127,8 @@ Video.associate({
   VideoAnalytics,
   VideoQuizPoint,
   VideoPlaylist,
-  PlaylistVideo
+  PlaylistVideo,
+  InteractiveVideoLayer
 });
 
 export {

@@ -208,90 +208,122 @@ export const setupAssociations = (): void => {
 
   // Interactive Video associations
   // InteractiveVideoLayer - Video
-  InteractiveVideoLayer.belongsTo(Video, {
-    foreignKey: 'videoId',
-    as: 'video'
-  });
+  if (!InteractiveVideoLayer.associations.video) {
+    InteractiveVideoLayer.belongsTo(Video, {
+      foreignKey: 'videoId',
+      as: 'video'
+    });
+  }
 
-  Video.hasOne(InteractiveVideoLayer, {
-    foreignKey: 'videoId',
-    as: 'interactiveLayer'
-  });
+  if (!Video.associations.interactiveLayer) {
+    Video.hasOne(InteractiveVideoLayer, {
+      foreignKey: 'videoId',
+      as: 'interactiveLayer'
+    });
+  }
 
   // InteractiveVideoLayer - User (creator)
-  InteractiveVideoLayer.belongsTo(User, {
-    foreignKey: 'createdBy',
-    as: 'creator'
-  });
+  if (!InteractiveVideoLayer.associations.creator) {
+    InteractiveVideoLayer.belongsTo(User, {
+      foreignKey: 'createdBy',
+      as: 'creator'
+    });
+  }
 
-  User.hasMany(InteractiveVideoLayer, {
-    foreignKey: 'createdBy',
-    as: 'createdInteractiveLayers'
-  });
+  if (!User.associations.createdInteractiveLayers) {
+    User.hasMany(InteractiveVideoLayer, {
+      foreignKey: 'createdBy',
+      as: 'createdInteractiveLayers'
+    });
+  }
 
   // InteractiveVideoLayer - Tenant
-  InteractiveVideoLayer.belongsTo(Tenant, {
-    foreignKey: 'tenantId',
-    as: 'tenant'
-  });
+  if (!InteractiveVideoLayer.associations.tenant) {
+    InteractiveVideoLayer.belongsTo(Tenant, {
+      foreignKey: 'tenantId',
+      as: 'tenant'
+    });
+  }
 
-  Tenant.hasMany(InteractiveVideoLayer, {
-    foreignKey: 'tenantId',
-    as: 'interactiveLayers'
-  });
+  if (!Tenant.associations.interactiveLayers) {
+    Tenant.hasMany(InteractiveVideoLayer, {
+      foreignKey: 'tenantId',
+      as: 'interactiveLayers'
+    });
+  }
 
   // InteractiveVideoResult - InteractiveVideoLayer
-  InteractiveVideoResult.belongsTo(InteractiveVideoLayer, {
-    foreignKey: 'interactiveLayerId',
-    as: 'interactiveLayer'
-  });
+  if (!InteractiveVideoResult.associations.interactiveLayer) {
+    InteractiveVideoResult.belongsTo(InteractiveVideoLayer, {
+      foreignKey: 'interactiveLayerId',
+      as: 'interactiveLayer'
+    });
+  }
 
-  InteractiveVideoLayer.hasMany(InteractiveVideoResult, {
-    foreignKey: 'interactiveLayerId',
-    as: 'results'
-  });
+  if (!InteractiveVideoLayer.associations.results) {
+    InteractiveVideoLayer.hasMany(InteractiveVideoResult, {
+      foreignKey: 'interactiveLayerId',
+      as: 'results'
+    });
+  }
 
   // InteractiveVideoResult - User
-  InteractiveVideoResult.belongsTo(User, {
-    foreignKey: 'userId',
-    as: 'user'
-  });
+  if (!InteractiveVideoResult.associations.user) {
+    InteractiveVideoResult.belongsTo(User, {
+      foreignKey: 'userId',
+      as: 'user'
+    });
+  }
 
-  User.hasMany(InteractiveVideoResult, {
-    foreignKey: 'userId',
-    as: 'interactiveVideoResults'
-  });
+  if (!User.associations.interactiveVideoResults) {
+    User.hasMany(InteractiveVideoResult, {
+      foreignKey: 'userId',
+      as: 'interactiveVideoResults'
+    });
+  }
 
   // InteractiveVideoResult - Certificate
-  InteractiveVideoResult.belongsTo(Certificate, {
-    foreignKey: 'certificateId',
-    as: 'certificate'
-  });
+  if (!InteractiveVideoResult.associations.certificate) {
+    InteractiveVideoResult.belongsTo(Certificate, {
+      foreignKey: 'certificateId',
+      as: 'certificate'
+    });
+  }
 
-  Certificate.hasMany(InteractiveVideoResult, {
-    foreignKey: 'certificateId',
-    as: 'interactiveVideoResults'
-  });
+  if (!Certificate.associations.interactiveVideoResults) {
+    Certificate.hasMany(InteractiveVideoResult, {
+      foreignKey: 'certificateId',
+      as: 'interactiveVideoResults'
+    });
+  }
 
   // InteractiveVideoResult - Tenant
-  InteractiveVideoResult.belongsTo(Tenant, {
-    foreignKey: 'tenantId',
-    as: 'tenant'
-  });
+  if (!InteractiveVideoResult.associations.tenant) {
+    InteractiveVideoResult.belongsTo(Tenant, {
+      foreignKey: 'tenantId',
+      as: 'tenant'
+    });
+  }
 
-  Tenant.hasMany(InteractiveVideoResult, {
-    foreignKey: 'tenantId',
-    as: 'interactiveVideoResults'
-  });
+  if (!Tenant.associations.interactiveVideoResults) {
+    Tenant.hasMany(InteractiveVideoResult, {
+      foreignKey: 'tenantId',
+      as: 'interactiveVideoResults'
+    });
+  }
 
   // InteractiveVideoAnswer - InteractiveVideoResult
-  InteractiveVideoAnswer.belongsTo(InteractiveVideoResult, {
-    foreignKey: 'resultId',
-    as: 'result'
-  });
+  if (!InteractiveVideoAnswer.associations.result) {
+    InteractiveVideoAnswer.belongsTo(InteractiveVideoResult, {
+      foreignKey: 'resultId',
+      as: 'result'
+    });
+  }
 
-  InteractiveVideoResult.hasMany(InteractiveVideoAnswer, {
-    foreignKey: 'resultId',
-    as: 'interactiveVideoAnswers'
-  });
+  if (!InteractiveVideoResult.associations.interactiveVideoAnswers) {
+    InteractiveVideoResult.hasMany(InteractiveVideoAnswer, {
+      foreignKey: 'resultId',
+      as: 'interactiveVideoAnswers'
+    });
+  }
 };

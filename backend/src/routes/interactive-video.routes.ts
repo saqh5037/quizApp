@@ -102,4 +102,36 @@ router.get(
   (req, res) => interactiveVideoController.getProcessingStatus(req, res)
 );
 
+// ============= RUTAS PÚBLICAS (Sin autenticación) =============
+
+// Obtener capa interactiva pública de un video
+router.get(
+  '/public/videos/:videoId/interactive-layer',
+  (req, res) => interactiveVideoController.getPublicInteractiveLayer(req, res)
+);
+
+// Iniciar sesión interactiva pública
+router.post(
+  '/public/interactive-layers/:layerId/start-session',
+  (req, res) => interactiveVideoController.startPublicInteractiveSession(req, res)
+);
+
+// Enviar respuesta a pregunta (público)
+router.post(
+  '/public/interactive-sessions/:sessionId/answer',
+  (req, res) => interactiveVideoController.submitPublicAnswer(req, res)
+);
+
+// Completar sesión (público)
+router.post(
+  '/public/interactive-sessions/:sessionId/complete',
+  (req, res) => interactiveVideoController.completePublicSession(req, res)
+);
+
+// Obtener resultados de sesión (público)
+router.get(
+  '/public/interactive-sessions/:sessionId/results',
+  (req, res) => interactiveVideoController.getPublicSessionResults(req, res)
+);
+
 export default router;

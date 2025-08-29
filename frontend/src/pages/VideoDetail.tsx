@@ -57,6 +57,7 @@ interface Video {
     slug: string;
   };
   streamUrl?: string;
+  hlsPlaylistUrl?: string;
   qualities?: Array<{
     quality: string;
     width: number;
@@ -77,11 +78,36 @@ const VideoDetail: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
-    fetchVideo();
+    // Initial fetch with loading
+    fetchVideo(true);
   }, [id]);
 
-  const fetchVideo = async () => {
+  useEffect(() => {
+    // Set up polling interval if video is processing
+    let pollInterval: NodeJS.Timeout | null = null;
+    
+    if (video?.status === 'processing' || video?.status === 'uploading') {
+      console.log('Starting polling for video processing...');
+      pollInterval = setInterval(() => {
+        fetchVideo(false); // Don't show loading during polling
+      }, 2000); // Poll every 2 seconds
+    }
+    
+    return () => {
+      if (pollInterval) {
+        console.log('Stopping polling');
+        clearInterval(pollInterval);
+      }
+    };
+  }, [video?.status]);
+
+  const fetchVideo = async (showLoading = true) => {
     try {
+      // Only show loading on initial load
+      if (showLoading) {
+        setLoading(true);
+      }
+      
       const response = await fetch(`${apiConfig.baseURL}/videos/${id}`, {
         headers: accessToken ? {
           'Authorization': `Bearer ${accessToken}`
@@ -101,15 +127,34 @@ const VideoDetail: React.FC = () => {
       console.log('Video data received:', {
         id: data.id,
         status: data.status,
+        processingProgress: data.processingProgress,
         streamUrl: data.streamUrl,
         hlsPlaylistUrl: data.hlsPlaylistUrl
       });
+      
+      console.log('📊 Video update from backend:', {
+        id: data.id,
+        status: data.status,
+        processingProgress: data.processingProgress,
+        hlsPlaylistUrl: data.hlsPlaylistUrl
+      });
+      
       setVideo(data);
+      
+      // If video is ready and was processing, show success message
+      if (data.status === 'ready' && video?.status === 'processing') {
+        toast.success('¡Video procesado exitosamente!');
+      }
     } catch (error) {
       console.error('Error fetching video:', error);
-      toast.error('Error al cargar el video');
+      // Only show error toast on initial load
+      if (showLoading) {
+        toast.error('Error al cargar el video');
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -301,11 +346,11 @@ const VideoDetail: React.FC = () => {
           <div className="lg:col-span-2">
             {/* Video Player or Placeholder */}
             <div className="bg-black rounded-lg overflow-hidden">
-              {console.log('Rendering video player:', { canPlay, streamUrl: video.streamUrl })}
-              {canPlay && video.streamUrl ? (
+              {console.log('Rendering video player:', { canPlay, streamUrl: video.streamUrl, hlsPlaylistUrl: video.hlsPlaylistUrl })}
+              {canPlay && (video.hlsPlaylistUrl || video.streamUrl) ? (
                 <VideoPlayer
                   videoId={video.id}
-                  src={video.streamUrl}
+                  src={video.hlsPlaylistUrl || video.streamUrl}
                   poster={video.thumbnailUrl}
                   title={video.title}
                   startTime={video.progress?.lastPositionSeconds || 0}

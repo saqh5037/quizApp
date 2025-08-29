@@ -243,7 +243,16 @@ export class InteractiveVideoController {
         return res.status(400).json({ error: 'La sesión ya ha finalizado' });
       }
 
-      const isCorrect = userAnswer === correctAnswer;
+      // Comparar respuestas normalizando espacios y mayúsculas
+      const normalizedUserAnswer = userAnswer?.toString().trim().toLowerCase();
+      const normalizedCorrectAnswer = correctAnswer?.toString().trim().toLowerCase();
+      const isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+      
+      console.log('Answer comparison:', {
+        userAnswer: normalizedUserAnswer,
+        correctAnswer: normalizedCorrectAnswer,
+        isCorrect
+      });
 
       const answer = await InteractiveVideoAnswer.create({
         resultId: result.id,
@@ -255,11 +264,10 @@ export class InteractiveVideoController {
         responseTimeSeconds
       });
 
-      result.totalQuestions += 1;
-      if (isCorrect) {
-        result.correctAnswers += 1;
-      }
-
+      // Incrementar contadores - usar valores actuales, no resetear
+      const updatedTotalQuestions = (result.totalQuestions || 0) + 1;
+      const updatedCorrectAnswers = (result.correctAnswers || 0) + (isCorrect ? 1 : 0);
+      
       const detailedResponses = result.detailedResponses || [];
       detailedResponses.push({
         momentId,
@@ -276,21 +284,31 @@ export class InteractiveVideoController {
         keyMomentsCompleted.push(parseInt(momentId));
       }
 
+      const calculatedScore = updatedTotalQuestions > 0 
+        ? (updatedCorrectAnswers / updatedTotalQuestions) * 100 
+        : 0;
+
       await result.update({
-        totalQuestions: result.totalQuestions,
-        correctAnswers: result.correctAnswers,
+        totalQuestions: updatedTotalQuestions,
+        correctAnswers: updatedCorrectAnswers,
         detailedResponses,
         keyMomentsCompleted,
-        finalScore: (result.correctAnswers / result.totalQuestions) * 100
+        finalScore: calculatedScore
+      });
+      
+      console.log('Updated result:', {
+        totalQuestions: updatedTotalQuestions,
+        correctAnswers: updatedCorrectAnswers,
+        finalScore: calculatedScore
       });
 
       res.json({
         message: 'Respuesta registrada',
         isCorrect,
-        currentScore: result.finalScore,
+        currentScore: calculatedScore,
         progress: {
-          totalQuestions: result.totalQuestions,
-          correctAnswers: result.correctAnswers,
+          totalQuestions: updatedTotalQuestions,
+          correctAnswers: updatedCorrectAnswers,
           completedMoments: keyMomentsCompleted.length
         }
       });
@@ -719,6 +737,7 @@ export class InteractiveVideoController {
         attributes: [
           'id',
           'processingStatus',
+          'processingLog',
           'processingError',
           'processingCompletedAt',
           'aiGeneratedContent'
@@ -736,6 +755,7 @@ export class InteractiveVideoController {
       res.json({
         layerId: layer.id,
         status: layer.processingStatus,
+        processingLog: layer.processingLog,
         error: layer.processingError,
         completedAt: layer.processingCompletedAt,
         hasContent,
@@ -745,6 +765,221 @@ export class InteractiveVideoController {
     } catch (error) {
       console.error('Error getting processing status:', error);
       res.status(500).json({ error: 'Error al obtener estado del procesamiento' });
+    }
+  }
+
+  // ============= MÉTODOS PÚBLICOS (Sin autenticación) =============
+
+  async getPublicInteractiveLayer(req: Request, res: Response) {
+    try {
+      const { videoId } = req.params;
+
+      const layer = await InteractiveVideoLayer.findOne({
+        where: { 
+          videoId: parseInt(videoId),
+          isEnabled: true
+        },
+        include: [{
+          model: Video,
+          as: 'video',
+          attributes: ['id', 'title', 'description']
+        }]
+      });
+
+      if (!layer) {
+        return res.status(404).json({ error: 'Video interactivo no disponible' });
+      }
+
+      res.json(layer);
+    } catch (error) {
+      console.error('Error getting public interactive layer:', error);
+      res.status(500).json({ error: 'Error al obtener capa interactiva' });
+    }
+  }
+
+  async startPublicInteractiveSession(req: Request, res: Response) {
+    try {
+      const { layerId } = req.params;
+      const { studentName, studentEmail, studentPhone } = req.body;
+
+      if (!studentName || !studentEmail) {
+        return res.status(400).json({ error: 'Nombre y email son requeridos' });
+      }
+
+      const layer = await InteractiveVideoLayer.findByPk(layerId);
+      if (!layer || !layer.isEnabled) {
+        return res.status(404).json({ error: 'Capa interactiva no disponible' });
+      }
+
+      const sessionId = `public_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Crear un resultado público (sin userId)
+      const result = await InteractiveVideoResult.create({
+        interactiveLayerId: parseInt(layerId),
+        userId: 1, // Usuario público genérico
+        sessionId,
+        status: 'in_progress',
+        totalQuestions: 0,
+        correctAnswers: 0,
+        detailedResponses: {
+          studentInfo: {
+            name: studentName,
+            email: studentEmail,
+            phone: studentPhone
+          }
+        }
+      });
+
+      res.json({
+        message: 'Sesión pública iniciada',
+        sessionId,
+        result
+      });
+
+    } catch (error) {
+      console.error('Error starting public session:', error);
+      res.status(500).json({ error: 'Error al iniciar sesión pública' });
+    }
+  }
+
+  async submitPublicAnswer(req: Request, res: Response) {
+    try {
+      const { sessionId } = req.params;
+      const { momentId, questionText, userAnswer, correctAnswer, responseTimeSeconds } = req.body;
+
+      const result = await InteractiveVideoResult.findOne({
+        where: { sessionId }
+      });
+
+      if (!result) {
+        return res.status(404).json({ error: 'Sesión no encontrada' });
+      }
+
+      // Comparar respuestas normalizando
+      const normalizedUserAnswer = userAnswer?.toString().trim().toLowerCase();
+      const normalizedCorrectAnswer = correctAnswer?.toString().trim().toLowerCase();
+      const isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+
+      // Crear registro de respuesta
+      await InteractiveVideoAnswer.create({
+        resultId: result.id,
+        momentId,
+        questionText,
+        userAnswer,
+        correctAnswer,
+        isCorrect,
+        responseTimeSeconds
+      });
+
+      // Actualizar contadores
+      const updatedTotalQuestions = (result.totalQuestions || 0) + 1;
+      const updatedCorrectAnswers = (result.correctAnswers || 0) + (isCorrect ? 1 : 0);
+      
+      const detailedResponses = result.detailedResponses || {};
+      if (!detailedResponses.answers) {
+        detailedResponses.answers = [];
+      }
+      detailedResponses.answers.push({
+        momentId,
+        questionText,
+        userAnswer,
+        correctAnswer,
+        isCorrect,
+        responseTimeSeconds,
+        timestamp: new Date()
+      });
+
+      const calculatedScore = updatedTotalQuestions > 0 
+        ? (updatedCorrectAnswers / updatedTotalQuestions) * 100 
+        : 0;
+
+      await result.update({
+        totalQuestions: updatedTotalQuestions,
+        correctAnswers: updatedCorrectAnswers,
+        detailedResponses,
+        finalScore: calculatedScore
+      });
+
+      res.json({
+        message: 'Respuesta registrada',
+        isCorrect,
+        currentScore: calculatedScore,
+        progress: {
+          totalQuestions: updatedTotalQuestions,
+          correctAnswers: updatedCorrectAnswers
+        }
+      });
+
+    } catch (error) {
+      console.error('Error submitting public answer:', error);
+      res.status(500).json({ error: 'Error al enviar respuesta' });
+    }
+  }
+
+  async completePublicSession(req: Request, res: Response) {
+    try {
+      const { sessionId } = req.params;
+      const { watchTimeSeconds, totalPauses } = req.body;
+
+      const result = await InteractiveVideoResult.findOne({
+        where: { sessionId }
+      });
+
+      if (!result) {
+        return res.status(404).json({ error: 'Sesión no encontrada' });
+      }
+
+      const finalScore = result.totalQuestions > 0 
+        ? (result.correctAnswers / result.totalQuestions) * 100 
+        : 0;
+
+      await result.update({
+        status: 'completed',
+        completedAt: new Date(),
+        watchTimeSeconds,
+        totalPauses,
+        finalScore,
+        completionPercentage: 100
+      });
+
+      res.json({
+        message: 'Sesión completada',
+        finalScore,
+        totalQuestions: result.totalQuestions,
+        correctAnswers: result.correctAnswers,
+        passed: finalScore >= 70,
+        result
+      });
+
+    } catch (error) {
+      console.error('Error completing public session:', error);
+      res.status(500).json({ error: 'Error al completar sesión' });
+    }
+  }
+
+  async getPublicSessionResults(req: Request, res: Response) {
+    try {
+      const { sessionId } = req.params;
+
+      const result = await InteractiveVideoResult.findOne({
+        where: { sessionId },
+        include: [
+          {
+            model: InteractiveVideoAnswer,
+            as: 'interactiveVideoAnswers'
+          }
+        ]
+      });
+
+      if (!result) {
+        return res.status(404).json({ error: 'Resultados no encontrados' });
+      }
+
+      res.json(result);
+
+    } catch (error) {
+      console.error('Error getting public session results:', error);
+      res.status(500).json({ error: 'Error al obtener resultados' });
     }
   }
 }

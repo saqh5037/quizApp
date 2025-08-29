@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { InteractiveVideoLayer } from '../models/InteractiveVideoLayer.model';
-import { Video } from '../models/Video';
+import { InteractiveVideoLayer, Video } from '../models';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';

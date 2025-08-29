@@ -1,101 +1,92 @@
-import React, { useState, useEffect, useRef } from 'react';
-import VideoPlayer, { VideoPlayerHandle } from '../VideoPlayer';
+import { useState, useRef, useEffect, FC } from 'react';
+import VideoPlayer from '../VideoPlayer';
 import InteractiveOverlay from './InteractiveOverlay';
 import { interactiveVideoService } from '../../services/interactive-video.service';
-import type { InteractiveLayer, InteractiveSession } from '../../services/interactive-video.service';
+import toast from 'react-hot-toast';
 
-interface InteractiveVideoWrapperProps {
+interface PublicInteractiveVideoWrapperProps {
   videoId: number;
   videoUrl: string;
   videoTitle?: string;
+  layerId: number;
+  studentInfo: {
+    name: string;
+    email: string;
+    phone?: string;
+  };
   onComplete?: (results: any) => void;
 }
 
-const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
+const PublicInteractiveVideoWrapper: FC<PublicInteractiveVideoWrapperProps> = ({
   videoId,
   videoUrl,
-  videoTitle,
+  videoTitle = 'Video',
+  layerId,
+  studentInfo,
   onComplete
 }) => {
-  const [interactiveLayer, setInteractiveLayer] = useState<InteractiveLayer | null>(null);
-  const [session, setSession] = useState<InteractiveSession | null>(null);
+  const videoRef = useRef<any>(null);
+  const [interactiveLayer, setInteractiveLayer] = useState<any>(null);
+  const [session, setSession] = useState<any>(null);
   const [currentMoment, setCurrentMoment] = useState<any>(null);
+  const [answeredMoments, setAnsweredMoments] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isPaused, setIsPaused] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [answeredMoments, setAnsweredMoments] = useState<Set<string>>(new Set());
-  const [watchTimeStart, setWatchTimeStart] = useState(Date.now());
+  const [isPaused, setIsPaused] = useState(false);
   const [totalPauses, setTotalPauses] = useState(0);
   const [videoCompleted, setVideoCompleted] = useState(false);
   const [completedResults, setCompletedResults] = useState<any>(null);
-
-  const videoRef = useRef<VideoPlayerHandle>(null);
+  
   const responseStartTime = useRef<number>(0);
+  const watchTimeStart = Date.now();
 
   useEffect(() => {
-    loadInteractiveLayer();
-  }, [videoId]);
+    initializePublicSession();
+  }, [videoId, layerId]);
 
   useEffect(() => {
-    if (interactiveLayer?.aiGeneratedContent?.keyMoments && currentTime > 0) {
-      checkForKeyMoment();
+    if (currentTime > 0 && duration > 0 && interactiveLayer?.aiGeneratedContent?.keyMoments) {
+      checkForKeyMoments();
     }
-  }, [currentTime, interactiveLayer]);
+  }, [currentTime]);
 
-  const loadInteractiveLayer = async () => {
+  const initializePublicSession = async () => {
     try {
       setIsLoading(true);
-      const layer = await interactiveVideoService.getInteractiveLayer(videoId);
-      
-      if (!layer) {
-        setError('No se encontró capa interactiva para este video');
-        setIsLoading(false);
-        return;
-      }
 
-      if (!layer.isEnabled) {
-        setError('La capa interactiva no está habilitada');
-        setIsLoading(false);
-        return;
+      // Obtener la capa interactiva pública
+      const layer = await interactiveVideoService.getPublicInteractiveLayer(videoId);
+      if (!layer || !layer.aiGeneratedContent) {
+        throw new Error('No hay contenido interactivo disponible');
       }
-
-      if (layer.processingStatus !== 'ready') {
-        setError(`El contenido interactivo está ${layer.processingStatus === 'processing' ? 'procesándose' : 'pendiente'}`);
-        setIsLoading(false);
-        return;
-      }
-
       setInteractiveLayer(layer);
-      
-      // Iniciar sesión
-      const newSession = await interactiveVideoService.startInteractiveSession(layer.id);
-      
-      // Asegurar que totalQuestions esté correcta basado en los keyMoments
-      const totalQuestions = layer.aiGeneratedContent?.keyMoments?.length || 0;
-      setSession({
-        ...newSession,
-        totalQuestions
+
+      // Iniciar sesión pública
+      const sessionData = await interactiveVideoService.startPublicSession(layerId, {
+        studentName: studentInfo.name,
+        studentEmail: studentInfo.email,
+        studentPhone: studentInfo.phone
       });
-      
-      setIsLoading(false);
-    } catch (err: any) {
-      console.error('Error loading interactive layer:', err);
-      setError('Error al cargar la capa interactiva');
+
+      setSession(sessionData.result);
+      toast.success('Sesión interactiva iniciada');
+    } catch (error) {
+      console.error('Error initializing public session:', error);
+      toast.error('Error al iniciar sesión interactiva');
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const checkForKeyMoment = () => {
-    if (!interactiveLayer?.aiGeneratedContent?.keyMoments) return;
+  const checkForKeyMoments = () => {
+    if (!interactiveLayer?.aiGeneratedContent?.keyMoments || currentMoment) {
+      return;
+    }
 
-    const moments = interactiveLayer.aiGeneratedContent.keyMoments;
-    const currentMomentCheck = moments.find((moment: any) => {
-      const momentTime = moment.timestamp;
-      const isWithinRange = Math.abs(currentTime - momentTime) < 1;
-      const notAnswered = !answeredMoments.has(moment.id);
-      return isWithinRange && notAnswered;
+    const currentMomentCheck = interactiveLayer.aiGeneratedContent.keyMoments.find((moment: any) => {
+      const timeDiff = Math.abs(currentTime - moment.timestamp);
+      return timeDiff < 1 && !answeredMoments.has(moment.id);
     });
 
     if (currentMomentCheck && !currentMoment) {
@@ -108,7 +99,6 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
     setCurrentMoment(moment);
     responseStartTime.current = Date.now();
     
-    // Siempre pausar el video cuando aparece una pregunta
     if (videoRef.current) {
       videoRef.current.pause();
       setIsPaused(true);
@@ -122,7 +112,7 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
     const responseTime = Math.floor((Date.now() - responseStartTime.current) / 1000);
 
     try {
-      const result = await interactiveVideoService.submitAnswer(session.sessionId, {
+      const result = await interactiveVideoService.submitPublicAnswer(session.sessionId, {
         momentId: currentMoment.id,
         questionText: currentMoment.question.text,
         userAnswer: answer,
@@ -130,29 +120,34 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
         responseTimeSeconds: responseTime
       });
 
-      // Marcar momento como respondido
       setAnsweredMoments(prev => new Set(prev).add(currentMoment.id));
       
-      // Actualizar la sesión local con el nuevo puntaje
-      if (session && result.currentScore !== undefined) {
-        setSession(prev => prev ? {
+      if (result.currentScore !== undefined) {
+        setSession(prev => ({
           ...prev,
           correctAnswers: result.progress.correctAnswers,
+          totalQuestions: result.progress.totalQuestions,
           finalScore: result.currentScore
-        } : null);
+        }));
       }
+
+      const isCorrect = result.isCorrect;
+      toast(isCorrect ? '¡Correcto!' : 'Incorrecto', {
+        icon: isCorrect ? '✅' : '❌',
+        duration: 2000
+      });
       
-      // Mostrar resultado brevemente
       setTimeout(() => {
         setCurrentMoment(null);
         if (videoRef.current && isPaused) {
           videoRef.current.play();
           setIsPaused(false);
         }
-      }, result.isCorrect ? 2000 : 3000);
+      }, isCorrect ? 2000 : 3000);
 
     } catch (error) {
       console.error('Error submitting answer:', error);
+      toast.error('Error al enviar respuesta');
     }
   };
 
@@ -161,14 +156,13 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
     
     setAnsweredMoments(prev => new Set(prev).add(currentMoment.id));
     
-    // Limpiar el momento actual y continuar el video después de un breve delay
     setTimeout(() => {
       setCurrentMoment(null);
       if (videoRef.current && isPaused) {
         videoRef.current.play();
         setIsPaused(false);
       }
-    }, 500); // Medio segundo de delay para que el usuario vea que saltó la pregunta
+    }, 500);
   };
 
   const handleVideoTimeUpdate = (time: number, dur: number) => {
@@ -182,7 +176,6 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
     const watchTimeSeconds = Math.floor((Date.now() - watchTimeStart) / 1000);
     
     try {
-      // Preparar los resultados pero no completar la sesión aún
       const totalQuestions = interactiveLayer?.aiGeneratedContent?.keyMoments?.length || 0;
       const correctAnswers = session.correctAnswers || 0;
       const calculatedScore = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
@@ -209,26 +202,26 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
     if (!completedResults || !session) return;
 
     try {
-      const finalResults = await interactiveVideoService.completeSession(session.sessionId, {
+      const finalResults = await interactiveVideoService.completePublicSession(session.sessionId, {
         watchTimeSeconds: completedResults.watchTimeSeconds,
         totalPauses: completedResults.totalPauses
       });
 
       if (onComplete) {
-        // Enviar los datos en el formato esperado por PublicInteractiveVideo
         onComplete({
           result: {
-            score: completedResults.currentScore,
-            totalQuestions: completedResults.totalQuestions,
-            correctAnswers: completedResults.correctAnswers,
-            passed: completedResults.currentScore >= 70,
-            answers: session.detailedResponses || []
+            score: finalResults.finalScore,
+            totalQuestions: finalResults.totalQuestions,
+            correctAnswers: finalResults.correctAnswers,
+            passed: finalResults.passed,
+            answers: session.detailedResponses?.answers || []
           },
           sessionData: finalResults
         });
       }
     } catch (error) {
-      console.error('Error completing session:', error);
+      console.error('Error completing public session:', error);
+      toast.error('Error al completar la evaluación');
     }
   };
 
@@ -239,21 +232,6 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-gray-400">Cargando contenido interactivo...</p>
         </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-gray-900 rounded-lg p-8">
-        <VideoPlayer
-          ref={videoRef}
-          videoId={videoId}
-          src={videoUrl}
-          title={videoTitle}
-          onTimeUpdate={handleVideoTimeUpdate}
-          onEnded={handleVideoEnd}
-        />
       </div>
     );
   }
@@ -286,12 +264,12 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
           />
         )}
         
-        {/* Progress indicator */}
+        {/* Indicador de progreso */}
         {session && (
           <div className="absolute top-4 right-4 bg-black bg-opacity-75 text-white p-3 rounded-lg z-50">
             <div className="text-sm">
               <p>Preguntas: {answeredMoments.size} / {interactiveLayer?.aiGeneratedContent?.keyMoments?.length || 0}</p>
-              <p>Correctas: {session.correctAnswers}</p>
+              <p>Correctas: {session.correctAnswers || 0}</p>
               {session.finalScore !== null && session.finalScore !== undefined && (
                 <p>Puntuación: {Number(session.finalScore).toFixed(1)}%</p>
               )}
@@ -299,7 +277,7 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
           </div>
         )}
 
-        {/* Timeline markers */}
+        {/* Marcadores en la línea de tiempo */}
         {duration > 0 && (
           <div className="absolute bottom-16 left-0 right-0 h-2 bg-black bg-opacity-50 mx-4 z-40">
             {interactiveLayer?.aiGeneratedContent?.keyMoments?.map((moment: any) => {
@@ -370,4 +348,4 @@ const InteractiveVideoWrapper: React.FC<InteractiveVideoWrapperProps> = ({
   );
 };
 
-export default InteractiveVideoWrapper;
+export default PublicInteractiveVideoWrapper;
