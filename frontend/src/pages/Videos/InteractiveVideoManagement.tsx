@@ -11,13 +11,15 @@ import {
   Loader,
   AlertCircle,
   BarChart,
-  QrCode
+  QrCode,
+  Edit3
 } from 'lucide-react';
 import { interactiveVideoService } from '../../services/interactive-video.service';
 import { videoService } from '../../services/video.service';
 import InteractiveVideoWrapper from '../../components/videos/InteractiveVideoWrapper';
 import InteractiveVideoResults from '../../components/videos/InteractiveVideoResults';
 import InteractiveContentGenerator from '../../components/videos/InteractiveContentGenerator';
+import InteractiveContentEditor from '../../components/videos/InteractiveContentEditor';
 import VideoShareModal from '../../components/video/VideoShareModal';
 import toast from 'react-hot-toast';
 
@@ -36,6 +38,7 @@ const InteractiveVideoManagement: React.FC = () => {
   const [analytics, setAnalytics] = useState<any>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showGenerator, setShowGenerator] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
   const [config, setConfig] = useState({
@@ -279,14 +282,38 @@ const InteractiveVideoManagement: React.FC = () => {
     );
   }
 
+  if (showEditor && interactiveLayer) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <button
+          onClick={() => setShowEditor(false)}
+          className="mb-4 text-gray-400 hover:text-white flex items-center gap-2"
+        >
+          ← Volver a configuración
+        </button>
+        
+        <InteractiveContentEditor
+          layerId={interactiveLayer.id}
+          videoId={parseInt(videoId!)}
+          videoDuration={video?.durationSeconds || 300}
+          onSave={() => {
+            setShowEditor(false);
+            loadVideoAndLayer(); // Refresh data after saving
+          }}
+          onCancel={() => setShowEditor(false)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8" style={{ backgroundColor: '#ffffff' }}>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white mb-2">
+        <h1 className="text-3xl font-bold mb-2" style={{ color: '#1f2937' }}>
           Gestión de Video Interactivo
         </h1>
         <div className="flex items-center space-x-4">
-          <h2 className="text-xl text-gray-400">{video?.title}</h2>
+          <h2 className="text-xl" style={{ color: '#4b5563' }}>{video?.title}</h2>
           {getStatusBadge()}
         </div>
       </div>
@@ -317,13 +344,22 @@ const InteractiveVideoManagement: React.FC = () => {
 
           {interactiveLayer?.processingStatus === 'ready' && (
             <div className="mt-4 space-y-2">
-              <button
-                onClick={() => setShowPlayer(true)}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center"
-              >
-                <Play className="w-5 h-5 mr-2" />
-                Reproducir Modo Interactivo
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setShowPlayer(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center"
+                >
+                  <Play className="w-5 h-5 mr-2" />
+                  Reproducir
+                </button>
+                <button
+                  onClick={() => setShowEditor(true)}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center justify-center"
+                >
+                  <Edit3 className="w-5 h-5 mr-2" />
+                  Editar Contenido
+                </button>
+              </div>
               
               <button
                 onClick={() => setShowShareModal(true)}
@@ -438,9 +474,18 @@ const InteractiveVideoManagement: React.FC = () => {
       {/* AI Generated Content */}
       {interactiveLayer?.aiGeneratedContent?.keyMoments && (
         <div className="mt-6 bg-gray-800 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">
-            Contenido Generado por IA
-          </h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-white">
+              Contenido Generado por IA
+            </h3>
+            <button
+              onClick={() => setShowEditor(true)}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              ✏️ Editar Contenido
+            </button>
+          </div>
           
           <div className="mb-4">
             <p className="text-gray-400 mb-2">
@@ -458,12 +503,20 @@ const InteractiveVideoManagement: React.FC = () => {
           {/* Transcription Section */}
           {interactiveLayer.aiGeneratedContent.transcription && (
             <div className="mb-6">
-              <h4 className="text-md font-medium text-white mb-3 flex items-center">
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                Transcripción del Video
-              </h4>
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="text-md font-medium text-white flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  Transcripción del Video
+                </h4>
+                <button
+                  onClick={() => setShowEditor(true)}
+                  className="px-3 py-1 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700"
+                >
+                  ✏️ Editar Todo
+                </button>
+              </div>
               
               {/* Full transcription text */}
               {(interactiveLayer.aiGeneratedContent.transcription.fullText || 

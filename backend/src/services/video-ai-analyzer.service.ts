@@ -1,8 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { InteractiveVideoLayer, Video } from '../models';
-import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
+import axios from 'axios';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -35,6 +35,10 @@ interface VideoAnalysisResult {
   confidenceScore: number;
 }
 
+/**
+ * Service for analyzing videos using AI to generate interactive educational content.
+ * Uses Google Gemini for content generation and OpenAI Whisper for transcription.
+ */
 export class VideoAIAnalyzerService {
   private genAI: GoogleGenerativeAI;
   private model: any;
@@ -47,10 +51,18 @@ export class VideoAIAnalyzerService {
     }
   }
 
+  /**
+   * Analyzes a video to generate interactive educational content.
+   * @param layerId - The ID of the interactive video layer to process
+   * @throws Error if layer not found or processing fails
+   */
   async analyzeVideo(layerId: number): Promise<void> {
     try {
       const layer = await InteractiveVideoLayer.findByPk(layerId, {
-        include: [Video]
+        include: [{
+          model: Video,
+          as: 'video'
+        }]
       });
 
       if (!layer) {
@@ -59,20 +71,52 @@ export class VideoAIAnalyzerService {
 
       await layer.update({ 
         processingStatus: 'processing',
-        processingLog: 'Iniciando análisis de video con IA...'
+        processingLog: 'Iniciando análisis de video con IA... (5%)'
       });
 
-      const videoPath = layer.video!.filePath;
-      const videoUrl = layer.video!.url;
-
-      const frames = await this.extractVideoFrames(videoPath);
+      // Get the correct video path
+      const video = layer.video!;
       
-      const transcript = await this.extractVideoTranscript(videoPath);
+      const videoPath = video.originalPath || video.original_path || 
+                       video.processedPath || video.processed_path || 
+                       video.filePath || 
+                       (video.dataValues && (video.dataValues.originalPath || video.dataValues.original_path));
+      
+      if (!videoPath) {
+        throw new Error('No se encontró la ruta del archivo de video');
+      }
+      
+      const absoluteVideoPath = videoPath.startsWith('/') 
+        ? videoPath 
+        : path.join(process.cwd(), videoPath);
+        
+      const videoUrl = video.url || video.hlsPlaylistUrl || '';
+
+      await layer.update({ 
+        processingLog: 'Extrayendo frames del video... (15%)'
+      });
+
+      const frames = await this.extractVideoFrames(absoluteVideoPath);
+      
+      await layer.update({ 
+        processingLog: 'Transcribiendo audio del video... (30%)'
+      });
+      
+      const transcript = await this.extractVideoTranscript(absoluteVideoPath);
+
+      await layer.update({ 
+        processingLog: 'Analizando contenido con IA... (50%)'
+      });
 
       const analysisResult = await this.analyzeVideoContent(
         frames, 
         transcript, 
-        layer.video!
+        layer.video!,
+        async (progress: number) => {
+          await layer.update({ 
+            processingLog: `Analizando contenido con IA... (${Math.floor(50 + progress * 0.2)}%)`
+          });
+        }
       );
 
       const aiContent = {
@@ -84,18 +128,32 @@ export class VideoAIAnalyzerService {
         totalQuestions: analysisResult.keyMoments.length,
         processedAt: new Date().toISOString(),
         videoMetadata: {
-          title: layer.video!.title,
-          duration: layer.video!.duration,
+          title: video.title,
+          duration: video.duration || video.durationSeconds,
           originalUrl: videoUrl
         }
       };
+
+      await layer.update({ 
+        processingLog: 'Generando preguntas interactivas... (70%)'
+      });
+
+
+      await layer.update({ 
+        processingLog: 'Validando contenido generado... (85%)'
+      });
+
+      await layer.update({ 
+        processingLog: 'Guardando contenido generado... (95%)'
+      });
 
       await layer.update({
         aiGeneratedContent: aiContent,
         aiModelUsed: 'gemini-1.5-pro',
         confidenceScore: analysisResult.confidenceScore,
         processingStatus: 'ready',
-        processingLog: 'Análisis completado exitosamente'
+        processingLog: 'Análisis completado exitosamente (100%)',
+        processingCompletedAt: new Date()
       });
 
       this.cleanupTempFiles(frames);
@@ -107,7 +165,7 @@ export class VideoAIAnalyzerService {
       if (layer) {
         await layer.update({
           processingStatus: 'error',
-          processingLog: `Error: ${error.message}`
+          processingLog: `Error: ${error.message} (0%)`
         });
       }
       
@@ -115,6 +173,11 @@ export class VideoAIAnalyzerService {
     }
   }
 
+  /**
+   * Extracts frames from video at regular intervals for visual analysis.
+   * @param videoPath - Path to the video file
+   * @returns Array of paths to extracted frame images
+   */
   private async extractVideoFrames(videoPath: string): Promise<string[]> {
     const tempDir = path.join(__dirname, '../../temp', `video-${Date.now()}`);
     
@@ -142,6 +205,11 @@ export class VideoAIAnalyzerService {
     }
   }
 
+  /**
+   * Extracts and transcribes audio from video.
+   * @param videoPath - Path to the video file
+   * @returns Transcribed text from video audio
+   */
   private async extractVideoTranscript(videoPath: string): Promise<string> {
     try {
       const audioPath = videoPath.replace(/\.[^/.]+$/, '.wav');
@@ -164,13 +232,73 @@ export class VideoAIAnalyzerService {
   }
 
   private async transcribeAudio(audioPath: string): Promise<string> {
-    return 'Transcripción simulada del contenido del video educativo.';
+    try {
+      // Check if OpenAI API key is available for Whisper
+      const openaiKey = process.env.OPENAI_API_KEY;
+      
+      if (openaiKey) {
+        // Use OpenAI Whisper API for transcription
+        return await this.transcribeWithWhisper(audioPath, openaiKey);
+      }
+      
+      // If no transcription service is available, extract basic metadata
+      console.warn('No transcription service configured. OPENAI_API_KEY required for audio transcription.');
+      
+      // Return empty string - no fake data
+      return '';
+      
+    } catch (error) {
+      console.error('Error in audio transcription:', error);
+      return '';
+    }
   }
 
+  /**
+   * Transcribes audio using OpenAI Whisper API.
+   * @param audioPath - Path to the audio file
+   * @param apiKey - OpenAI API key
+   * @returns Transcribed text
+   */
+  private async transcribeWithWhisper(audioPath: string, apiKey: string): Promise<string> {
+    try {
+      const FormData = require('form-data');
+      const formData = new FormData();
+      formData.append('file', fs.createReadStream(audioPath));
+      formData.append('model', 'whisper-1');
+      formData.append('language', 'es'); // Spanish language
+      
+      const response = await axios.post(
+        'https://api.openai.com/v1/audio/transcriptions',
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+            'Authorization': `Bearer ${apiKey}`
+          },
+          maxBodyLength: Infinity
+        }
+      );
+      
+      return response.data.text || '';
+    } catch (error: any) {
+      console.error('Whisper API error:', error.response?.data || error.message);
+      return '';
+    }
+  }
+
+  /**
+   * Analyzes video content using AI to generate educational questions.
+   * @param frames - Array of frame image paths
+   * @param transcript - Transcribed audio text
+   * @param video - Video model instance
+   * @param onProgress - Optional progress callback
+   * @returns Analysis result with key moments and questions
+   */
   private async analyzeVideoContent(
     frames: string[], 
     transcript: string, 
-    video: Video
+    video: Video,
+    onProgress?: (progress: number) => Promise<void>
   ): Promise<VideoAnalysisResult> {
     
     const prompt = `
@@ -185,11 +313,15 @@ export class VideoAIAnalyzerService {
     Genera un análisis estructurado con los siguientes elementos:
     
     1. MOMENTOS CLAVE (5-10 momentos distribuidos uniformemente):
+    IMPORTANTE: Las preguntas deben aparecer DESPUÉS de que se presente el contenido relevante.
     Para cada momento incluye:
-    - timestamp (en segundos, distribuidos uniformemente)
+    - timestamp (en segundos, debe ser DESPUÉS de explicar el concepto, no antes)
+      * Para un video de ${video.duration || video.durationSeconds || 300} segundos
+      * Distribuye los timestamps dejando al menos 20-30 segundos después de cada concepto
+      * Ejemplo: si un concepto se explica en el segundo 30, la pregunta debe aparecer en el segundo 50-60
     - título descriptivo
     - tipo (concept, example, summary, exercise)
-    - pregunta educativa relacionada con el contenido hasta ese punto
+    - pregunta educativa sobre el contenido YA PRESENTADO (no sobre lo que viene)
     - opciones de respuesta (si aplica)
     - respuesta correcta
     - explicación educativa
@@ -216,46 +348,104 @@ export class VideoAIAnalyzerService {
 
     try {
       if (!this.model) {
-        return this.generateMockAnalysis(video);
+        throw new Error('Modelo de IA no configurado. Por favor configure GEMINI_API_KEY en las variables de entorno.');
       }
 
+      // If no transcript, generate based on title and description only
+      if (!transcript || transcript.trim() === '') {
+        console.warn('No transcript available, generating content based on video metadata only');
+        // Modify prompt to work without transcript
+        const noTranscriptPrompt = `
+        Analiza la información disponible del video y genera contenido interactivo.
+        
+        Información del video:
+        - Título: ${video.title}
+        - Descripción: ${video.description || 'No disponible'}
+        - Duración: ${video.duration || video.durationSeconds} segundos
+        
+        NOTA: No hay transcripción disponible. Genera preguntas basadas únicamente en el título y descripción.
+        
+        Genera un análisis estructurado con preguntas generales sobre el tema del video.
+        
+        Responde en formato JSON válido siguiendo esta estructura:
+        {
+          "keyMoments": [...],
+          "summary": "...",
+          "topics": [...],
+          "educationalLevel": "...",
+          "contentType": "...",
+          "confidenceScore": 0.3
+        }
+        `;
+        
+        const result = await this.model.generateContent(noTranscriptPrompt);
+        const response = await result.response;
+        const text = response.text();
+        
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const analysisData = JSON.parse(jsonMatch[0]);
+          analysisData.confidenceScore = 0.3; // Low confidence without transcript
+          return this.validateAndFormatAnalysis(analysisData, video);
+        }
+      }
+
+      if (onProgress) await onProgress(60);
+      
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
       
+      if (onProgress) await onProgress(90);
+      
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const analysisData = JSON.parse(jsonMatch[0]);
-        return this.validateAndFormatAnalysis(analysisData);
+        return this.validateAndFormatAnalysis(analysisData, video);
       }
       
-      return this.generateMockAnalysis(video);
+      throw new Error('No se pudo generar el análisis del video. Respuesta inválida del modelo de IA.');
       
     } catch (error) {
       console.error('Error in AI analysis:', error);
-      return this.generateMockAnalysis(video);
+      throw error;
     }
   }
 
-  private validateAndFormatAnalysis(data: any): VideoAnalysisResult {
-    const duration = data.estimatedDuration || 300;
+  private validateAndFormatAnalysis(data: any, video?: any): VideoAnalysisResult {
+    const duration = video?.duration || video?.durationSeconds || data.estimatedDuration || 300;
+    const numMoments = data.keyMoments?.length || 5;
     
-    const keyMoments = (data.keyMoments || []).map((moment: any, index: number) => ({
-      id: `moment_${index + 1}`,
-      timestamp: moment.timestamp || (index * 60),
-      title: moment.title || `Momento ${index + 1}`,
-      description: moment.description || '',
-      type: moment.type || 'concept',
-      question: {
-        text: moment.question?.text || '¿Qué aprendiste en esta sección?',
-        type: moment.question?.type || 'multiple_choice',
-        options: moment.question?.options || ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
-        correctAnswer: moment.question?.correctAnswer || 'Opción A',
-        explanation: moment.question?.explanation || 'Explicación de la respuesta correcta.',
-        difficulty: moment.question?.difficulty || 'medium'
-      },
-      relevanceScore: moment.relevanceScore || 0.8
-    }));
+    // Calculate better timestamp distribution
+    // Start questions after 20% of the video and end before 90%
+    const startTime = Math.max(30, duration * 0.2); // Start after at least 30 seconds or 20% of video
+    const endTime = duration * 0.9; // End before the last 10% of video
+    const interval = (endTime - startTime) / numMoments;
+    
+    const keyMoments = (data.keyMoments || []).map((moment: any, index: number) => {
+      // Use provided timestamp if valid, otherwise calculate a better distribution
+      let timestamp = moment.timestamp;
+      if (!timestamp || timestamp < startTime || timestamp > endTime) {
+        timestamp = Math.round(startTime + (index * interval) + (interval * 0.5));
+      }
+      
+      return {
+        id: `moment_${index + 1}`,
+        timestamp: timestamp,
+        title: moment.title || `Momento ${index + 1}`,
+        description: moment.description || '',
+        type: moment.type || 'concept',
+        question: {
+          text: moment.question?.text || moment.question || '¿Qué aprendiste en esta sección?',
+          type: moment.question?.type || 'multiple_choice',
+          options: moment.question?.options || moment.options || ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
+          correctAnswer: moment.question?.correctAnswer || moment.correctAnswer || 'Opción A',
+          explanation: moment.question?.explanation || moment.explanation || 'Explicación de la respuesta correcta.',
+          difficulty: moment.question?.difficulty || moment.difficulty || 'medium'
+        },
+        relevanceScore: moment.relevanceScore || 0.8
+      };
+    });
 
     return {
       keyMoments,
@@ -268,48 +458,6 @@ export class VideoAIAnalyzerService {
     };
   }
 
-  private generateMockAnalysis(video: Video): VideoAnalysisResult {
-    const duration = video.duration || 300;
-    const numMoments = Math.min(Math.floor(duration / 60), 10);
-    
-    const keyMoments: KeyMoment[] = [];
-    
-    for (let i = 0; i < numMoments; i++) {
-      const timestamp = Math.floor((duration / numMoments) * i);
-      
-      keyMoments.push({
-        id: `moment_${i + 1}`,
-        timestamp,
-        title: `Concepto Clave ${i + 1}`,
-        description: `Punto importante del video en el minuto ${Math.floor(timestamp / 60)}`,
-        type: i % 4 === 0 ? 'concept' : i % 4 === 1 ? 'example' : i % 4 === 2 ? 'exercise' : 'summary',
-        question: {
-          text: `¿Cuál de las siguientes afirmaciones sobre el tema ${i + 1} es correcta?`,
-          type: 'multiple_choice',
-          options: [
-            `Opción A sobre el tema ${i + 1}`,
-            `Opción B sobre el tema ${i + 1}`,
-            `Opción C sobre el tema ${i + 1}`,
-            `Opción D sobre el tema ${i + 1}`
-          ],
-          correctAnswer: `Opción A sobre el tema ${i + 1}`,
-          explanation: `La opción A es correcta porque explica adecuadamente el concepto presentado en este momento del video.`,
-          difficulty: i < 3 ? 'easy' : i < 7 ? 'medium' : 'hard'
-        },
-        relevanceScore: 0.75 + Math.random() * 0.25
-      });
-    }
-
-    return {
-      keyMoments,
-      summary: `Este video educativo de ${video.title} presenta conceptos importantes de manera progresiva y estructurada.`,
-      topics: ['Introducción', 'Conceptos Básicos', 'Aplicaciones Prácticas', 'Ejercicios', 'Conclusiones'],
-      estimatedDuration: duration,
-      educationalLevel: 'Intermedio',
-      contentType: 'Tutorial Educativo',
-      confidenceScore: 0.85
-    };
-  }
 
   private cleanupTempFiles(files: string[]): void {
     files.forEach(file => {

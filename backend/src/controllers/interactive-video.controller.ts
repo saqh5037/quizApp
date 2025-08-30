@@ -737,6 +737,7 @@ export class InteractiveVideoController {
         attributes: [
           'id',
           'processingStatus',
+          'processingProgress',
           'processingLog',
           'processingError',
           'processingCompletedAt',
@@ -755,6 +756,7 @@ export class InteractiveVideoController {
       res.json({
         layerId: layer.id,
         status: layer.processingStatus,
+        processingProgress: layer.processingProgress || 0,
         processingLog: layer.processingLog,
         error: layer.processingError,
         completedAt: layer.processingCompletedAt,

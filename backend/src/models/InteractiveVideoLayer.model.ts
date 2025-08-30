@@ -64,6 +64,7 @@ class InteractiveVideoLayer
   declare processingError?: string;
   declare processingCompletedAt?: Date;
   declare processingLog?: string;
+  declare processingProgress?: number;
   declare createdBy?: number;
   declare tenantId?: number;
   declare readonly createdAt?: Date;
@@ -152,6 +153,20 @@ class InteractiveVideoLayer
           type: DataTypes.TEXT,
           allowNull: true,
           field: 'processing_log'
+        },
+        processingProgress: {
+          type: DataTypes.VIRTUAL,
+          get() {
+            // Extract progress from processing_log if it contains a percentage
+            const log = this.getDataValue('processingLog');
+            if (log && log.includes('%')) {
+              const match = log.match(/(\d+)%/);
+              if (match) {
+                return parseInt(match[1], 10);
+              }
+            }
+            return 0;
+          }
         },
         createdBy: {
           type: DataTypes.INTEGER,

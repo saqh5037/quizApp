@@ -186,20 +186,14 @@ const InteractiveContentGenerator: React.FC<InteractiveContentGeneratorProps> = 
         
         setProcessingStatus(data.status);
         
-        // Update progress based on processing status
+        // Update progress from backend
+        if (data.processingProgress !== undefined) {
+          setProcessingProgress(data.processingProgress);
+        }
+        
+        // Update processing step message
         if (data.processingLog) {
           setProcessingStep(data.processingLog);
-          
-          // Calculate approximate progress
-          if (data.processingLog.includes('Extrayendo audio')) {
-            setProcessingProgress(25);
-          } else if (data.processingLog.includes('Transcribiendo')) {
-            setProcessingProgress(50);
-          } else if (data.processingLog.includes('Generando preguntas')) {
-            setProcessingProgress(75);
-          } else if (data.processingLog.includes('completado')) {
-            setProcessingProgress(100);
-          }
         }
         
         if (data.status === 'ready') {
