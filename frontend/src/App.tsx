@@ -41,7 +41,7 @@ import VideoEdit from './pages/VideoEdit';
 import VideoPlayerPage from './pages/VideoPlayer';
 import InteractiveVideoManagement from './pages/Videos/InteractiveVideoManagement';
 import PublicVideoPlayer from './pages/Videos/PublicVideoPlayer';
-import PublicInteractiveVideo from './pages/Videos/PublicInteractiveVideo';
+import PublicInteractiveVideoEnhanced from './pages/Videos/PublicInteractiveVideoEnhanced';
 import ClassroomsIndex from './pages/Classrooms/ClassroomsIndex';
 import NewClassroom from './pages/Classrooms/NewClassroom';
 import ClassroomDetail from './pages/Classrooms/ClassroomDetail';
@@ -162,7 +162,7 @@ const router = createBrowserRouter([
       },
       {
         path: 'videos/:id/public-interactive',
-        element: <PublicInteractiveVideo />,
+        element: <PublicInteractiveVideoEnhanced />,
       },
       {
         path: 'classrooms',
