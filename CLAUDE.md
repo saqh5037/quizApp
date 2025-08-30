@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AristoTest is a multi-tenant interactive assessment and learning platform, built with TypeScript, React, Node.js, and PostgreSQL. It features real-time quiz sessions using Socket.io, AI-powered content generation with Google Gemini, video streaming with MinIO, PDF manual processing, and comprehensive quiz management capabilities.
+AristoTest is a multi-tenant interactive learning and assessment platform built with TypeScript, React, Node.js, and PostgreSQL. It features real-time quiz sessions using Socket.io, AI-powered content generation with Google Gemini, video streaming with MinIO, interactive video layers with auto-evaluation, PDF manual processing, and comprehensive quiz management capabilities.
 
 ## Development Commands
 
@@ -49,17 +49,20 @@ psql -c "SELECT * FROM tenants;"         # View all tenants
 psql -c "SELECT * FROM users;"           # View all users
 psql -c "SELECT * FROM classrooms;"      # View classrooms
 psql -c "\dt"                             # List all tables
+psql -c "\d table_name"                   # Describe table structure
 ```
 
 ### MinIO Storage
 ```bash
 # Start MinIO server (for video/file storage)
+cd backend
 ./scripts/start-minio.sh
 
 # MinIO runs on:
 # - API: http://localhost:9000
 # - Console: http://localhost:9001
-# - Default credentials: minioadmin/minioadmin
+# - Credentials: aristotest/AristoTest2024!
+# - Data directory: ./backend/storage/minio-data
 ```
 
 ## Architecture Overview
@@ -69,12 +72,13 @@ psql -c "\dt"                             # List all tables
 - **Socket.io Server**: Real-time WebSocket communication for quiz sessions
 - **Database**: PostgreSQL with Sequelize ORM, multi-tenant architecture with tenant isolation
 - **Authentication**: JWT-based with access and refresh tokens, role-based access control
-- **AI Integration**: Google Gemini API for content generation, quiz creation, and chat
+- **AI Integration**: Google Gemini API for content generation, quiz creation, and interactive video questions
 - **Storage**: MinIO S3-compatible storage for videos and files
+- **Video Processing**: FFmpeg for transcoding and HLS streaming (360p, 480p, 720p)
 - **File Structure**:
   - Controllers handle HTTP requests and business logic (including AI controllers)
   - Models define database schemas using Sequelize with tenant isolation
-  - Routes organize API endpoints by domain (auth, quiz, session, ai, manual, video)
+  - Routes organize API endpoints by domain (auth, quiz, session, ai, manual, video, interactive-video)
   - Socket handlers manage real-time events separately
   - Middleware provides auth, tenant isolation, validation, rate limiting, and error handling
   - Services contain business logic (Gemini AI service for content generation)
@@ -82,16 +86,17 @@ psql -c "\dt"                             # List all tables
 
 ### Frontend Architecture
 - **React SPA**: Built with Vite, using React Router for navigation
-- **State Management**: Zustand stores for auth, quiz, and session state, tenant context
+- **State Management**: Zustand stores for auth, quiz, session, and tenant context
 - **Real-time**: Socket.io-client for live quiz participation
 - **Data Fetching**: React Query/Axios for server state management
 - **Styling**: Tailwind CSS with custom components
-- **Form Handling**: React Hook Form for validation
-- **Media**: Video.js for video playback, PDF viewer for manuals
-- **Key Pages**: Dashboard, Quiz management, Session hosting, Quiz playing, Video library, Manual management, AI chat, Classrooms
+- **Form Handling**: React Hook Form with validation
+- **Media**: Video.js for video playback with HLS support
+- **Charts**: Chart.js and Recharts for data visualization
+- **Key Pages**: Dashboard, Quiz management, Session hosting, Quiz playing, Video library with interactive layers, Manual management with AI chat, Classrooms, Training programs
 
 ### Real-time Flow
-1. Host creates session → generates unique session code
+1. Host creates session → generates unique session code and QR
 2. Participants join via code or QR → enter waiting room
 3. Host controls session flow (start, pause, next question)
 4. Participants receive questions in real-time
@@ -116,6 +121,8 @@ psql -c "\dt"                             # List all tables
 - **ManualSummary**: AI-generated summaries of manuals
 - **AIGeneratedQuiz**: Quizzes created by AI from manual content
 - **Video**: Video content with streaming URLs
+- **InteractiveVideoLayer**: AI-generated questions that pause video at timestamps
+- **InteractiveVideoResult**: Results from interactive video sessions
 
 ### Training & Education Models
 - **Classroom**: Virtual classrooms with enrollment codes
@@ -129,6 +136,7 @@ psql -c "\dt"                             # List all tables
 - User belongs to Tenant, has many Quizzes, Videos, Manuals
 - Quiz has many Questions, QuizSessions
 - Manual has many ManualChats, ManualSummaries, AIGeneratedQuizzes
+- Video has one InteractiveVideoLayer, many InteractiveVideoResults
 - Classroom has many ClassroomEnrollments
 - TrainingProgram has many ProgramQuizzes
 
@@ -143,6 +151,7 @@ Base URL: `/api/v1`
 - `/grading/*` - Automated grading system
 - `/results/*` - Session results and reporting
 - `/videos/*` - Video upload, streaming, management
+- `/interactive-video/*` - Interactive video layers and AI generation
 - `/manuals/*` - Manual upload, processing, text extraction
 - `/ai/*` - AI operations (chat, quiz generation, summaries)
 - `/classrooms/*` - Classroom management and enrollment
@@ -159,13 +168,15 @@ Base URL: `/api/v1`
 
 ### Backend (.env)
 - Database: PostgreSQL connection (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)
-- JWT: JWT_SECRET and JWT_REFRESH_SECRET
+- JWT: JWT_SECRET and JWT_REFRESH_SECRET with configurable expiration
 - Redis: REDIS_HOST and REDIS_PORT for caching (optional)
-- CORS: Allowed origins (CORS_ORIGIN)
-- Rate limiting: Request limits (RATE_LIMIT_MAX_REQUESTS)
+- CORS: Allowed origins (CORS_ORIGIN, SOCKET_CORS_ORIGIN)
+- Rate limiting: Request limits (RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_MS)
 - AI: GEMINI_API_KEY for Google Gemini integration
-- Storage: MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY
-- File uploads: MAX_FILE_SIZE, UPLOAD_DIR
+- Storage: MINIO_ENDPOINT, MINIO_PORT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_BUCKET_NAME
+- File uploads: MAX_FILE_SIZE (default 5MB), UPLOAD_DIR
+- Session: SESSION_SECRET, SESSION_MAX_AGE
+- QR: QR_BASE_URL for generating join codes
 
 ### Frontend (.env)
 - VITE_API_URL: Backend endpoint (e.g., http://localhost:3001)
@@ -178,11 +189,31 @@ Base URL: `/api/v1`
 - Test files in `/backend/tests`
 - Coverage reports in `/backend/coverage`
 - Path aliases configured for clean imports
+- Run single test: `npm test -- path/to/test.spec.ts`
+- Note: Test setup file (`tests/setup.ts`) needs to be created for test environment configuration
 
 ### Frontend
 - Vitest for unit and integration tests
 - Testing Library for React components
 - Interactive UI available with `npm run test:ui`
+- Run single test: `npm test -- path/to/test.spec.tsx`
+
+## Build Configuration
+
+### Backend
+- Development: Uses nodemon with ts-node and tsconfig-paths for hot reload
+- Production build: Two options available:
+  - `npm run build`: Uses Babel to transpile TypeScript (faster, used for production)
+  - `npm run build-tsc`: Uses TypeScript compiler directly (for type checking)
+- TypeScript configured with path aliases (@config, @models, @controllers, etc.)
+- Target: ES2022, CommonJS modules
+
+### Frontend
+- Vite build system with React plugin
+- Path aliases configured (@components, @pages, @hooks, etc.)
+- Code splitting with manual chunks for optimization (vendor, socket, charts, forms)
+- Development server runs on port 5173 with host network access
+- Proxy configuration for API and WebSocket connections
 
 ## Key Technical Decisions
 
@@ -190,13 +221,14 @@ Base URL: `/api/v1`
 2. **Multi-tenant Architecture**: Complete data isolation between organizations using tenant_id
 3. **Sequelize ORM**: Database abstraction with automatic tenant filtering via hooks
 4. **Socket.io**: Proven real-time communication with fallback support
-5. **Google Gemini AI**: For content generation, quiz creation, and interactive chat
+5. **Google Gemini AI**: For content generation, quiz creation, and interactive video questions
 6. **MinIO Storage**: S3-compatible object storage for videos and large files
-7. **Zustand**: Lightweight state management without Redux boilerplate
-8. **Vite**: Fast development builds with HMR
-9. **Tailwind CSS**: Utility-first styling for rapid UI development
-10. **JWT Auth**: Stateless authentication with refresh token rotation and role-based access
-11. **PDF Processing**: pdf-parse for extracting text from manual uploads
+7. **FFmpeg Integration**: Video transcoding for HLS adaptive streaming
+8. **Zustand**: Lightweight state management without Redux boilerplate
+9. **Vite**: Fast development builds with HMR and optimized production bundles
+10. **Tailwind CSS**: Utility-first styling for rapid UI development
+11. **JWT Auth**: Stateless authentication with refresh token rotation and role-based access
+12. **PDF Processing**: pdf-parse for extracting text from manual uploads
 
 ## Common Development Tasks
 
@@ -210,28 +242,37 @@ Base URL: `/api/v1`
 1. Ensure GEMINI_API_KEY is set in environment
 2. Use GeminiService for AI operations:
    - generateQuiz(): Create quiz from manual content
+   - generateInteractiveContent(): Create video interaction layers
    - chatWithManual(): Interactive Q&A about manuals
    - generateSummary(): Create manual summaries
-3. AI-generated content is stored in ai_generated_quizzes table
+3. AI-generated content is stored in ai_generated_quizzes and interactive_video_layers tables
+
+### Working with Interactive Videos
+1. Upload video through `/api/v1/videos` endpoint
+2. Video is automatically transcoded to multiple resolutions
+3. Generate interactive layer using AI: `/api/v1/interactive-video/generate/:videoId`
+4. Questions appear at specified timestamps during playback
+5. Results are tracked in interactive_video_results table
 
 ### Adding a New API Endpoint
 1. Create controller in `/backend/src/controllers/`
 2. Add route in `/backend/src/routes/`
 3. Apply middleware: authMiddleware, tenantMiddleware
-4. Update API documentation
-5. Add frontend service in `/frontend/src/services/`
+4. Add validation in `/backend/src/validators/`
+5. Update frontend service in `/frontend/src/services/`
+6. Add TypeScript types in both backend and frontend
 
 ### Database Migration
 1. Create migration: `npx sequelize-cli migration:generate --name your-migration-name`
 2. Edit migration file in `/backend/migrations/`
 3. Run migration: `npm run migrate`
 4. Update models in `/backend/src/models/`
-5. Update TypeScript types
+5. Update TypeScript types in `/backend/src/types/`
 
 ## Role-Based Access Control
 
 ### User Roles
-- **super_admin**: Dynamtek internal, full system access
+- **super_admin**: System-wide access, cross-tenant operations
 - **tenant_admin**: Organization admin, manages tenant settings
 - **admin**: Legacy admin role (being phased out)
 - **instructor/teacher**: Can create quizzes, view results
@@ -248,11 +289,12 @@ Base URL: `/api/v1`
 - Socket.io configured for WebSocket with polling fallback
 - Rate limiting on API endpoints (100 requests per 15 minutes default)
 - Database connection pooling configured (max: 10, min: 2)
-- React Query/Axios caching for API responses
+- React Query caching with stale-while-revalidate strategy
 - Compression middleware for HTTP responses
-- File upload limit configurable (default 5MB)
-- MinIO for efficient video streaming
-- Lazy loading for frontend routes
+- File upload limits configurable (default 5MB)
+- MinIO for efficient video streaming with HLS
+- Video transcoding done asynchronously with progress tracking
+- Lazy loading for frontend routes with code splitting
 
 ## Security Measures
 
@@ -260,9 +302,31 @@ Base URL: `/api/v1`
 - CORS properly configured with credentials
 - Input validation with express-validator
 - SQL injection prevention via Sequelize parameterized queries
-- XSS protection through React
+- XSS protection through React and Content Security Policy
 - Rate limiting on sensitive endpoints
 - JWT secrets in environment variables
 - Password hashing with bcrypt (salt rounds: 10)
 - Tenant isolation enforced at database level
 - File type validation for uploads
+- Secure video URLs with signed tokens
+
+## Recent Features (v1.0.2-QA)
+
+### Interactive Videos with AI
+- Automatic video transcription and analysis
+- AI-generated contextual questions at specific timestamps
+- Auto-pause for question display
+- Progress tracking and results storage
+- Public sharing via QR codes
+
+### Enhanced Multi-tenant Support
+- Complete tenant isolation at all levels
+- Tenant-specific branding and configuration
+- Cross-tenant management for super admins
+- Tenant usage analytics and reporting
+
+### AI Quiz Import
+- Import AI-generated quizzes with validation
+- Automatic correct answer index conversion
+- Support for multiple question types
+- Bulk import capabilities

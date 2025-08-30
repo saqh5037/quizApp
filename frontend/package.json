@@ -12,6 +12,7 @@
     "format": "prettier --write 'src/**/*.{ts,tsx,css}'"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.1",
     "@tanstack/react-query": "^5.14.2",
     "@types/multer": "^2.0.0",
     "@types/video.js": "^7.3.58",
@@ -43,12 +44,14 @@
     "recharts": "^2.10.3",
     "socket.io-client": "^4.6.1",
     "video.js": "^8.23.4",
+    "zod": "^4.1.5",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
     "@testing-library/user-event": "^14.5.1",
+    "@types/fs-extra": "^11.0.4",
     "@types/howler": "^2.2.11",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",
@@ -60,6 +63,7 @@
     "eslint": "^8.56.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "fs-extra": "^11.3.1",
     "jsdom": "^23.0.1",
     "postcss": "^8.4.32",
     "prettier": "^3.1.1",
