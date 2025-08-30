@@ -268,11 +268,11 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
         <div className="relative w-full h-full" ref={overlayContainerRef}>
           <VideoPlayer
             ref={videoRef}
-            videoUrl={videoUrl}
+            videoId={videoId}
+            src={videoUrl}
             autoplay={false}
             onTimeUpdate={handleVideoTimeUpdate}
             onEnded={handleVideoEnd}
-            className="w-full h-full"
           />
           
           {/* Interactive overlay - works in fullscreen */}

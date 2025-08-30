@@ -27,7 +27,11 @@ interface PublicVideo {
   streamUrl?: string;
   hlsPlaylistUrl?: string;
   status: string;
-  interactiveLayer?: any;
+  interactiveLayer?: {
+    id: number;
+    processingStatus: string;
+    aiGeneratedContent?: any;
+  };
 }
 
 interface VideoResults {
@@ -103,7 +107,10 @@ export default function PublicInteractiveVideoEnhanced() {
       }
 
       const data = await response.json();
-      setVideo(data.data);
+      console.log('API Response:', data); // Debug log
+      
+      // The API returns the video object directly, not wrapped in data
+      setVideo(data);
     } catch (error) {
       console.error('Error fetching video:', error);
       toast.error('Error al cargar el video');
@@ -316,8 +323,13 @@ export default function PublicInteractiveVideoEnhanced() {
     );
   }
 
-  // Video Not Available
-  if (!video || !video.interactiveLayer) {
+  // Debug logs
+  console.log('Video state:', video);
+  console.log('Has interactiveLayer:', !!video?.interactiveLayer);
+  console.log('InteractiveLayer status:', video?.interactiveLayer?.processingStatus);
+
+  // Video Not Available - More specific error handling
+  if (!video) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <div className="text-center max-w-md">
@@ -325,10 +337,46 @@ export default function PublicInteractiveVideoEnhanced() {
             <RiVideoLine className="text-4xl text-red-400" />
           </div>
           <h2 className="text-xl md:text-2xl font-bold text-white mb-2">
-            Video no disponible
+            Video no encontrado
           </h2>
           <p className="text-gray-400 text-sm md:text-base">
-            Este video interactivo no está disponible públicamente o ha sido eliminado
+            Este video no existe o no está disponible públicamente
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!video.interactiveLayer) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <RiVideoLine className="text-4xl text-orange-400" />
+          </div>
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-2">
+            Sin contenido interactivo
+          </h2>
+          <p className="text-gray-400 text-sm md:text-base">
+            Este video no tiene preguntas interactivas configuradas
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (video.interactiveLayer.processingStatus !== 'ready') {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <RiLoader4Line className="text-4xl text-yellow-400 animate-spin" />
+          </div>
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-2">
+            Procesando contenido
+          </h2>
+          <p className="text-gray-400 text-sm md:text-base">
+            El contenido interactivo se está generando. Estado: {video.interactiveLayer.processingStatus}
           </p>
         </div>
       </div>
