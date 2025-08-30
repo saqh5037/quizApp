@@ -50,15 +50,25 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
   useEffect(() => {
     initializePublicSession();
     
-    // Detect fullscreen changes
+    // Enhanced fullscreen detection
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isFS = !!(
+        document.fullscreenElement || 
+        (document as any).webkitFullscreenElement || 
+        (document as any).mozFullScreenElement || 
+        (document as any).msFullscreenElement
+      );
+      console.log('Fullscreen state changed:', isFS);
+      setIsFullscreen(isFS);
     };
     
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    
+    // Initial check
+    handleFullscreenChange();
     
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
@@ -275,14 +285,34 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
             onEnded={handleVideoEnd}
           />
           
-          {/* Interactive overlay - works in fullscreen */}
+          {/* Progress indicator in corner */}
+          {progress && !currentMoment && (
+            <div className={`absolute top-4 right-4 z-50 ${isFullscreen ? 'fullscreen-progress' : ''}`}>
+              <div className="bg-black/70 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <span className="text-green-400">{progress.correctAnswers}</span>
+                    <span>/</span>
+                    <span>{progress.totalQuestions}</span>
+                  </div>
+                  <div className="w-px h-4 bg-gray-500"></div>
+                  <div className="text-blue-400">{Math.round(progress.currentScore)}%</div>
+                </div>
+                <div className="w-full bg-gray-600 rounded-full h-1 mt-1">
+                  <div
+                    className="bg-blue-500 h-1 rounded-full transition-all duration-300"
+                    style={{ width: `${(progress.answeredQuestions / progress.totalQuestions) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Interactive overlay - enhanced for fullscreen and mobile */}
           {currentMoment && (
             <div 
-              className={`absolute inset-0 z-[9999] ${isFullscreen ? 'fullscreen-overlay' : ''}`}
-              style={{ 
-                pointerEvents: 'auto',
-                position: isFullscreen ? 'fixed' : 'absolute'
-              }}
+              className={`${isFullscreen ? 'fixed inset-0 z-[2147483647]' : 'absolute inset-0 z-[9999]'} fullscreen-overlay`}
+              style={{ pointerEvents: 'auto' }}
             >
               <InteractiveOverlayEnhanced
                 moment={currentMoment}
@@ -388,7 +418,7 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
         </div>
       )}
 
-      {/* Custom styles for fullscreen */}
+      {/* Enhanced styles for fullscreen and mobile */}
       <style jsx>{`
         .fullscreen-overlay {
           position: fixed !important;
@@ -399,6 +429,15 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
           width: 100vw !important;
           height: 100vh !important;
           z-index: 2147483647 !important;
+          background: rgba(0, 0, 0, 0.8) !important;
+          backdrop-filter: blur(4px) !important;
+        }
+        
+        .fullscreen-progress {
+          position: fixed !important;
+          top: 20px !important;
+          right: 20px !important;
+          z-index: 2147483646 !important;
         }
         
         @keyframes scale-in {
@@ -414,6 +453,28 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
         
         .animate-scale-in {
           animation: scale-in 0.3s ease-out;
+        }
+        
+        /* Mobile specific improvements */
+        @media (max-width: 768px) {
+          .fullscreen-overlay {
+            padding: 10px !important;
+          }
+          
+          .fullscreen-progress {
+            top: 10px !important;
+            right: 10px !important;
+            transform: scale(0.9);
+          }
+        }
+        
+        /* Ensure video controls don't interfere */
+        .video-js .vjs-control-bar {
+          z-index: 1000 !important;
+        }
+        
+        .video-js .vjs-big-play-button {
+          z-index: 1000 !important;
         }
       `}</style>
     </>

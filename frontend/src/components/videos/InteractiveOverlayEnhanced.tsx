@@ -137,9 +137,9 @@ const InteractiveOverlayEnhanced: React.FC<InteractiveOverlayEnhancedProps> = ({
     : "absolute inset-0 z-[100]";
 
   return (
-    <div className={`${overlayClasses} bg-black bg-opacity-80 flex items-center justify-center p-2 md:p-4 backdrop-blur-sm`} 
+    <div className={`${overlayClasses} bg-black bg-opacity-85 flex items-center justify-center p-2 md:p-4 backdrop-blur-sm`} 
          style={{ pointerEvents: 'auto' }}>
-      <div className="bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto animate-scale-in" 
+      <div className="bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] md:max-h-[95vh] overflow-y-auto animate-scale-in" 
            onClick={(e) => e.stopPropagation()}>
         
         {/* Header - Mobile Optimized */}
@@ -192,39 +192,58 @@ const InteractiveOverlayEnhanced: React.FC<InteractiveOverlayEnhancedProps> = ({
             {moment.question?.text || 'Pregunta no disponible'}
           </p>
 
-          {/* Multiple choice options - Mobile Optimized */}
+          {/* Multiple choice options - Enhanced Mobile */}
           {moment.question?.type === 'multiple_choice' && moment.question?.options && (
-            <div className="space-y-2 md:space-y-3">
+            <div className="space-y-3 md:space-y-3">
               {moment.question.options.map((option, index) => (
                 <button
                   key={index}
                   onClick={() => handleAnswerSelect(option)}
                   disabled={showFeedback}
-                  className={`w-full text-left p-3 md:p-4 rounded-lg transition-all duration-200 touch-manipulation ${
+                  className={`w-full text-left p-4 md:p-4 rounded-lg transition-all duration-200 touch-manipulation min-h-[60px] md:min-h-[56px] flex items-center ${
                     showFeedback
                       ? option === moment.question?.correctAnswer
-                        ? 'bg-green-600 text-white'
+                        ? 'bg-green-600 text-white shadow-lg'
                         : selectedAnswer === option
-                        ? 'bg-red-600 text-white'
+                        ? 'bg-red-600 text-white shadow-lg'
                         : 'bg-gray-700 text-gray-400'
                       : selectedAnswer === option
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-white hover:bg-gray-600 active:bg-gray-600'
+                      ? 'bg-blue-600 text-white shadow-lg transform scale-[1.02]'
+                      : 'bg-gray-700 text-white hover:bg-gray-600 active:bg-gray-600 active:scale-[0.98]'
                   }`}
+                  style={{ 
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation'
+                  }}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm md:text-base leading-relaxed">
-                      {String.fromCharCode(65 + index)}. {option}
-                    </span>
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                        showFeedback
+                          ? option === moment.question?.correctAnswer
+                            ? 'bg-green-700 text-green-100'
+                            : selectedAnswer === option
+                            ? 'bg-red-700 text-red-100'
+                            : 'bg-gray-600 text-gray-300'
+                          : selectedAnswer === option
+                          ? 'bg-blue-700 text-blue-100'
+                          : 'bg-gray-600 text-gray-300'
+                      }`}>
+                        {String.fromCharCode(65 + index)}
+                      </div>
+                      <span className="text-sm md:text-base leading-relaxed flex-1">
+                        {option}
+                      </span>
+                    </div>
                     {showFeedback && (
-                      <>
+                      <div className="flex-shrink-0 ml-2">
                         {option === moment.question?.correctAnswer && (
-                          <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-200 flex-shrink-0" />
+                          <CheckCircle className="w-5 h-5 md:w-5 md:h-5 text-green-200" />
                         )}
                         {selectedAnswer === option && option !== moment.question?.correctAnswer && (
-                          <XCircle className="w-4 h-4 md:w-5 md:h-5 text-red-200 flex-shrink-0" />
+                          <XCircle className="w-5 h-5 md:w-5 md:h-5 text-red-200" />
                         )}
-                      </>
+                      </div>
                     )}
                   </div>
                 </button>
@@ -232,37 +251,43 @@ const InteractiveOverlayEnhanced: React.FC<InteractiveOverlayEnhancedProps> = ({
             </div>
           )}
 
-          {/* True/False options - Mobile Optimized */}
+          {/* True/False options - Enhanced Mobile */}
           {moment.question?.type === 'true_false' && (
-            <div className="grid grid-cols-2 gap-2 md:gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-3">
               {['Verdadero', 'Falso'].map((option) => (
                 <button
                   key={option}
                   onClick={() => handleAnswerSelect(option)}
                   disabled={showFeedback}
-                  className={`p-3 md:p-4 rounded-lg transition-all duration-200 font-semibold text-sm md:text-base touch-manipulation ${
+                  className={`p-4 md:p-4 rounded-lg transition-all duration-200 font-semibold text-base md:text-base touch-manipulation min-h-[60px] flex items-center justify-center ${
                     showFeedback
                       ? option === moment.question?.correctAnswer
-                        ? 'bg-green-600 text-white'
+                        ? 'bg-green-600 text-white shadow-lg'
                         : selectedAnswer === option
-                        ? 'bg-red-600 text-white'
+                        ? 'bg-red-600 text-white shadow-lg'
                         : 'bg-gray-700 text-gray-400'
                       : selectedAnswer === option
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-white hover:bg-gray-600 active:bg-gray-600'
+                      ? 'bg-blue-600 text-white shadow-lg transform scale-[1.02]'
+                      : 'bg-gray-700 text-white hover:bg-gray-600 active:bg-gray-600 active:scale-[0.98]'
                   }`}
+                  style={{ 
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation'
+                  }}
                 >
-                  {option}
-                  {showFeedback && (
-                    <>
-                      {option === moment.question?.correctAnswer && (
-                        <CheckCircle className="w-4 h-4 md:w-5 md:h-5 ml-2 inline" />
-                      )}
-                      {selectedAnswer === option && option !== moment.question?.correctAnswer && (
-                        <XCircle className="w-4 h-4 md:w-5 md:h-5 ml-2 inline" />
-                      )}
-                    </>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {option}
+                    {showFeedback && (
+                      <>
+                        {option === moment.question?.correctAnswer && (
+                          <CheckCircle className="w-5 h-5 text-green-200" />
+                        )}
+                        {selectedAnswer === option && option !== moment.question?.correctAnswer && (
+                          <XCircle className="w-5 h-5 text-red-200" />
+                        )}
+                      </>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
@@ -355,7 +380,7 @@ const InteractiveOverlayEnhanced: React.FC<InteractiveOverlayEnhancedProps> = ({
         
         @keyframes scaleIn {
           from {
-            transform: scale(0.9);
+            transform: scale(0.95);
             opacity: 0;
           }
           to {
@@ -366,12 +391,36 @@ const InteractiveOverlayEnhanced: React.FC<InteractiveOverlayEnhancedProps> = ({
         
         .touch-manipulation {
           touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
         }
         
-        /* Fullscreen specific styles */
-        @media (max-width: 640px) {
+        /* Enhanced fullscreen support */
+        .fixed.inset-0 {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          z-index: 2147483647 !important;
+        }
+        
+        /* Mobile specific improvements */
+        @media (max-width: 768px) {
           .fixed.inset-0 {
-            padding: 8px;
+            padding: 8px !important;
+          }
+          
+          /* Better button spacing on mobile */
+          button {
+            min-height: 60px !important;
+          }
+          
+          /* Larger touch targets */
+          .touch-manipulation {
+            min-height: 48px;
+            min-width: 48px;
           }
         }
         
@@ -379,7 +428,21 @@ const InteractiveOverlayEnhanced: React.FC<InteractiveOverlayEnhancedProps> = ({
         @supports (-webkit-touch-callout: none) {
           .overflow-y-auto {
             -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
           }
+        }
+        
+        /* Prevent zoom on iOS */
+        @media screen and (max-width: 768px) {
+          input, textarea, select, button {
+            font-size: 16px !important;
+          }
+        }
+        
+        /* Better focus states for accessibility */
+        button:focus-visible {
+          outline: 2px solid #3b82f6;
+          outline-offset: 2px;
         }
       `}</style>
     </div>
