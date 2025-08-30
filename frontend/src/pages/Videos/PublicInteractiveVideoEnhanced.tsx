@@ -11,7 +11,7 @@ import {
 } from 'react-icons/ri';
 import toast from 'react-hot-toast';
 import { apiConfig } from '../../config/api.config';
-import PublicInteractiveVideoWrapperEnhanced from '../../components/videos/PublicInteractiveVideoWrapperEnhanced';
+import PublicInteractiveVideoPlayer from '../../components/videos/PublicInteractiveVideoPlayer';
 
 interface StudentInfo {
   name: string;
@@ -34,14 +34,6 @@ interface PublicVideo {
   };
 }
 
-interface VideoResults {
-  score: number;
-  totalQuestions: number;
-  correctAnswers: number;
-  passed: boolean;
-  answers: any[];
-}
-
 export default function PublicInteractiveVideoEnhanced() {
   const { id } = useParams();
   
@@ -49,8 +41,6 @@ export default function PublicInteractiveVideoEnhanced() {
   const [loading, setLoading] = useState(true);
   const [studentInfo, setStudentInfo] = useState<StudentInfo | null>(null);
   const [showIdentificationForm, setShowIdentificationForm] = useState(true);
-  const [showResults, setShowResults] = useState(false);
-  const [results, setResults] = useState<VideoResults | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -72,10 +62,8 @@ export default function PublicInteractiveVideoEnhanced() {
 
     // Prevent navigation away from the page
     const preventNavigation = (e: BeforeUnloadEvent) => {
-      if (!showResults) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
+      e.preventDefault();
+      e.returnValue = '';
     };
     
     window.addEventListener('beforeunload', preventNavigation);
@@ -83,7 +71,7 @@ export default function PublicInteractiveVideoEnhanced() {
     return () => {
       window.removeEventListener('beforeunload', preventNavigation);
     };
-  }, [id, showResults]);
+  }, [id]);
 
   const fetchVideo = async () => {
     try {
@@ -107,8 +95,6 @@ export default function PublicInteractiveVideoEnhanced() {
       }
 
       const data = await response.json();
-      console.log('API Response:', data); // Debug log
-      
       // The API returns the video object directly, not wrapped in data
       setVideo(data);
     } catch (error) {
@@ -161,29 +147,7 @@ export default function PublicInteractiveVideoEnhanced() {
     fetchVideo();
   };
 
-  const handleVideoComplete = (videoResults: any) => {
-    setResults(videoResults.result);
-    setShowResults(true);
-    
-    // Send results to backend
-    try {
-      fetch(`${apiConfig.baseURL}/videos/${id}/interactive-results`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          studentInfo,
-          results: videoResults.result,
-          completedAt: new Date().toISOString()
-        })
-      });
-      
-      toast.success('¡Evaluación completada!');
-    } catch (error) {
-      console.error('Error saving results:', error);
-    }
-  };
+  // Results are now handled by the store, no need for this function
 
   // Identification Form View - Mobile Responsive
   if (showIdentificationForm) {
@@ -323,11 +287,6 @@ export default function PublicInteractiveVideoEnhanced() {
     );
   }
 
-  // Debug logs
-  console.log('Video state:', video);
-  console.log('Has interactiveLayer:', !!video?.interactiveLayer);
-  console.log('InteractiveLayer status:', video?.interactiveLayer?.processingStatus);
-
   // Video Not Available - More specific error handling
   if (!video) {
     return (
@@ -383,46 +342,62 @@ export default function PublicInteractiveVideoEnhanced() {
     );
   }
 
-  // Main Video View - No Navigation, Mobile Responsive
+  // Main Video View - NO UI ELEMENTS, Pure Video Experience
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
-      {/* Minimal Header - Mobile Responsive */}
-      <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 md:py-3">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <h1 className="text-base md:text-lg font-semibold text-white truncate">
-              {video.title}
-            </h1>
-            <div className="text-xs md:text-sm text-gray-400">
-              <RiUserLine className="inline w-3 h-3 mr-1" />
-              {studentInfo?.name}
-            </div>
-          </div>
-        </div>
+    <div className="fixed inset-0 bg-black overflow-hidden">
+      {/* Full Screen Video Container - NO APPLICATION UI */}
+      <div className="w-full h-full">
+        <PublicInteractiveVideoPlayer
+          videoId={video.id}
+          videoUrl={video.streamUrl || video.hlsPlaylistUrl || ''}
+          videoTitle={video.title}
+          layerId={video.interactiveLayer?.id}
+          studentInfo={studentInfo!}
+          isPublicView={true}
+        />
       </div>
 
-      {/* Video Container - Full Height, Mobile Responsive */}
-      <div className="flex-1 flex items-center justify-center p-2 md:p-4 lg:p-6">
-        <div className="w-full max-w-6xl">
-          <PublicInteractiveVideoWrapperEnhanced
-            videoId={video.id}
-            videoUrl={video.streamUrl || video.hlsPlaylistUrl || ''}
-            videoTitle={video.title}
-            layerId={video.interactiveLayer?.id}
-            studentInfo={studentInfo!}
-            onComplete={handleVideoComplete}
-            isPublicView={true}
-          />
-        </div>
-      </div>
-
-      {/* Mobile-specific styles */}
+      {/* Mobile-specific styles - Full Screen */}
       <style jsx>{`
+        body {
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
+          background: black;
+        }
+        
+        html, body, #root {
+          height: 100%;
+          width: 100%;
+          margin: 0;
+          padding: 0;
+        }
+        
         @media (max-width: 640px) {
-          .min-h-screen {
+          .fixed.inset-0 {
             min-height: 100vh;
             min-height: -webkit-fill-available;
+            height: 100vh;
+            height: -webkit-fill-available;
           }
+          
+          /* Prevent iOS bounce scrolling */
+          body {
+            position: fixed;
+            overflow: hidden;
+            -webkit-overflow-scrolling: none;
+            overscroll-behavior: none;
+          }
+        }
+        
+        /* Ensure proper video container on all devices */
+        .video-container {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
       `}</style>
     </div>

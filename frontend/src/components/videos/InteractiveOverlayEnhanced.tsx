@@ -135,7 +135,7 @@ const InteractiveOverlayEnhanced: React.FC<InteractiveOverlayEnhancedProps> = ({
   return (
     <div className={`${isFullscreen ? 'w-full h-full' : 'absolute inset-0 z-[100] bg-black bg-opacity-85 backdrop-blur-sm'} flex items-center justify-center p-2 md:p-4`} 
          style={{ pointerEvents: 'auto' }}>
-      <div className="bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] md:max-h-[95vh] overflow-y-auto animate-scale-in" 
+      <div className={`bg-gray-800 rounded-xl shadow-2xl w-full ${isFullscreen ? 'max-w-3xl' : 'max-w-2xl'} max-h-[85vh] md:max-h-[90vh] overflow-y-auto animate-scale-in`} 
            onClick={(e) => e.stopPropagation()}>
         
         {/* Header - Mobile Optimized */}

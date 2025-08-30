@@ -44,6 +44,7 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
   const [showFinalResults, setShowFinalResults] = useState(false);
   const [finalResults, setFinalResults] = useState<any>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showCompleteButton, setShowCompleteButton] = useState(false);
   
   const responseStartTime = useRef<number>(0);
   const watchTimeStart = useRef<number>(Date.now());
@@ -51,15 +52,18 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
   useEffect(() => {
     initializePublicSession();
     
-    // Enhanced fullscreen detection
+    // Enhanced fullscreen detection with more detailed logging
     const handleFullscreenChange = () => {
-      const isFS = !!(
-        document.fullscreenElement || 
-        (document as any).webkitFullscreenElement || 
-        (document as any).mozFullScreenElement || 
-        (document as any).msFullscreenElement
-      );
-      console.log('Fullscreen state changed:', isFS);
+      const fullscreenElement = document.fullscreenElement || 
+                               (document as any).webkitFullscreenElement || 
+                               (document as any).mozFullScreenElement || 
+                               (document as any).msFullscreenElement;
+      
+      // Also check if video.js is in fullscreen
+      const videoJsElement = document.querySelector('.vjs-fullscreen');
+      const isFS = !!fullscreenElement || !!videoJsElement;
+      
+      console.log('Fullscreen check:', { fullscreenElement, videoJsElement, isFS });
       setIsFullscreen(isFS);
     };
     
@@ -67,6 +71,22 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    
+    // Also observe video.js fullscreen class changes
+    const observer = new MutationObserver(() => {
+      handleFullscreenChange();
+    });
+    
+    // Wait a bit for video.js to initialize
+    setTimeout(() => {
+      const videoJsContainer = document.querySelector('.video-js');
+      if (videoJsContainer) {
+        observer.observe(videoJsContainer, { 
+          attributes: true, 
+          attributeFilter: ['class'] 
+        });
+      }
+    }, 1000);
     
     // Initial check
     handleFullscreenChange();
@@ -76,14 +96,15 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
       document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+      observer.disconnect();
     };
-  }, [videoId, layerId]);
+  }, [videoId, layerId]); // Removed currentMoment dependency to avoid re-running
 
   useEffect(() => {
-    if (currentTime > 0 && duration > 0 && interactiveLayer?.aiGeneratedContent?.keyMoments) {
+    if (currentTime > 0 && duration > 0 && interactiveLayer?.aiGeneratedContent?.keyMoments && !currentMoment) {
       checkForKeyMoments();
     }
-  }, [currentTime]);
+  }, [currentTime, currentMoment, interactiveLayer]);
 
   const initializePublicSession = async () => {
     try {
@@ -124,12 +145,13 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
     });
 
     if (currentMomentCheck && !currentMoment) {
+      console.log('Found key moment at timestamp:', currentMomentCheck.timestamp, 'Current time:', currentTime);
       triggerKeyMoment(currentMomentCheck);
     }
   };
 
   const triggerKeyMoment = (moment: any) => {
-    console.log('Triggering key moment:', moment);
+    console.log('Triggering key moment:', moment, 'at time:', currentTime);
     setCurrentMoment(moment);
     responseStartTime.current = Date.now();
     
@@ -172,8 +194,22 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
       });
       
       setTimeout(() => {
+        // Clean up fullscreen overlay if exists
+        const fullscreenElement = document.fullscreenElement || 
+                                 (document as any).webkitFullscreenElement || 
+                                 (document as any).mozFullScreenElement || 
+                                 (document as any).msFullscreenElement;
+        if (fullscreenElement) {
+          const existingOverlay = fullscreenElement.querySelector('.fullscreen-question-overlay');
+          if (existingOverlay) {
+            existingOverlay.remove();
+          }
+        }
+        
         setCurrentMoment(null);
-        if (videoRef.current && isPaused) {
+        
+        // Resume video playback
+        if (videoRef.current) {
           videoRef.current.play();
           setIsPaused(false);
         }
@@ -191,6 +227,18 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
     setAnsweredMoments(prev => new Set(prev).add(currentMoment.id));
     
     setTimeout(() => {
+      // Clean up fullscreen overlay if exists
+      const fullscreenElement = document.fullscreenElement || 
+                               (document as any).webkitFullscreenElement || 
+                               (document as any).mozFullScreenElement || 
+                               (document as any).msFullscreenElement;
+      if (fullscreenElement) {
+        const existingOverlay = fullscreenElement.querySelector('.fullscreen-question-overlay');
+        if (existingOverlay) {
+          existingOverlay.remove();
+        }
+      }
+      
       setCurrentMoment(null);
       if (videoRef.current && isPaused) {
         videoRef.current.play();
@@ -208,10 +256,20 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
     if (!session || videoCompleted) return;
     
     setVideoCompleted(true);
+    
+    // Show complete button instead of auto-completing
+    setShowCompleteButton(true);
+    toast.info('Video completado. Presione "Finalizar Evaluación" para enviar sus respuestas.');
+  };
+  
+  const handleCompleteEvaluation = async () => {
+    if (!session) return;
+    
+    setShowCompleteButton(false);
     const watchTimeSeconds = Math.floor((Date.now() - watchTimeStart.current) / 1000);
     
     try {
-      // Complete the session automatically
+      // Complete the session
       const finalResults = await interactiveVideoService.completePublicSession(session.sessionId, {
         watchTimeSeconds,
         totalPauses
@@ -234,11 +292,17 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
             sessionData: finalResults
           });
         }
-      }, 1000);
+        
+        // Auto-close after showing results for 5 seconds
+        setTimeout(() => {
+          handleClose();
+        }, 5000);
+      }, 500);
       
     } catch (error) {
       console.error('Error completing session:', error);
       toast.error('Error al completar la evaluación');
+      setShowCompleteButton(true);
     }
   };
 
@@ -247,11 +311,22 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
   };
 
   const handleClose = () => {
-    // Just close the modal, don't redirect
+    // Close the modal
     setShowFinalResults(false);
-    // If in a popup/new tab, try to close it
+    
+    // Try to close the window/tab
     if (window.opener) {
       window.close();
+    } else {
+      // If can't close, show a message
+      toast.success('Evaluación completada. Puede cerrar esta ventana.');
+      // Try to go back in history
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        // As last resort, redirect to a blank page
+        window.location.href = 'about:blank';
+      }
     }
   };
 
@@ -275,13 +350,14 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
 
   return (
     <>
-      <div className="relative bg-gray-900 rounded-lg overflow-hidden" data-vjs-player>
+      <div className={`relative bg-black ${isPublicView ? 'w-full h-full min-h-screen' : 'bg-gray-900 rounded-lg overflow-hidden'}`} data-vjs-player>
         <div className="relative w-full h-full" ref={overlayContainerRef}>
           <VideoPlayer
             ref={videoRef}
             videoId={videoId}
             src={videoUrl}
             autoplay={false}
+            controls={true} // Enable controls to allow pause/play
             onTimeUpdate={handleVideoTimeUpdate}
             onEnded={handleVideoEnd}
           />
@@ -309,16 +385,52 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
             </div>
           )}
 
-          {/* Interactive overlay - regular mode */}
-          {currentMoment && !isFullscreen && (
-            <div className="absolute inset-0 z-[9999]" style={{ pointerEvents: 'auto' }}>
+          {/* Interactive overlay - shows in both normal and fullscreen */}
+          {currentMoment && (
+            <div className={`absolute inset-0 ${isFullscreen ? 'z-[2147483647]' : 'z-[9999]'}`} style={{ pointerEvents: 'auto' }}>
               <InteractiveOverlayEnhanced
                 moment={currentMoment}
                 onAnswer={handleAnswer}
                 onSkip={handleSkip}
                 progress={progress}
-                isFullscreen={false}
+                isFullscreen={isFullscreen}
               />
+            </div>
+          )}
+          
+          {/* Complete Evaluation Button */}
+          {showCompleteButton && (
+            <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-[10000]">
+              <div className="bg-gray-800 rounded-xl p-6 md:p-8 max-w-md w-full mx-4 text-center">
+                <div className="mb-6">
+                  <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold text-white mb-2">
+                    ¡Video Completado!
+                  </h3>
+                  <p className="text-gray-400">
+                    Has visto todo el contenido del video.
+                  </p>
+                </div>
+                
+                {progress && (
+                  <div className="bg-gray-700 rounded-lg p-4 mb-6">
+                    <div className="text-sm text-gray-300 space-y-1">
+                      <p>Preguntas respondidas: <span className="text-white font-semibold">{progress.answeredQuestions}/{progress.totalQuestions}</span></p>
+                      <p>Respuestas correctas: <span className="text-green-400 font-semibold">{progress.correctAnswers}</span></p>
+                      <p>Puntuación actual: <span className="text-blue-400 font-semibold">{Math.round(progress.currentScore)}%</span></p>
+                    </div>
+                  </div>
+                )}
+                
+                <button
+                  onClick={handleCompleteEvaluation}
+                  className="w-full py-3 px-6 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-semibold rounded-lg transition-all transform hover:scale-[1.02] shadow-lg"
+                >
+                  Finalizar y Enviar Evaluación
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -410,12 +522,29 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
 
             {/* Footer note */}
             <p className="text-xs text-gray-500 text-center mt-6">
-              Los resultados han sido guardados y enviados al instructor
+              Los resultados han sido guardados y enviados al instructor.
+              <br />
+              <span className="text-yellow-400">La ventana se cerrará automáticamente en 5 segundos...</span>
             </p>
           </div>
         </div>
       )}
 
+      {/* Ensure viewport is set correctly for mobile */}
+      <style jsx global>{`
+        @media (max-width: 768px) {
+          html {
+            touch-action: manipulation;
+            -webkit-text-size-adjust: 100%;
+          }
+          
+          body {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+          }
+        }
+      `}</style>
+      
       {/* Enhanced styles for fullscreen and mobile */}
       <style jsx>{`
         .fullscreen-overlay {
@@ -464,15 +593,33 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
             right: 10px !important;
             transform: scale(0.9);
           }
+          
+          /* Better video aspect ratio on mobile */
+          .video-js {
+            max-height: 100vh !important;
+            max-width: 100vw !important;
+          }
+          
+          /* Ensure controls are accessible on mobile */
+          .video-js .vjs-control-bar {
+            font-size: 1.2em !important;
+            height: 3em !important;
+          }
         }
         
-        /* Ensure video controls don't interfere */
+        /* Ensure video controls are visible and accessible */
         .video-js .vjs-control-bar {
-          z-index: 1000 !important;
+          z-index: 10 !important;
         }
         
         .video-js .vjs-big-play-button {
-          z-index: 1000 !important;
+          z-index: 10 !important;
+        }
+        
+        /* Fix video to fill container properly */
+        .video-js {
+          width: 100% !important;
+          height: 100% !important;
         }
       `}</style>
 
@@ -508,31 +655,6 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
         document.body
       )}
 
-      {/* Fullscreen overlay using Portal */}
-      {currentMoment && isFullscreen && createPortal(
-        <div 
-          className="fixed inset-0 z-[2147483647] bg-black bg-opacity-85 flex items-center justify-center p-2 md:p-4 backdrop-blur-sm"
-          style={{ 
-            pointerEvents: 'auto',
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            width: '100vw',
-            height: '100vh'
-          }}
-        >
-          <InteractiveOverlayEnhanced
-            moment={currentMoment}
-            onAnswer={handleAnswer}
-            onSkip={handleSkip}
-            progress={progress}
-            isFullscreen={true}
-          />
-        </div>,
-        document.body
-      )}
     </>
   );
 };

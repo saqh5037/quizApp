@@ -1,2 +1,5 @@
 # MinIO storage data (binary files)
 backend/storage/minio-data/
+storage/processed/
+storage/uploads/
+storage/temp/
