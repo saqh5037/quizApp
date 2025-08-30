@@ -132,12 +132,8 @@ const InteractiveOverlayEnhanced: React.FC<InteractiveOverlayEnhancedProps> = ({
     return 'text-red-400';
   };
 
-  const overlayClasses = isFullscreen 
-    ? "fixed inset-0 z-[9999]" 
-    : "absolute inset-0 z-[100]";
-
   return (
-    <div className={`${overlayClasses} bg-black bg-opacity-85 flex items-center justify-center p-2 md:p-4 backdrop-blur-sm`} 
+    <div className={`${isFullscreen ? 'w-full h-full' : 'absolute inset-0 z-[100] bg-black bg-opacity-85 backdrop-blur-sm'} flex items-center justify-center p-2 md:p-4`} 
          style={{ pointerEvents: 'auto' }}>
       <div className="bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] md:max-h-[95vh] overflow-y-auto animate-scale-in" 
            onClick={(e) => e.stopPropagation()}>
@@ -394,17 +390,7 @@ const InteractiveOverlayEnhanced: React.FC<InteractiveOverlayEnhancedProps> = ({
           -webkit-tap-highlight-color: transparent;
         }
         
-        /* Enhanced fullscreen support */
-        .fixed.inset-0 {
-          position: fixed !important;
-          top: 0 !important;
-          left: 0 !important;
-          right: 0 !important;
-          bottom: 0 !important;
-          width: 100vw !important;
-          height: 100vh !important;
-          z-index: 2147483647 !important;
-        }
+        /* Enhanced fullscreen support - simplified since we use Portal */
         
         /* Mobile specific improvements */
         @media (max-width: 768px) {

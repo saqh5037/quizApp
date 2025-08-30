@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, FC } from 'react';
+import { createPortal } from 'react-dom';
 import VideoPlayer from '../VideoPlayer';
 import InteractiveOverlayEnhanced from './InteractiveOverlayEnhanced';
 import { interactiveVideoService } from '../../services/interactive-video.service';
@@ -308,18 +309,15 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
             </div>
           )}
 
-          {/* Interactive overlay - enhanced for fullscreen and mobile */}
-          {currentMoment && (
-            <div 
-              className={`${isFullscreen ? 'fixed inset-0 z-[2147483647]' : 'absolute inset-0 z-[9999]'} fullscreen-overlay`}
-              style={{ pointerEvents: 'auto' }}
-            >
+          {/* Interactive overlay - regular mode */}
+          {currentMoment && !isFullscreen && (
+            <div className="absolute inset-0 z-[9999]" style={{ pointerEvents: 'auto' }}>
               <InteractiveOverlayEnhanced
                 moment={currentMoment}
                 onAnswer={handleAnswer}
                 onSkip={handleSkip}
                 progress={progress}
-                isFullscreen={isFullscreen}
+                isFullscreen={false}
               />
             </div>
           )}
@@ -477,6 +475,64 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
           z-index: 1000 !important;
         }
       `}</style>
+
+      {/* Fullscreen progress indicator using Portal */}
+      {progress && isFullscreen && !currentMoment && createPortal(
+        <div 
+          className="fixed top-5 right-5 z-[2147483646]"
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            zIndex: 2147483646
+          }}
+        >
+          <div className="bg-black/70 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-sm">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <span className="text-green-400">{progress.correctAnswers}</span>
+                <span>/</span>
+                <span>{progress.totalQuestions}</span>
+              </div>
+              <div className="w-px h-4 bg-gray-500"></div>
+              <div className="text-blue-400">{Math.round(progress.currentScore)}%</div>
+            </div>
+            <div className="w-full bg-gray-600 rounded-full h-1 mt-1">
+              <div
+                className="bg-blue-500 h-1 rounded-full transition-all duration-300"
+                style={{ width: `${(progress.answeredQuestions / progress.totalQuestions) * 100}%` }}
+              />
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Fullscreen overlay using Portal */}
+      {currentMoment && isFullscreen && createPortal(
+        <div 
+          className="fixed inset-0 z-[2147483647] bg-black bg-opacity-85 flex items-center justify-center p-2 md:p-4 backdrop-blur-sm"
+          style={{ 
+            pointerEvents: 'auto',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh'
+          }}
+        >
+          <InteractiveOverlayEnhanced
+            moment={currentMoment}
+            onAnswer={handleAnswer}
+            onSkip={handleSkip}
+            progress={progress}
+            isFullscreen={true}
+          />
+        </div>,
+        document.body
+      )}
     </>
   );
 };
