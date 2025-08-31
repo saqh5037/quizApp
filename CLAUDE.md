@@ -11,83 +11,74 @@ AristoTest is a multi-tenant interactive learning and assessment platform built 
 ### Backend
 ```bash
 cd backend
-npm install                # Install dependencies
-npm run dev               # Start development server with hot reload (port 3001)
-npm run build             # Build TypeScript using Babel
-npm run build-tsc         # Build TypeScript using tsc compiler
-npm run start             # Start production server
-npm run start:prod        # Start with PM2 process manager
-npm run test              # Run Jest tests
-npm run test:watch        # Run tests in watch mode
-npm run lint              # Run ESLint on TypeScript files
-npm run format            # Format code with Prettier
-npm run migrate           # Run Sequelize database migrations
-npm run seed              # Seed database with demo data
-npm run db:reset          # Drop, create, migrate and seed database
+npm install               # Install dependencies
+npm run dev              # Start development server with hot reload (port 3001)
+npm run build            # Build TypeScript using Babel (production)
+npm run build-tsc        # Build TypeScript using tsc compiler (type checking)
+npm run start            # Start production server
+npm run start:prod       # Start with PM2 process manager
+npm run test             # Run Jest tests
+npm run test:watch       # Run tests in watch mode
+npm run lint             # Run ESLint on TypeScript files
+npm run format           # Format code with Prettier
+npm run migrate          # Run Sequelize database migrations
+npm run seed             # Seed database with demo data
+npm run db:reset         # Drop, create, migrate and seed database
+
+# Run single test file
+npm test -- tests/auth.spec.ts
+npm test -- --coverage   # Generate coverage report
 ```
 
 ### Frontend
 ```bash
 cd frontend
-npm install               # Install dependencies
-npm run dev               # Start Vite dev server with host network access (port 5173)
-npm run build             # Build for production
-npm run preview           # Preview production build
-npm run test              # Run Vitest tests
-npm run test:ui           # Run tests with UI interface
-npm run lint              # Run ESLint on TypeScript/TSX files
-npm run format            # Format code with Prettier
+npm install              # Install dependencies
+npm run dev              # Start Vite dev server with host network access (port 5173)
+npm run build            # Build for production
+npm run preview          # Preview production build
+npm run test             # Run Vitest tests
+npm run test:ui          # Run tests with UI interface
+npm run lint             # Run ESLint on TypeScript/TSX files
+npm run format           # Format code with Prettier
+
+# Run single test file
+npm test -- src/pages/Login.test.tsx
+npm test -- --coverage   # Generate coverage report
 ```
 
-### Database Commands (PostgreSQL)
+### Database Commands
 ```bash
-# Connect to database (requires PGPASSWORD environment variable)
+# Connect to database
 PGPASSWORD=AristoTest2024 psql -U aristotest -d aristotest -h localhost
 
-# Common database queries
-psql -c "SELECT * FROM tenants;"         # View all tenants
-psql -c "SELECT * FROM users;"           # View all users
-psql -c "SELECT * FROM classrooms;"      # View classrooms
-psql -c "\dt"                             # List all tables
-psql -c "\d table_name"                   # Describe table structure
-
-# Check database connectivity
+# Check connectivity
 PGPASSWORD=AristoTest2024 psql -U aristotest -h localhost -c "\l"
+
+# Common queries with password
+PGPASSWORD=AristoTest2024 psql -U aristotest -h localhost -c "SELECT * FROM tenants;"
+PGPASSWORD=AristoTest2024 psql -U aristotest -h localhost -c "SELECT * FROM users;"
+PGPASSWORD=AristoTest2024 psql -U aristotest -h localhost -c "SELECT * FROM classrooms;"
 ```
 
 ### MinIO Storage
 ```bash
-# Start MinIO server (for video/file storage)
 cd backend
-./scripts/start-minio.sh
+./scripts/start-minio.sh                  # Start MinIO server
+pm2 start ecosystem.config.js --only minio # Start with PM2
 
-# Or start with PM2 (ecosystem.config.js includes MinIO)
-pm2 start ecosystem.config.js --only minio
-
-# MinIO runs on:
-# - API: http://localhost:9000
-# - Console: http://localhost:9001
-# - Credentials: aristotest/AristoTest2024!
-# - Data directory: ./backend/storage/minio-data
+# Access points:
+# API: http://localhost:9000
+# Console: http://localhost:9001
+# Credentials: aristotest/AristoTest2024!
 ```
 
 ### PM2 Process Management
 ```bash
-# Development environment (local)
-pm2 start ecosystem.config.js              # Start backend + MinIO
-pm2 start ecosystem.config.js --only aristotest-backend
-pm2 start ecosystem.config.js --only minio
-
-# Production environment (with remote DB)
-pm2 start ecosystem.prod.config.js        # Uses AWS RDS database
-
-# Management commands
-pm2 list                 # List all processes
-pm2 logs                 # View all logs
-pm2 logs aristotest-backend
-pm2 restart all
-pm2 stop all
-pm2 delete all
+pm2 start ecosystem.config.js              # Start backend + MinIO (local)
+pm2 start ecosystem.prod.config.js         # Production with AWS RDS
+pm2 logs aristotest-backend                # View backend logs
+pm2 restart all                            # Restart all processes
 ```
 
 ## Architecture Overview
@@ -266,84 +257,47 @@ Base URL: `/api/v1`
 11. **JWT Auth**: Stateless authentication with refresh token rotation and role-based access
 12. **PDF Processing**: pdf-parse for extracting text from manual uploads
 
-## Common Development Tasks
+## Key Development Tasks
 
-### Multi-tenant Considerations
+### Multi-tenant Operations
 - All models with tenant_id field are automatically filtered by tenant
 - Use tenantMiddleware in routes to enforce tenant isolation
-- Super admin role can perform cross-tenant operations
-- Tenant context is available in req.tenantId after auth
+- Tenant context available in req.tenantId after auth
 
-### Working with AI Features
-1. Ensure GEMINI_API_KEY is set in environment
-2. Use GeminiService for AI operations:
-   - generateQuiz(): Create quiz from manual content
-   - generateInteractiveContent(): Create video interaction layers
-   - chatWithManual(): Interactive Q&A about manuals
-   - generateSummary(): Create manual summaries
-3. AI-generated content is stored in ai_generated_quizzes and interactive_video_layers tables
+### AI Integration (Google Gemini)
+- Set GEMINI_API_KEY in environment
+- GeminiService methods:
+  - generateQuiz(): Create quiz from manual content
+  - generateInteractiveContent(): Create video interaction layers
+  - chatWithManual(): Interactive Q&A about manuals
+  - generateSummary(): Create manual summaries
 
-### Working with Interactive Videos
-1. Upload video through `/api/v1/videos` endpoint
-2. Video is automatically transcoded to multiple resolutions
-3. Generate interactive layer using AI: `/api/v1/interactive-video/generate/:videoId`
-4. Questions appear at specified timestamps during playback
-5. Results are tracked in interactive_video_results table
-
-### Adding a New API Endpoint
+### Adding New API Endpoint
 1. Create controller in `/backend/src/controllers/`
-2. Add route in `/backend/src/routes/` with integrated express-validator validation
+2. Add route in `/backend/src/routes/` with express-validator
 3. Apply middleware: authMiddleware, tenantMiddleware
 4. Update frontend service in `/frontend/src/services/`
 5. Add TypeScript types in both backend and frontend
 
 ### Database Migration
-1. Create migration: `npx sequelize-cli migration:generate --name your-migration-name`
-2. Edit migration file in `/backend/migrations/`
-3. Run migration: `npm run migrate`
-4. Update models in `/backend/src/models/`
-5. Update TypeScript types in `/backend/src/types/`
+```bash
+npx sequelize-cli migration:generate --name your-migration-name
+# Edit file in /backend/migrations/
+npm run migrate
+# Update models in /backend/src/models/ and types in /backend/src/types/
+```
 
 ## Role-Based Access Control
 
-### User Roles
-- **super_admin**: System-wide access, cross-tenant operations
-- **tenant_admin**: Organization admin, manages tenant settings
-- **admin**: Legacy admin role (being phased out)
-- **instructor/teacher**: Can create quizzes, view results
-- **student**: Can take quizzes, view own results
+**User Roles**: super_admin (system-wide), tenant_admin (organization), instructor/teacher (content creation), student (quiz participation)
 
-### Middleware Protection
-- `superAdminOnly`: For system-wide operations
-- `tenantAdminOnly`: For tenant management
-- `instructorOnly`: For content creation
-- `tenantMiddleware`: Automatic tenant isolation
+**Middleware**: superAdminOnly, tenantAdminOnly, instructorOnly, tenantMiddleware (automatic tenant isolation)
 
-## Performance Considerations
+## Performance & Security
 
-- Socket.io configured for WebSocket with polling fallback
-- Rate limiting on API endpoints (100 requests per 15 minutes default)
-- Database connection pooling configured (max: 10, min: 2)
-- React Query caching with stale-while-revalidate strategy
-- Compression middleware for HTTP responses
-- File upload limits configurable (default 5MB)
-- MinIO for efficient video streaming with HLS
-- Video transcoding done asynchronously with progress tracking
-- Lazy loading for frontend routes with code splitting
+**Performance**: Socket.io WebSocket with polling fallback, rate limiting (100 req/15min), DB connection pooling (max: 10), React Query caching, compression middleware, MinIO HLS streaming, async video transcoding, lazy loading with code splitting
 
-## Security Measures
-
-- Helmet.js for security headers
-- CORS properly configured with credentials
-- Input validation with express-validator
-- SQL injection prevention via Sequelize parameterized queries
-- XSS protection through React and Content Security Policy
-- Rate limiting on sensitive endpoints
-- JWT secrets in environment variables
-- Password hashing with bcrypt (salt rounds: 10)
-- Tenant isolation enforced at database level
-- File type validation for uploads
-- Secure video URLs with signed tokens
+**Security**: Helmet.js headers, CORS with credentials, express-validator input validation, Sequelize parameterized queries, bcrypt password hashing (salt: 10), JWT auth with refresh tokens, tenant isolation at DB level, file type validation
 
 ## Deployment Information
 
@@ -361,21 +315,8 @@ Base URL: `/api/v1`
 
 ## Recent Features (v1.0.2-QA)
 
-### Interactive Videos with AI
-- Automatic video transcription and analysis
-- AI-generated contextual questions at specific timestamps
-- Auto-pause for question display
-- Progress tracking and results storage
-- Public sharing via QR codes
+**Interactive Videos**: AI-generated questions at timestamps, auto-pause, transcription, progress tracking, QR sharing
 
-### Enhanced Multi-tenant Support
-- Complete tenant isolation at all levels
-- Tenant-specific branding and configuration
-- Cross-tenant management for super admins
-- Tenant usage analytics and reporting
+**Multi-tenant**: Complete isolation, tenant branding, cross-tenant management for super admins, usage analytics
 
-### AI Quiz Import
-- Import AI-generated quizzes with validation
-- Automatic correct answer index conversion
-- Support for multiple question types
-- Bulk import capabilities
+**AI Quiz Import**: Bulk import with validation, automatic answer index conversion, multiple question types

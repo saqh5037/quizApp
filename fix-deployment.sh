@@ -1,348 +1,287 @@
 #!/bin/bash
 
-# ========================================
-# AristoTest - Script de Reparación Completa
-# ========================================
+# =================================================================
+# FIX DEPLOYMENT - Soluciona problemas de build en QA
+# =================================================================
 
-set -e  # Detener en caso de error
-
-echo "================================================"
-echo "🔧 REPARACIÓN COMPLETA DE ARISTOTEST"
-echo "================================================"
-echo ""
-
-# Variables
-REMOTE_USER="dynamtek"
-REMOTE_HOST="ec2-52-55-189-120.compute-1.amazonaws.com"
-SSH_KEY="/Users/samuelquiroz/Desktop/certificados/labsisapp.pem"
-REMOTE_PATH="/home/dynamtek/aristoTEST"
+set -e
 
 # Colores
-GREEN='\033[0;32m'
 RED='\033[0;31m'
+GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${YELLOW}1. Actualizando configuración del backend...${NC}"
+echo -e "${BLUE}================================================${NC}"
+echo -e "${BLUE}   AristoTest QA - Fix de Build y Deployment   ${NC}"
+echo -e "${BLUE}================================================${NC}"
 
-# Crear archivo de configuración corregido
-cat > /tmp/fix-backend-config.js << 'EOF'
-const fs = require('fs');
-const path = require('path');
+# Configuración
+SSH_KEY="/Users/samuelquiroz/Desktop/certificados/labsisapp.pem"
+SERVER="dynamtek@ec2-52-55-189-120.compute-1.amazonaws.com"
 
-// Actualizar .env
-const envPath = path.join(__dirname, '.env');
-const envContent = fs.readFileSync(envPath, 'utf8');
-const updatedEnv = envContent
-  .replace(/DB_NAME=.*/, 'DB_NAME=aristotest2')
-  .replace(/NODE_ENV=.*/, 'NODE_ENV=production')
-  + '\nTENANT_ID=1\n';
+# Verificar certificado
+if [ ! -f "$SSH_KEY" ]; then
+    echo -e "${RED}Error: No se encuentra el certificado en $SSH_KEY${NC}"
+    exit 1
+fi
 
-fs.writeFileSync(envPath, updatedEnv);
-console.log('✓ .env actualizado');
+echo -e "${YELLOW}Conectando al servidor QA para fix de build...${NC}"
 
-// Actualizar ecosystem.config.js
-const ecoPath = path.join(__dirname, 'ecosystem.config.js');
-const ecoContent = `const dotenv = require('dotenv');
-const path = require('path');
-dotenv.config({ path: path.resolve(__dirname, '.env') });
+# Script remoto
+ssh -i "$SSH_KEY" "$SERVER" << 'REMOTE_SCRIPT'
+set -e
 
+# Colores
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+echo -e "${YELLOW}1. Navegando al directorio del proyecto...${NC}"
+cd /home/dynamtek/aristoTEST
+
+echo -e "${YELLOW}2. Instalando dependencias de build en backend...${NC}"
+cd backend
+
+# Instalar todas las dependencias incluyendo dev para build
+npm install
+
+echo -e "${YELLOW}3. Intentando build con tsc directo...${NC}"
+# Usar tsc directamente si Babel falla
+npx tsc || {
+    echo -e "${YELLOW}tsc falló, intentando con babel con configuración corregida...${NC}"
+    
+    # Crear babel.config.js correcto
+    cat > babel.config.js << 'EOF'
+module.exports = {
+  presets: [
+    ['@babel/preset-env', {
+      targets: { node: '18' }
+    }],
+    '@babel/preset-typescript'
+  ],
+  plugins: [
+    ['module-resolver', {
+      root: ['./src'],
+      alias: {
+        '@config': './src/config',
+        '@controllers': './src/controllers',
+        '@middleware': './src/middleware',
+        '@models': './src/models',
+        '@routes': './src/routes',
+        '@services': './src/services',
+        '@utils': './src/utils',
+        '@socket': './src/socket',
+        '@types': './src/types'
+      }
+    }]
+  ]
+}
+EOF
+
+    # Intentar babel nuevamente
+    npx babel src --out-dir dist --extensions .ts,.js --copy-files || {
+        echo -e "${RED}Build con babel también falló${NC}"
+        
+        # Como último recurso, usar el código fuente directamente con ts-node
+        echo -e "${YELLOW}4. Configurando para ejecutar con ts-node...${NC}"
+        npm install -g ts-node typescript @types/node
+        
+        # Crear script de inicio alternativo
+        cat > start-dev.js << 'STARTSCRIPT'
+require('ts-node').register({
+  transpileOnly: true,
+  compilerOptions: {
+    module: 'commonjs'
+  }
+});
+require('./src/server.ts');
+STARTSCRIPT
+    }
+}
+
+# Aplicar fixes críticos si dist existe
+if [ -d "dist" ]; then
+    echo -e "${GREEN}✅ Build exitoso, aplicando fixes...${NC}"
+    
+    # Fix de transcripción
+    if [ -f "dist/services/video-transcription.service.js" ]; then
+        sed -i "s/process\.env\.USE_MOCK_TRANSCRIPTION !== 'false'/process.env.USE_MOCK_TRANSCRIPTION === 'true'/g" dist/services/video-transcription.service.js
+    fi
+    
+    # Fix de trust proxy
+    if [ -f "dist/server.js" ]; then
+        grep -q "trust proxy" dist/server.js || sed -i "/const app = express();/a app.set('trust proxy', true);" dist/server.js
+    fi
+fi
+
+echo -e "${YELLOW}5. Instalando y compilando frontend...${NC}"
+cd ../frontend
+
+# Limpiar e instalar
+rm -rf node_modules package-lock.json
+npm install
+
+# Build frontend
+npm run build || {
+    echo -e "${RED}Error en build de frontend${NC}"
+    exit 1
+}
+
+echo -e "${YELLOW}6. Iniciando servicios con PM2...${NC}"
+cd ../backend
+
+# Detener procesos anteriores
+pm2 delete all 2>/dev/null || true
+
+# Determinar qué script usar
+if [ -f "dist/server.js" ]; then
+    echo -e "${GREEN}Usando dist/server.js${NC}"
+    
+    cat > ecosystem.config.js << 'EOF'
 module.exports = {
   apps: [{
     name: 'aristotest-backend',
-    script: './src/server.ts',
-    interpreter: 'node',
-    interpreter_args: '-r ts-node/register/transpile-only -r tsconfig-paths/register',
-    exec_mode: 'fork',
+    script: './dist/server.js',
     instances: 1,
-    max_memory_restart: '2G',
-    autorestart: true,
-    watch: false,
-    error_file: '/home/dynamtek/aristoTEST/backend/logs/error.log',
-    out_file: '/home/dynamtek/aristoTEST/backend/logs/out.log',
-    log_file: '/home/dynamtek/aristoTEST/backend/logs/combined.log',
-    time: true,
+    exec_mode: 'fork',
     env: {
       NODE_ENV: 'production',
-      HOST: '0.0.0.0',
       PORT: 3001,
-      DB_NAME: 'aristotest2',
-      DB_HOST: 'ec2-3-91-26-178.compute-1.amazonaws.com',
-      DB_PORT: 5432,
-      DB_USER: 'labsis',
-      DB_PASSWORD: ',U8x=]N02SX4',
-      DB_DIALECT: 'postgres',
-      JWT_SECRET: 'aristotest-qa-jwt-secret-2025',
-      JWT_REFRESH_SECRET: 'aristotest-qa-refresh-secret-2025',
-      JWT_EXPIRES_IN: '24h',
-      JWT_REFRESH_EXPIRES_IN: '7d',
-      CORS_ORIGIN: 'http://52.55.189.120,http://ec2-52-55-189-120.compute-1.amazonaws.com',
-      SOCKET_CORS_ORIGIN: 'http://52.55.189.120,http://ec2-52-55-189-120.compute-1.amazonaws.com',
-      FRONTEND_URL: 'http://52.55.189.120',
-      MINIO_ENDPOINT: 'localhost',
-      MINIO_PORT: 9000,
-      MINIO_USE_SSL: false,
-      MINIO_ACCESS_KEY: 'aristotest',
-      MINIO_SECRET_KEY: 'AristoTest2024!',
-      MINIO_BUCKET_NAME: 'aristotest-videos',
-      GEMINI_API_KEY: 'AIzaSyAGlwn2nDECzKnqRYqHo4hVUlNqGMsp1mw',
-      OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
-      TEMP_DIR: '/tmp/video-transcription',
-      UPLOAD_DIR: '/tmp/video-uploads',
-      TS_NODE_TRANSPILE_ONLY: 'true',
-      TENANT_ID: '1',
-      DEFAULT_TENANT_ID: '1'
-    }
+      HOST: '0.0.0.0'
+    },
+    error_file: './logs/err.log',
+    out_file: './logs/out.log',
+    log_file: './logs/combined.log',
+    time: true,
+    max_memory_restart: '500M'
   }]
-};`;
-
-fs.writeFileSync(ecoPath, ecoContent);
-console.log('✓ ecosystem.config.js actualizado');
-
-// Crear directorios de logs si no existen
-const logsDir = path.join(__dirname, 'logs');
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
-  console.log('✓ Directorio de logs creado');
+}
+EOF
+    
+elif [ -f "start-dev.js" ]; then
+    echo -e "${YELLOW}Usando ts-node con start-dev.js${NC}"
+    
+    cat > ecosystem.config.js << 'EOF'
+module.exports = {
+  apps: [{
+    name: 'aristotest-backend',
+    script: './start-dev.js',
+    instances: 1,
+    exec_mode: 'fork',
+    interpreter: 'node',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3001,
+      HOST: '0.0.0.0'
+    },
+    error_file: './logs/err.log',
+    out_file: './logs/out.log',
+    log_file: './logs/combined.log',
+    time: true,
+    max_memory_restart: '500M'
+  }]
 }
 EOF
 
-# Copiar y ejecutar script de configuración
-scp -i "$SSH_KEY" /tmp/fix-backend-config.js "$REMOTE_USER@$REMOTE_HOST:/tmp/"
-ssh -i "$SSH_KEY" "$REMOTE_USER@$REMOTE_HOST" "cd $REMOTE_PATH/backend && node /tmp/fix-backend-config.js"
+else
+    echo -e "${RED}No se pudo compilar el backend${NC}"
+    exit 1
+fi
 
-echo -e "${GREEN}✓ Configuración actualizada${NC}"
+# Iniciar PM2
+mkdir -p logs
+pm2 start ecosystem.config.js
+pm2 save
 
-echo -e "${YELLOW}2. Creando script de procesamiento de videos...${NC}"
+echo -e "${YELLOW}7. Iniciando MinIO...${NC}"
+# Matar proceso anterior si existe
+sudo lsof -ti:9000 | xargs -r sudo kill -9 2>/dev/null || true
 
-# Crear script para procesar videos con error
-cat > /tmp/fix-video-processing.js << 'EOF'
-const { Sequelize } = require('sequelize');
-const Minio = require('minio');
-const fs = require('fs');
-const path = require('path');
+# Iniciar MinIO
+nohup minio server storage/minio-data --address :9000 --console-address :9001 > minio.log 2>&1 &
 
-const sequelize = new Sequelize('aristotest2', 'labsis', ',U8x=]N02SX4', {
-  host: 'ec2-3-91-26-178.compute-1.amazonaws.com',
-  dialect: 'postgres',
-  logging: false
-});
+echo -e "${YELLOW}8. Configurando Nginx...${NC}"
 
-const minioClient = new Minio.Client({
-  endPoint: 'localhost',
-  port: 9000,
-  useSSL: false,
-  accessKey: 'aristotest',
-  secretKey: 'AristoTest2024!'
-});
-
-async function fixVideos() {
-  try {
-    // Obtener videos con error
-    const [videos] = await sequelize.query(
-      "SELECT id, title, status FROM videos WHERE status = 'error' OR status = 'processing'"
-    );
+# Crear configuración de nginx
+sudo tee /etc/nginx/sites-available/aristotest << 'EOF'
+server {
+    listen 80;
+    server_name ec2-52-55-189-120.compute-1.amazonaws.com;
     
-    console.log(`Encontrados ${videos.length} videos con problemas`);
-    
-    for (const video of videos) {
-      console.log(`Procesando video ${video.id}: ${video.title}`);
-      
-      // Verificar si existen archivos procesados
-      const processedPath = path.join(__dirname, 'storage/processed', video.id.toString());
-      const hlsPath = path.join(processedPath, 'hls/master.m3u8');
-      
-      if (fs.existsSync(hlsPath)) {
-        // Actualizar estado a ready
-        await sequelize.query(
-          `UPDATE videos SET 
-            status = 'ready',
-            processing_progress = 100,
-            error_message = NULL,
-            processed_path = 'videos/processed/${video.id}',
-            hls_playlist_url = 'videos/hls/${video.id}/master.m3u8'
-          WHERE id = ${video.id}`
-        );
+    # Frontend
+    location / {
+        root /home/dynamtek/aristoTEST/frontend/dist;
+        try_files $uri $uri/ /index.html;
         
-        // Subir a MinIO
-        await uploadToMinio(video.id, processedPath);
-        
-        console.log(`✓ Video ${video.id} reparado`);
-      } else {
-        // Marcar como pendiente de procesamiento manual
-        await sequelize.query(
-          `UPDATE videos SET 
-            status = 'pending',
-            processing_progress = 0,
-            error_message = 'Requiere procesamiento manual'
-          WHERE id = ${video.id}`
-        );
-        console.log(`⚠ Video ${video.id} requiere procesamiento manual`);
-      }
+        # Headers de seguridad
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
     }
     
-    // Insertar calidades de video faltantes
-    await sequelize.query(`
-      INSERT INTO video_qualities (video_id, quality, width, height, bitrate, file_path)
-      SELECT v.id, q.quality, q.width, q.height, q.bitrate, 
-             'videos/hls/' || v.id || '/' || q.quality || '/playlist.m3u8'
-      FROM videos v
-      CROSS JOIN (
-        VALUES 
-          ('360p', 640, 360, 800000),
-          ('480p', 854, 480, 1200000),
-          ('720p', 1280, 720, 2500000)
-      ) AS q(quality, width, height, bitrate)
-      WHERE v.status = 'ready'
-        AND NOT EXISTS (
-          SELECT 1 FROM video_qualities vq 
-          WHERE vq.video_id = v.id AND vq.quality = q.quality
-        )
-    `);
-    
-    console.log('✓ Calidades de video actualizadas');
-    
-  } catch (error) {
-    console.error('Error:', error);
-  } finally {
-    await sequelize.close();
-  }
-}
-
-async function uploadToMinio(videoId, localPath) {
-  const bucketName = 'aristotest-videos';
-  
-  async function uploadDirectory(localDir, minioPath) {
-    const files = fs.readdirSync(localDir);
-    
-    for (const file of files) {
-      const fullPath = path.join(localDir, file);
-      const stat = fs.statSync(fullPath);
-      
-      if (stat.isDirectory()) {
-        await uploadDirectory(fullPath, minioPath + '/' + file);
-      } else {
-        const minioKey = minioPath + '/' + file;
-        const fileStream = fs.createReadStream(fullPath);
-        const contentType = file.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 
-                           file.endsWith('.ts') ? 'video/mp2t' : 
-                           file.endsWith('.jpg') ? 'image/jpeg' : 'application/octet-stream';
+    # Backend API
+    location /api {
+        proxy_pass http://localhost:3001/api;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 90;
         
-        await minioClient.putObject(bucketName, minioKey, fileStream, stat.size, {
-          'Content-Type': contentType,
-          'Cache-Control': 'public, max-age=3600'
-        });
-      }
+        # Para archivos grandes
+        client_max_body_size 100M;
     }
-  }
-  
-  // Subir archivos HLS
-  const hlsPath = path.join(localPath, 'hls');
-  if (fs.existsSync(hlsPath)) {
-    await uploadDirectory(hlsPath, 'videos/hls/' + videoId);
-  }
-  
-  // Subir thumbnail
-  const thumbnailPath = path.join(localPath, 'thumbnail.jpg');
-  if (fs.existsSync(thumbnailPath)) {
-    const fileStream = fs.createReadStream(thumbnailPath);
-    const stat = fs.statSync(thumbnailPath);
-    await minioClient.putObject(bucketName, 'videos/thumbnails/' + videoId + '.jpg', fileStream, stat.size, {
-      'Content-Type': 'image/jpeg'
-    });
-  }
+    
+    # Socket.io
+    location /socket.io {
+        proxy_pass http://localhost:3001/socket.io;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 }
-
-fixVideos();
 EOF
 
-scp -i "$SSH_KEY" /tmp/fix-video-processing.js "$REMOTE_USER@$REMOTE_HOST:/tmp/"
+# Habilitar sitio
+sudo ln -sf /etc/nginx/sites-available/aristotest /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
 
-echo -e "${GREEN}✓ Script de procesamiento creado${NC}"
+echo -e "${GREEN}✅ Fix de deployment completado!${NC}"
+echo ""
+echo -e "${BLUE}Estado de servicios:${NC}"
+pm2 status
+echo ""
 
-echo -e "${YELLOW}3. Configurando política de MinIO...${NC}"
-
-# Configurar política pública de MinIO
-ssh -i "$SSH_KEY" "$REMOTE_USER@$REMOTE_HOST" << 'REMOTE_SCRIPT'
-cd /home/dynamtek/aristoTEST/backend
-
-cat > set-minio-public-policy.js << 'EOF'
-const Minio = require('minio');
-
-const minioClient = new Minio.Client({
-  endPoint: 'localhost',
-  port: 9000,
-  useSSL: false,
-  accessKey: 'aristotest',
-  secretKey: 'AristoTest2024!'
-});
-
-const bucketName = 'aristotest-videos';
-
-const policy = {
-  Version: '2012-10-17',
-  Statement: [
-    {
-      Effect: 'Allow',
-      Principal: { AWS: ['*'] },
-      Action: ['s3:GetObject'],
-      Resource: ['arn:aws:s3:::' + bucketName + '/*']
-    }
-  ]
-};
-
-minioClient.setBucketPolicy(bucketName, JSON.stringify(policy), (err) => {
-  if (err) {
-    console.error('Error:', err);
-  } else {
-    console.log('✓ Política pública configurada');
-  }
-});
-EOF
-
-node set-minio-public-policy.js
-REMOTE_SCRIPT
-
-echo -e "${GREEN}✓ MinIO configurado${NC}"
-
-echo -e "${YELLOW}4. Reiniciando servicios...${NC}"
-
-ssh -i "$SSH_KEY" "$REMOTE_USER@$REMOTE_HOST" << 'REMOTE_COMMANDS'
-# Detener servicios
-pm2 stop aristotest-backend
-
-# Limpiar logs antiguos
-pm2 flush aristotest-backend
-
-# Reiniciar backend con nueva configuración
-cd /home/dynamtek/aristoTEST/backend
-pm2 start ecosystem.config.js --update-env
-
-# Esperar a que inicie
+# Esperar un momento para que los servicios inicien
 sleep 5
 
-# Verificar estado
-pm2 status
-pm2 logs aristotest-backend --lines 20 --nostream | grep "Connected to"
-
-# Ejecutar reparación de videos
-node /tmp/fix-video-processing.js
-
-echo "✓ Servicios reiniciados"
-REMOTE_COMMANDS
-
-echo -e "${GREEN}✓ Servicios actualizados${NC}"
-
+echo -e "${BLUE}Verificación de endpoints:${NC}"
+curl -s -o /dev/null -w "Frontend: %{http_code}\n" http://localhost || echo "Frontend: Error"
+curl -s -o /dev/null -w "Backend: %{http_code}\n" http://localhost:3001/api/v1/health || echo "Backend: Error"
 echo ""
-echo "================================================"
-echo -e "${GREEN}✅ REPARACIÓN COMPLETA EXITOSA${NC}"
-echo "================================================"
+
+echo -e "${GREEN}URLs de acceso:${NC}"
+echo "Frontend: http://ec2-52-55-189-120.compute-1.amazonaws.com"
+echo "Backend API: http://ec2-52-55-189-120.compute-1.amazonaws.com/api/v1"
+echo "MinIO Console: http://ec2-52-55-189-120.compute-1.amazonaws.com:9001"
 echo ""
-echo "Accesos:"
-echo "- Aplicación: http://52.55.189.120"
-echo "- API: http://52.55.189.120:3001/api/v1"
-echo "- MinIO: http://52.55.189.120:9000"
-echo ""
-echo "Base de datos: aristotest2"
-echo "Usuario: admin@aristotest.com / admin123"
-echo ""
+echo -e "${GREEN}Credenciales:${NC}"
+echo "Admin: admin@aristotest.com / admin123"
+echo "MinIO: aristotest / AristoTest2024!"
+
+REMOTE_SCRIPT
+
+echo -e "${GREEN}✅ Script de fix ejecutado exitosamente!${NC}"
