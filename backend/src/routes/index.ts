@@ -87,6 +87,10 @@ router.use('/ai', aiRoutes);
 import interactiveVideoRoutes from './interactive-video.routes';
 router.use('/interactive-video', interactiveVideoRoutes);
 
+// Educational Resources routes
+import educationalResourcesRoutes from './educational-resources.routes';
+router.use('/educational-resources', educationalResourcesRoutes);
+
 // Manual routes - direct implementation
 router.get('/manuals/test', (req: Request, res: Response) => {
   res.json({ success: true, message: 'Manual routes working' });
@@ -232,6 +236,42 @@ router.get('/manuals/:id', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching manual:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor'
+    });
+  }
+});
+
+// Serve manual PDF file
+router.get('/manuals/:id/view', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const manual = await Manual.findByPk(id);
+
+    if (!manual) {
+      return res.status(404).json({
+        success: false,
+        error: 'Manual no encontrado'
+      });
+    }
+
+    if (!manual.file_path || !fs.existsSync(manual.file_path)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Archivo no encontrado'
+      });
+    }
+
+    // Set appropriate headers for PDF viewing
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${manual.metadata?.originalName || 'manual.pdf'}"`);
+    
+    // Stream the file
+    const fileStream = fs.createReadStream(manual.file_path);
+    fileStream.pipe(res);
+  } catch (error: any) {
+    console.error('Error serving manual file:', error);
     res.status(500).json({
       success: false,
       error: 'Error interno del servidor'

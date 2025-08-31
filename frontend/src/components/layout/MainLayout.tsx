@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
+import useInactivityDetector from '../../hooks/useInactivityDetector';
 import { 
   RiRocketLine, 
   RiBookOpenLine, 
@@ -20,6 +21,13 @@ export default function MainLayout() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user, logout } = useAuthStore();
+  
+  // Activar detector de inactividad
+  useInactivityDetector({
+    enabled: true,
+    timeout: 20 * 60 * 1000, // 20 minutos
+    warningTime: 2 * 60 * 1000, // Advertencia 2 minutos antes
+  });
 
   const handleLogout = () => {
     logout();

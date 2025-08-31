@@ -23,6 +23,8 @@ interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  lastActivity: number | null;
+  sessionStartTime: number | null;
   
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
@@ -30,6 +32,8 @@ interface AuthState {
   refreshAccessToken: () => Promise<void>;
   updateUser: (user: User) => void;
   clearAuth: () => void;
+  updateActivity: () => void;
+  checkSessionValidity: () => boolean;
 }
 
 interface RegisterData {
@@ -47,6 +51,8 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
+      lastActivity: null,
+      sessionStartTime: null,
 
       login: async (email: string, password: string) => {
         set({ isLoading: true });
@@ -57,6 +63,7 @@ export const useAuthStore = create<AuthState>()(
           });
           
           const { user, accessToken, refreshToken = null } = response.data.data;
+          const now = Date.now();
           
           set({
             user,
@@ -64,6 +71,8 @@ export const useAuthStore = create<AuthState>()(
             refreshToken,
             isAuthenticated: true,
             isLoading: false,
+            lastActivity: now,
+            sessionStartTime: now,
           });
           
           // Set default authorization header
@@ -83,6 +92,7 @@ export const useAuthStore = create<AuthState>()(
           const response = await axios.post(buildApiUrl(apiConfig.endpoints.auth.register), data);
           
           const { user, accessToken, refreshToken = null } = response.data.data;
+          const now = Date.now();
           
           set({
             user,
@@ -90,6 +100,8 @@ export const useAuthStore = create<AuthState>()(
             refreshToken,
             isAuthenticated: true,
             isLoading: false,
+            lastActivity: now,
+            sessionStartTime: now,
           });
           
           axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
@@ -108,6 +120,8 @@ export const useAuthStore = create<AuthState>()(
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
+          lastActivity: null,
+          sessionStartTime: null,
         });
         
         delete axios.defaults.headers.common['Authorization'];
@@ -150,9 +164,33 @@ export const useAuthStore = create<AuthState>()(
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
+          lastActivity: null,
+          sessionStartTime: null,
         });
         
         delete axios.defaults.headers.common['Authorization'];
+      },
+      
+      updateActivity: () => {
+        set({ lastActivity: Date.now() });
+      },
+      
+      checkSessionValidity: () => {
+        const state = get();
+        if (!state.isAuthenticated || !state.lastActivity) {
+          return false;
+        }
+        
+        const now = Date.now();
+        const timeSinceLastActivity = now - state.lastActivity;
+        const maxInactivityTime = 20 * 60 * 1000; // 20 minutos
+        
+        if (timeSinceLastActivity > maxInactivityTime) {
+          get().clearAuth();
+          return false;
+        }
+        
+        return true;
       },
     }),
     {
@@ -162,6 +200,8 @@ export const useAuthStore = create<AuthState>()(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
+        lastActivity: state.lastActivity,
+        sessionStartTime: state.sessionStartTime,
       }),
     }
   )

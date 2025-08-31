@@ -5,6 +5,8 @@ import * as path from 'path';
 import axios from 'axios';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import minioService from './minio.service';
+import * as os from 'os';
 
 const execAsync = promisify(exec);
 
@@ -57,6 +59,8 @@ export class VideoAIAnalyzerService {
    * @throws Error if layer not found or processing fails
    */
   async analyzeVideo(layerId: number): Promise<void> {
+    let tempFilePath: string | null = null;
+    
     try {
       const layer = await InteractiveVideoLayer.findByPk(layerId, {
         include: [{
@@ -77,18 +81,64 @@ export class VideoAIAnalyzerService {
       // Get the correct video path
       const video = layer.video!;
       
-      const videoPath = video.originalPath || video.original_path || 
-                       video.processedPath || video.processed_path || 
-                       video.filePath || 
-                       (video.dataValues && (video.dataValues.originalPath || video.dataValues.original_path));
+      // Determine the actual video path or MinIO object name
+      let absoluteVideoPath: string;
       
-      if (!videoPath) {
-        throw new Error('No se encontró la ruta del archivo de video');
+      // Check if video is stored in MinIO
+      // Detect MinIO storage by checking if hlsPlaylistUrl contains MinIO endpoint or if local file doesn't exist
+      const isMinioVideo = video.storageProvider === 'minio' || 
+                          video.streamUrl?.includes('9000') || 
+                          video.hlsPlaylistUrl?.includes('9000') ||
+                          (video.originalPath && !fs.existsSync(path.join(process.cwd(), video.originalPath)));
+                          
+      if (isMinioVideo) {
+        // Video is in MinIO, need to download it first
+        console.log('Video detected in MinIO storage, preparing to download...');
+        const objectName = this.extractObjectNameFromVideo(video);
+        
+        if (!objectName) {
+          console.error('Failed to extract object name from video:', video);
+          throw new Error('No se pudo determinar el nombre del objeto en MinIO');
+        }
+        
+        console.log('MinIO object name:', objectName);
+        
+        // Create temp file path
+        tempFilePath = path.join(os.tmpdir(), `temp_video_${layerId}_${Date.now()}.mp4`);
+        
+        try {
+          await layer.update({ 
+            processingLog: 'Descargando video desde almacenamiento... (10%)'
+          });
+          
+          // Download video from MinIO to temp file
+          await minioService.downloadFile(objectName, tempFilePath);
+          absoluteVideoPath = tempFilePath;
+          
+        } catch (error) {
+          console.error('Error downloading video from MinIO:', error);
+          throw new Error('No se pudo descargar el video desde el almacenamiento');
+        }
+      } else {
+        // Video is stored locally
+        const videoPath = video.originalPath || video.original_path || 
+                         video.processedPath || video.processed_path || 
+                         video.filePath || 
+                         (video.dataValues && (video.dataValues.originalPath || video.dataValues.original_path));
+        
+        if (!videoPath) {
+          throw new Error('No se encontró la ruta del archivo de video');
+        }
+        
+        absoluteVideoPath = videoPath.startsWith('/') 
+          ? videoPath 
+          : path.join(process.cwd(), videoPath);
+          
+        // Check if local file exists
+        if (!fs.existsSync(absoluteVideoPath)) {
+          throw new Error(`El archivo de video no existe en la ruta: ${absoluteVideoPath}`);
+        }
       }
-      
-      const absoluteVideoPath = videoPath.startsWith('/') 
-        ? videoPath 
-        : path.join(process.cwd(), videoPath);
         
       const videoUrl = video.url || video.hlsPlaylistUrl || '';
 
@@ -157,9 +207,29 @@ export class VideoAIAnalyzerService {
       });
 
       this.cleanupTempFiles(frames);
+      
+      // Clean up temporary video file if it was downloaded from MinIO
+      if (tempFilePath && fs.existsSync(tempFilePath)) {
+        try {
+          fs.unlinkSync(tempFilePath);
+          console.log('Temporary video file cleaned up:', tempFilePath);
+        } catch (error) {
+          console.error('Error cleaning up temp video file:', error);
+        }
+      }
 
     } catch (error: any) {
       console.error('Error analyzing video:', error);
+      
+      // Clean up temporary video file if it exists
+      if (tempFilePath && fs.existsSync(tempFilePath)) {
+        try {
+          fs.unlinkSync(tempFilePath);
+          console.log('Temporary video file cleaned up after error:', tempFilePath);
+        } catch (cleanupError) {
+          console.error('Error cleaning up temp video file:', cleanupError);
+        }
+      }
       
       const layer = await InteractiveVideoLayer.findByPk(layerId);
       if (layer) {
@@ -478,6 +548,99 @@ export class VideoAIAnalyzerService {
         console.error(`Error deleting temp directory ${tempDir}:`, error);
       }
     }
+  }
+
+  /**
+   * Extracts the MinIO object name from video model.
+   * @param video - Video model instance
+   * @returns Object name for MinIO or null if not found
+   */
+  private extractObjectNameFromVideo(video: any): string | null {
+    // First, try to extract from HLS playlist URL (most reliable for MinIO videos)
+    if (video.hlsPlaylistUrl && video.hlsPlaylistUrl.includes('://')) {
+      try {
+        const url = new URL(video.hlsPlaylistUrl);
+        // Extract path after bucket name
+        // Example: /aristotest-videos/videos/hls/66/master.m3u8
+        let pathname = url.pathname;
+        
+        // Remove leading slash
+        if (pathname.startsWith('/')) {
+          pathname = pathname.substring(1);
+        }
+        
+        // Remove bucket name if present
+        const bucketName = process.env.MINIO_BUCKET_NAME || 'aristotest-videos';
+        if (pathname.startsWith(bucketName + '/')) {
+          pathname = pathname.substring(bucketName.length + 1);
+        }
+        
+        // Convert HLS path to original video path
+        // videos/hls/66/master.m3u8 -> videos/66/original.mp4
+        if (pathname.includes('/hls/') && pathname.endsWith('.m3u8')) {
+          const videoIdMatch = pathname.match(/\/hls\/(\d+)\//);
+          if (videoIdMatch) {
+            const videoId = videoIdMatch[1];
+            // Try to construct the original video path
+            return `videos/${videoId}/original.mp4`;
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing HLS URL:', video.hlsPlaylistUrl, error);
+      }
+    }
+    
+    // Try other URL fields
+    const possiblePaths = [
+      video.streamUrl,
+      video.processedPath,
+      video.url
+    ];
+
+    for (const path of possiblePaths) {
+      if (path && path.includes('://')) {
+        try {
+          const url = new URL(path);
+          let objectName = url.pathname.substring(1);
+          
+          const bucketName = process.env.MINIO_BUCKET_NAME || 'aristotest-videos';
+          if (objectName.startsWith(bucketName + '/')) {
+            objectName = objectName.substring(bucketName.length + 1);
+          }
+          
+          if (objectName && objectName.endsWith('.mp4')) {
+            return objectName;
+          }
+        } catch (error) {
+          console.error('Error parsing URL:', path, error);
+        }
+      }
+    }
+    
+    // If originalPath is just a filename, try to construct MinIO path
+    if (video.originalPath) {
+      const filename = video.originalPath.split('/').pop();
+      if (filename && video.id) {
+        // Try standard MinIO path structure
+        return `videos/${video.id}/${filename}`;
+      }
+    }
+    
+    // Last resort: try to construct from video ID
+    if (video.id) {
+      // Standard paths to try
+      const possibleObjectNames = [
+        `videos/${video.id}/original.mp4`,
+        `videos/${video.id}/video.mp4`,
+        `uploads/${video.id}.mp4`
+      ];
+      
+      // Return the first one (we'll need to handle the error if it doesn't exist)
+      console.log('Trying standard MinIO paths for video ID:', video.id);
+      return possibleObjectNames[0];
+    }
+    
+    return null;
   }
 
   async processVideoInBackground(layerId: number): Promise<void> {

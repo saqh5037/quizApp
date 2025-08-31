@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
-import { FiBook, FiPlay, FiUsers, FiBarChart2, FiSettings, FiDatabase, FiCheckCircle, FiAlertCircle, FiCopy } from 'react-icons/fi';
+import { FiBook, FiPlay, FiUsers, FiBarChart2, FiSettings, FiDatabase, FiCheckCircle, FiAlertCircle, FiCopy, FiFileText, FiLayers } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 interface Module {
@@ -517,6 +517,141 @@ export default function Documentation() {
       status: 'working'
     },
     {
+      id: 'manuals',
+      title: i18n.language === 'es' ? 'Manuales y Chat IA' : 'Manuals & AI Chat',
+      description: i18n.language === 'es'
+        ? 'Sistema completo de gestión de manuales PDF con extracción de texto y chat inteligente con IA.'
+        : 'Complete PDF manual management system with text extraction and intelligent AI chat.',
+      icon: <FiFileText className="w-5 h-5" />,
+      features: i18n.language === 'es' ? [
+        '✅ Subida y procesamiento de PDF',
+        '✅ Extracción automática de texto con pdf-parse',
+        '✅ Almacenamiento seguro de documentos',
+        '✅ Chat inteligente con Gemini AI',
+        '✅ Historial de conversaciones persistente',
+        '✅ Generación de quizzes desde manuales',
+        '✅ Búsqueda y filtrado de manuales',
+        '✅ Gestión de permisos (público/privado)',
+        '✅ Integración con Centro de Recursos Educativos'
+      ] : [
+        '✅ PDF upload and processing',
+        '✅ Automatic text extraction with pdf-parse',
+        '✅ Secure document storage',
+        '✅ Intelligent chat with Gemini AI',
+        '✅ Persistent conversation history',
+        '✅ Quiz generation from manuals',
+        '✅ Manual search and filtering',
+        '✅ Permission management (public/private)',
+        '✅ Integration with Educational Resources Center'
+      ],
+      testSteps: i18n.language === 'es' ? [
+        '1. Ve a Manuales desde el menú principal',
+        '2. Sube un nuevo PDF usando "Subir Manual"',
+        '3. Espera a que se procese y extraiga el texto',
+        '4. Haz clic en "Chat con IA" para conversar',
+        '5. Pregunta sobre el contenido del manual',
+        '6. Genera un quiz desde el manual',
+        '7. Accede a Recursos Educativos desde el manual'
+      ] : [
+        '1. Go to Manuals from main menu',
+        '2. Upload new PDF using "Upload Manual"',
+        '3. Wait for processing and text extraction',
+        '4. Click "AI Chat" to converse',
+        '5. Ask about manual content',
+        '6. Generate quiz from manual',
+        '7. Access Educational Resources from manual'
+      ],
+      testData: {
+        title: i18n.language === 'es' ? 'Manual de Prueba' : 'Test Manual',
+        data: {
+          manualId: 6,
+          title: 'Manual de Prueba para QA',
+          features: [
+            'Chat IA contextual',
+            'Generación de quizzes',
+            'Recursos educativos',
+            'Historial persistente'
+          ],
+          note: i18n.language === 'es' 
+            ? 'Manual ID 6 configurado con contenido de prueba'
+            : 'Manual ID 6 configured with test content'
+        }
+      },
+      status: 'working'
+    },
+    {
+      id: 'educational-resources',
+      title: i18n.language === 'es' ? 'Centro de Recursos Educativos' : 'Educational Resources Center',
+      description: i18n.language === 'es'
+        ? 'Sistema profesional de generación de recursos educativos con IA: resúmenes, guías de estudio y tarjetas interactivas.'
+        : 'Professional AI-powered educational resource generation system: summaries, study guides, and interactive flash cards.',
+      icon: <FiLayers className="w-5 h-5" />,
+      features: i18n.language === 'es' ? [
+        '✅ Resúmenes IA (Breve, Detallado, Puntos Clave)',
+        '✅ Guías de Estudio personalizadas por nivel',
+        '✅ Tarjetas Interactivas con seguimiento',
+        '✅ Generación asíncrona con Gemini AI',
+        '✅ Almacenamiento persistente en BD',
+        '✅ Visualización completa de recursos',
+        '✅ Compartir público/privado',
+        '✅ Exportación y descarga (próximamente)',
+        '✅ Estadísticas de estudio en tarjetas'
+      ] : [
+        '✅ AI Summaries (Brief, Detailed, Key Points)',
+        '✅ Customized Study Guides by level',
+        '✅ Interactive Flash Cards with tracking',
+        '✅ Asynchronous generation with Gemini AI',
+        '✅ Persistent DB storage',
+        '✅ Complete resource visualization',
+        '✅ Public/private sharing',
+        '✅ Export and download (coming soon)',
+        '✅ Flash card study statistics'
+      ],
+      testSteps: i18n.language === 'es' ? [
+        '1. Desde un manual, haz clic en "Generar Recursos IA"',
+        '2. Selecciona el tipo: Resumen, Guía o Tarjetas',
+        '3. Configura las opciones específicas',
+        '4. Personaliza el prompt si lo deseas',
+        '5. Genera el recurso y espera procesamiento',
+        '6. Ve a "Ver Recursos" para visualizar',
+        '7. Interactúa con tarjetas (voltear, navegar)',
+        '8. Filtra recursos por estado o tipo'
+      ] : [
+        '1. From a manual, click "Generate AI Resources"',
+        '2. Select type: Summary, Guide or Cards',
+        '3. Configure specific options',
+        '4. Customize prompt if desired',
+        '5. Generate resource and wait for processing',
+        '6. Go to "View Resources" to visualize',
+        '7. Interact with cards (flip, navigate)',
+        '8. Filter resources by status or type'
+      ],
+      testData: {
+        title: i18n.language === 'es' ? 'Tipos de Recursos' : 'Resource Types',
+        data: {
+          summaries: {
+            brief: '2-3 párrafos clave',
+            detailed: 'Cobertura completa',
+            key_points: 'Lista estructurada'
+          },
+          studyGuides: {
+            beginner: '30 min estimados',
+            intermediate: '45 min estimados',
+            advanced: '60 min estimados'
+          },
+          flashCards: {
+            easy: '5-10 tarjetas básicas',
+            medium: '10-15 tarjetas aplicadas',
+            hard: '15-20 tarjetas complejas'
+          },
+          note: i18n.language === 'es' 
+            ? 'Todos los recursos se almacenan permanentemente'
+            : 'All resources are permanently stored'
+        }
+      },
+      status: 'working'
+    },
+    {
       id: 'database',
       title: i18n.language === 'es' ? 'Base de Datos' : 'Database',
       description: i18n.language === 'es'
@@ -524,19 +659,27 @@ export default function Documentation() {
         : 'Current status of tables and known issues.',
       icon: <FiDatabase className="w-5 h-5" />,
       features: i18n.language === 'es' ? [
-        'PostgreSQL configurado',
-        'Tabla users funcional',
-        'Tabla quizzes funcional',
-        'Tabla quiz_sessions funcional',
-        'Tabla session_participants FALTANTE',
-        'Tabla participants problemática'
+        '✅ PostgreSQL configurado',
+        '✅ Tabla users funcional',
+        '✅ Tabla quizzes funcional',
+        '✅ Tabla quiz_sessions funcional',
+        '✅ Tabla session_participants creada',
+        '✅ Tabla manuals funcional',
+        '✅ Tabla manual_summaries funcional',
+        '✅ Tabla study_guides funcional',
+        '✅ Tabla flash_cards funcional',
+        '✅ Tabla public_quiz_results funcional'
       ] : [
-        'PostgreSQL configured',
-        'Users table functional',
-        'Quizzes table functional',
-        'Quiz_sessions table functional',
-        'Session_participants table MISSING',
-        'Participants table problematic'
+        '✅ PostgreSQL configured',
+        '✅ Users table functional',
+        '✅ Quizzes table functional',
+        '✅ Quiz_sessions table functional',
+        '✅ Session_participants table created',
+        '✅ Manuals table functional',
+        '✅ Manual_summaries table functional',
+        '✅ Study_guides table functional',
+        '✅ Flash_cards table functional',
+        '✅ Public_quiz_results table functional'
       ],
       testSteps: i18n.language === 'es' ? [
         '1. ✅ Tablas de base de datos corregidas',
@@ -651,7 +794,7 @@ export default function Documentation() {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-green-500">● {i18n.language === 'es' ? 'Funcionando' : 'Working'}</span>
-                  <span>8</span>
+                  <span>11</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-yellow-500">● {i18n.language === 'es' ? 'Parcial' : 'Partial'}</span>

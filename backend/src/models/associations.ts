@@ -9,6 +9,8 @@ import Manual from './Manual.model';
 import ManualChat from './ManualChat.model';
 import AIGeneratedQuiz from './AIGeneratedQuiz.model';
 import ManualSummary from './ManualSummary.model';
+import StudyGuide from './StudyGuide.model';
+import FlashCard from './FlashCard.model';
 import { Video } from './Video';
 import InteractiveVideoLayer from './InteractiveVideoLayer.model';
 import InteractiveVideoResult from './InteractiveVideoResult.model';
@@ -326,4 +328,48 @@ export const setupAssociations = (): void => {
       as: 'interactiveVideoAnswers'
     });
   }
+
+  // StudyGuide associations
+  StudyGuide.belongsTo(Manual, {
+    foreignKey: 'manual_id',
+    as: 'manual',
+  });
+
+  StudyGuide.belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user',
+  });
+
+  Manual.hasMany(StudyGuide, {
+    foreignKey: 'manual_id',
+    as: 'studyGuides',
+    onDelete: 'CASCADE',
+  });
+
+  User.hasMany(StudyGuide, {
+    foreignKey: 'user_id',
+    as: 'studyGuides',
+  });
+
+  // FlashCard associations
+  FlashCard.belongsTo(Manual, {
+    foreignKey: 'manual_id',
+    as: 'manual',
+  });
+
+  FlashCard.belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user',
+  });
+
+  Manual.hasMany(FlashCard, {
+    foreignKey: 'manual_id',
+    as: 'flashCards',
+    onDelete: 'CASCADE',
+  });
+
+  User.hasMany(FlashCard, {
+    foreignKey: 'user_id',
+    as: 'flashCards',
+  });
 };

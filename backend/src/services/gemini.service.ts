@@ -16,7 +16,7 @@ class GeminiService {
       }
       
       this.genAI = new GoogleGenerativeAI(apiKey);
-      this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
+      this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     }
   }
 
@@ -170,6 +170,225 @@ Por favor genera el resumen:`;
     } catch (error) {
       console.error('Error generating summary:', error);
       throw new Error('Failed to generate summary');
+    }
+  }
+
+  async generateStudyGuide(
+    manualContent: string, 
+    difficultyLevel: 'beginner' | 'intermediate' | 'advanced', 
+    estimatedTime: number, 
+    learningObjectives: string[], 
+    customPrompt?: string
+  ): Promise<string> {
+    try {
+      this.initialize();
+      const difficultyInstructions = {
+        beginner: 'conceptos básicos y fundamentos, con explicaciones simples y ejemplos claros',
+        intermediate: 'aplicación práctica de conceptos con casos de uso y ejercicios',
+        advanced: 'análisis profundo, síntesis de información compleja y pensamiento crítico'
+      };
+
+      const objectivesText = learningObjectives.length > 0 
+        ? `\nObjetivos de aprendizaje específicos:\n${learningObjectives.map(obj => `- ${obj}`).join('\n')}`
+        : '';
+
+      const basePrompt = customPrompt || `Basándote en el siguiente contenido de manual, genera una guía de estudio completa para nivel ${difficultyLevel}.
+
+Manual Content:
+${manualContent}
+
+Tiempo estimado de estudio: ${estimatedTime} minutos
+Nivel de dificultad: ${difficultyLevel} (${difficultyInstructions[difficultyLevel]})${objectivesText}
+
+Estructura de la guía de estudio:
+
+1. **Introducción y Objetivos**
+   - Resumen del contenido
+   - Objetivos de aprendizaje claros
+   - Tiempo estimado por sección
+
+2. **Conceptos Clave**
+   - Definiciones importantes
+   - Términos técnicos
+   - Fundamentos teóricos
+
+3. **Contenido Principal**
+   - Desarrollo de temas principales
+   - Explicaciones detalladas
+   - Ejemplos prácticos
+   - Casos de estudio (si aplica)
+
+4. **Ejercicios y Actividades**
+   - Preguntas de repaso
+   - Ejercicios prácticos
+   - Actividades de aplicación
+
+5. **Recursos Adicionales**
+   - Enlaces conceptuales
+   - Materiales complementarios sugeridos
+   - Próximos pasos para profundizar
+
+6. **Evaluación**
+   - Criterios de comprensión
+   - Lista de verificación de aprendizaje
+   - Preguntas de autoevaluación
+
+Instrucciones:
+- Adapta el contenido al nivel ${difficultyLevel}
+- Incluye ejemplos prácticos y relevantes
+- Estructura el contenido de forma pedagógica
+- Utiliza español claro y profesional
+- Divide el contenido en secciones manejables
+- Incluye elementos interactivos cuando sea posible
+
+Por favor genera la guía de estudio:`;
+
+      const response = await this.generateResponse(basePrompt);
+      return response.trim();
+    } catch (error) {
+      console.error('Error generating study guide:', error);
+      throw new Error('Failed to generate study guide');
+    }
+  }
+
+  async generateFlashCards(
+    manualContent: string, 
+    cardCount: number, 
+    difficulty: 'easy' | 'medium' | 'hard', 
+    categories: string[], 
+    customPrompt?: string
+  ): Promise<any[]> {
+    try {
+      this.initialize();
+      const difficultyInstructions = {
+        easy: 'definiciones básicas, conceptos simples y preguntas directas',
+        medium: 'aplicación de conceptos, relaciones entre ideas y análisis',
+        hard: 'síntesis compleja, evaluación crítica y resolución de problemas avanzados'
+      };
+
+      const categoriesText = categories.length > 0 
+        ? `\nCategorías específicas a cubrir:\n${categories.map(cat => `- ${cat}`).join('\n')}`
+        : '';
+
+      const basePrompt = customPrompt || `Basándote en el siguiente contenido de manual, genera exactamente ${cardCount} tarjetas de estudio (flashcards) con nivel de dificultad ${difficulty}.
+
+Manual Content:
+${manualContent}
+
+Dificultad: ${difficulty} (${difficultyInstructions[difficulty]})${categoriesText}
+
+Genera las tarjetas en formato JSON con la siguiente estructura:
+[
+  {
+    "front": "Pregunta o concepto en el frente de la tarjeta",
+    "back": "Respuesta completa y explicación",
+    "category": "Categoría del tema",
+    "difficulty": "${difficulty}",
+    "tags": ["tag1", "tag2"],
+    "hints": "Pista opcional para ayudar con la respuesta"
+  }
+]
+
+Instrucciones:
+- Crea preguntas variadas que cubran diferentes aspectos del manual
+- Las preguntas del frente deben ser claras y concisas
+- Las respuestas del reverso deben ser completas pero no excesivamente largas
+- Incluye una categoría relevante para cada tarjeta
+- Añade 2-3 tags relacionados por tarjeta
+- Proporciona pistas útiles cuando sea apropiado
+- Distribuye las tarjetas entre diferentes temas del manual
+- Asegúrate de que las tarjetas sean educativas y prácticas
+- Utiliza español claro y preciso
+- Responde SOLO con el JSON válido, sin texto adicional
+
+Genera las ${cardCount} tarjetas:`;
+
+      const response = await this.generateResponse(basePrompt);
+      
+      // Clean the response to extract only JSON
+      let cleanResponse = response.trim();
+      
+      // Remove any markdown code blocks
+      cleanResponse = cleanResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      
+      // Remove any non-JSON text before or after the JSON
+      const jsonStart = cleanResponse.indexOf('[');
+      const jsonEnd = cleanResponse.lastIndexOf(']') + 1;
+      
+      if (jsonStart !== -1 && jsonEnd !== -1) {
+        cleanResponse = cleanResponse.substring(jsonStart, jsonEnd);
+      }
+
+      const cards = JSON.parse(cleanResponse);
+      
+      // Validate the cards structure
+      if (!Array.isArray(cards)) {
+        throw new Error('Invalid cards format: not an array');
+      }
+
+      cards.forEach((card, index) => {
+        if (!card.front || !card.back) {
+          throw new Error(`Invalid card format at index ${index}: missing front or back`);
+        }
+        if (!card.category) {
+          card.category = categories[0] || 'General';
+        }
+        if (!card.tags || !Array.isArray(card.tags)) {
+          card.tags = [];
+        }
+      });
+
+      return cards;
+    } catch (error) {
+      console.error('Error generating flash cards:', error);
+      throw new Error('Failed to generate flash cards');
+    }
+  }
+
+  async extractTopics(manualContent: string): Promise<string[]> {
+    try {
+      this.initialize();
+      const prompt = `Analiza el siguiente contenido de manual y extrae los temas principales. Devuelve una lista de 5-10 temas clave que representen las áreas principales de contenido.
+
+Manual Content:
+${manualContent}
+
+Instrucciones:
+- Identifica los temas más importantes y relevantes
+- Usa nombres concisos pero descriptivos
+- Evita duplicados o temas muy similares
+- Ordena por importancia/relevancia
+- Responde con una lista en formato JSON simple
+
+Ejemplo de formato de respuesta:
+["Tema 1", "Tema 2", "Tema 3", "Tema 4", "Tema 5"]
+
+Extrae los temas principales:`;
+
+      const response = await this.generateResponse(prompt);
+      
+      // Clean and parse response
+      let cleanResponse = response.trim();
+      cleanResponse = cleanResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      
+      const arrayStart = cleanResponse.indexOf('[');
+      const arrayEnd = cleanResponse.lastIndexOf(']') + 1;
+      
+      if (arrayStart !== -1 && arrayEnd !== -1) {
+        cleanResponse = cleanResponse.substring(arrayStart, arrayEnd);
+      }
+
+      const topics = JSON.parse(cleanResponse);
+      
+      if (!Array.isArray(topics)) {
+        throw new Error('Invalid topics format: not an array');
+      }
+
+      return topics.filter(topic => typeof topic === 'string' && topic.trim().length > 0);
+    } catch (error) {
+      console.error('Error extracting topics:', error);
+      // Return default topics if extraction fails
+      return ['Conceptos principales', 'Procedimientos', 'Definiciones', 'Aplicaciones prácticas'];
     }
   }
 

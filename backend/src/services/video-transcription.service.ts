@@ -1,9 +1,12 @@
 import ffmpeg from 'fluent-ffmpeg';
 import path from 'path';
 import fs from 'fs/promises';
+import * as fsSync from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { apiConfig } from '../config/api.config';
+import minioService from './minio.service';
+import * as os from 'os';
 
 // Set ffmpeg path
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
@@ -85,14 +88,106 @@ class VideoTranscriptionService {
 
   /**
    * Get video duration and metadata
+   * @param videoPath Path to video file or object info for MinIO videos
+   * @param videoInfo Optional video model info for MinIO detection
    */
-  async getVideoMetadata(videoPath: string): Promise<{ duration: number }> {
-    return new Promise((resolve, reject) => {
-      ffmpeg.ffprobe(videoPath, (err, metadata) => {
-        if (err) reject(err);
-        else resolve({ duration: metadata.format.duration || 0 });
+  async getVideoMetadata(videoPath: string, videoInfo?: any): Promise<{ duration: number; actualPath?: string }> {
+    let actualPath = videoPath;
+    let tempFilePath: string | null = null;
+    
+    try {
+      // Check if video needs to be downloaded from MinIO
+      if (videoInfo) {
+        const isMinioVideo = videoInfo.storageProvider === 'minio' || 
+                            videoInfo.streamUrl?.includes('9000') || 
+                            videoInfo.hlsPlaylistUrl?.includes('9000') ||
+                            (videoPath && !fsSync.existsSync(videoPath));
+        
+        if (isMinioVideo) {
+          console.log('Video in MinIO detected for metadata extraction, downloading...');
+          const objectName = this.extractObjectNameFromVideo(videoInfo);
+          
+          if (!objectName) {
+            throw new Error('Could not determine MinIO object name for video');
+          }
+          
+          tempFilePath = path.join(os.tmpdir(), `temp_video_metadata_${Date.now()}.mp4`);
+          await minioService.downloadFile(objectName, tempFilePath);
+          actualPath = tempFilePath;
+        }
+      }
+      
+      return new Promise((resolve, reject) => {
+        ffmpeg.ffprobe(actualPath, (err, metadata) => {
+          // Clean up temp file if it was created
+          if (tempFilePath && fsSync.existsSync(tempFilePath)) {
+            fsSync.unlinkSync(tempFilePath);
+          }
+          
+          if (err) {
+            reject(err);
+          } else {
+            resolve({ 
+              duration: metadata.format.duration || 0,
+              actualPath: actualPath 
+            });
+          }
+        });
       });
-    });
+    } catch (error) {
+      // Clean up temp file on error
+      if (tempFilePath && fsSync.existsSync(tempFilePath)) {
+        fsSync.unlinkSync(tempFilePath);
+      }
+      throw error;
+    }
+  }
+  
+  /**
+   * Extract MinIO object name from video info (similar to video-ai-analyzer.service)
+   */
+  private extractObjectNameFromVideo(video: any): string | null {
+    // First, try to extract from HLS playlist URL
+    if (video.hlsPlaylistUrl && video.hlsPlaylistUrl.includes('://')) {
+      try {
+        const url = new URL(video.hlsPlaylistUrl);
+        let pathname = url.pathname;
+        
+        if (pathname.startsWith('/')) {
+          pathname = pathname.substring(1);
+        }
+        
+        const bucketName = process.env.MINIO_BUCKET_NAME || 'aristotest-videos';
+        if (pathname.startsWith(bucketName + '/')) {
+          pathname = pathname.substring(bucketName.length + 1);
+        }
+        
+        if (pathname.includes('/hls/') && pathname.endsWith('.m3u8')) {
+          const videoIdMatch = pathname.match(/\/hls\/(\d+)\//);
+          if (videoIdMatch) {
+            const videoId = videoIdMatch[1];
+            return `videos/${videoId}/original.mp4`;
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing HLS URL:', video.hlsPlaylistUrl);
+      }
+    }
+    
+    // If originalPath is just a filename, try to construct MinIO path
+    if (video.originalPath) {
+      const filename = video.originalPath.split('/').pop();
+      if (filename && video.id) {
+        return `videos/${video.id}/${filename}`;
+      }
+    }
+    
+    // Last resort: try standard paths
+    if (video.id) {
+      return `videos/${video.id}/original.mp4`;
+    }
+    
+    return null;
   }
 
   /**
@@ -539,21 +634,24 @@ class VideoTranscriptionService {
   async processVideoForInteractivity(
     videoPath: string,
     numberOfQuestions: number,
-    options: Partial<QuestionGenerationParams> = {}
+    options: Partial<QuestionGenerationParams & { videoInfo?: any }> = {}
   ) {
     try {
       console.log('Starting video processing for interactivity...');
       
-      // Get video metadata
-      const metadata = await this.getVideoMetadata(videoPath);
+      // Get video metadata - pass videoInfo for MinIO handling
+      const metadata = await this.getVideoMetadata(videoPath, options.videoInfo);
       console.log(`Video duration: ${metadata.duration} seconds`);
+      
+      // Use the actual path from metadata if it was downloaded from MinIO
+      const actualVideoPath = metadata.actualPath || videoPath;
       
       // Debug environment variables
       console.log('GEMINI_API_KEY exists:', !!process.env.GEMINI_API_KEY);
       console.log('USE_MOCK_TRANSCRIPTION value:', process.env.USE_MOCK_TRANSCRIPTION);
       
-      // Use real transcription when GEMINI_API_KEY exists and USE_MOCK_TRANSCRIPTION is explicitly set to false
-      const useMockTranscription = !process.env.GEMINI_API_KEY || (process.env.USE_MOCK_TRANSCRIPTION !== 'false');
+      // Use real transcription when GEMINI_API_KEY exists, unless USE_MOCK_TRANSCRIPTION is explicitly set to true
+      const useMockTranscription = !process.env.GEMINI_API_KEY || (process.env.USE_MOCK_TRANSCRIPTION === 'true');
       console.log('Using mock transcription?:', useMockTranscription);
       
       let transcription: TranscriptionResult;
@@ -563,7 +661,7 @@ class VideoTranscriptionService {
         
         // Extract audio to analyze it
         console.log('Extracting audio from video for analysis...');
-        const audioPath = await this.extractAudio(videoPath);
+        const audioPath = await this.extractAudio(actualVideoPath);
         
         // Get audio file size for reference
         const audioStats = await fs.stat(audioPath);
@@ -578,7 +676,7 @@ class VideoTranscriptionService {
       } else {
         // Extract audio
         console.log('Extracting audio from video...');
-        const audioPath = await this.extractAudio(videoPath);
+        const audioPath = await this.extractAudio(actualVideoPath);
         
         // Transcribe audio
         console.log('Transcribing audio...');

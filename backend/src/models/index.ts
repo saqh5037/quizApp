@@ -15,6 +15,8 @@ import Manual from './Manual.model';
 import ManualChat from './ManualChat.model';
 import AIGeneratedQuiz from './AIGeneratedQuiz.model';
 import ManualSummary from './ManualSummary.model';
+import StudyGuide from './StudyGuide.model';
+import FlashCard from './FlashCard.model';
 import { 
   Video, 
   VideoCategory, 
@@ -149,6 +151,8 @@ export {
   ManualChat,
   AIGeneratedQuiz,
   ManualSummary,
+  StudyGuide,
+  FlashCard,
   Video,
   VideoCategory,
   VideoQuality,
@@ -185,6 +189,8 @@ export default {
   ManualChat,
   AIGeneratedQuiz,
   ManualSummary,
+  StudyGuide,
+  FlashCard,
   Video,
   VideoCategory,
   VideoQuality,

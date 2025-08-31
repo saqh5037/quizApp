@@ -664,10 +664,14 @@ export class InteractiveVideoController {
       const videoPath = this.getVideoPath(video);
       
       // Process video with transcription and question generation
+      // Pass video info for MinIO handling
       const result = await videoTranscriptionService.processVideoForInteractivity(
         videoPath,
         numberOfQuestions,
-        options
+        {
+          ...options,
+          videoInfo: video  // Pass video model for MinIO detection
+        }
       );
 
       // Update layer with generated content

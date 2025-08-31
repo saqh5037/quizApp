@@ -50,6 +50,9 @@ psql -c "SELECT * FROM users;"           # View all users
 psql -c "SELECT * FROM classrooms;"      # View classrooms
 psql -c "\dt"                             # List all tables
 psql -c "\d table_name"                   # Describe table structure
+
+# Check database connectivity
+PGPASSWORD=AristoTest2024 psql -U aristotest -h localhost -c "\l"
 ```
 
 ### MinIO Storage
@@ -58,11 +61,33 @@ psql -c "\d table_name"                   # Describe table structure
 cd backend
 ./scripts/start-minio.sh
 
+# Or start with PM2 (ecosystem.config.js includes MinIO)
+pm2 start ecosystem.config.js --only minio
+
 # MinIO runs on:
 # - API: http://localhost:9000
 # - Console: http://localhost:9001
 # - Credentials: aristotest/AristoTest2024!
 # - Data directory: ./backend/storage/minio-data
+```
+
+### PM2 Process Management
+```bash
+# Development environment (local)
+pm2 start ecosystem.config.js              # Start backend + MinIO
+pm2 start ecosystem.config.js --only aristotest-backend
+pm2 start ecosystem.config.js --only minio
+
+# Production environment (with remote DB)
+pm2 start ecosystem.prod.config.js        # Uses AWS RDS database
+
+# Management commands
+pm2 list                 # List all processes
+pm2 logs                 # View all logs
+pm2 logs aristotest-backend
+pm2 restart all
+pm2 stop all
+pm2 delete all
 ```
 
 ## Architecture Overview
@@ -78,11 +103,10 @@ cd backend
 - **File Structure**:
   - Controllers handle HTTP requests and business logic (including AI controllers)
   - Models define database schemas using Sequelize with tenant isolation
-  - Routes organize API endpoints by domain (auth, quiz, session, ai, manual, video, interactive-video)
+  - Routes organize API endpoints by domain (auth, quiz, session, ai, manual, video, interactive-video) with integrated express-validator validation
   - Socket handlers manage real-time events separately
   - Middleware provides auth, tenant isolation, validation, rate limiting, and error handling
-  - Services contain business logic (Gemini AI service for content generation)
-  - Validators contain express-validator schemas for input validation
+  - Services contain business logic (Gemini AI, MinIO storage, FFmpeg video processing, video transcription)
 
 ### Frontend Architecture
 - **React SPA**: Built with Vite, using React Router for navigation
@@ -189,14 +213,26 @@ Base URL: `/api/v1`
 - Test files in `/backend/tests`
 - Coverage reports in `/backend/coverage`
 - Path aliases configured for clean imports
-- Run single test: `npm test -- path/to/test.spec.ts`
+- Commands:
+  ```bash
+  npm test                                # Run all tests
+  npm run test:watch                      # Run tests in watch mode
+  npm test -- tests/auth.spec.ts          # Run single test file
+  npm test -- --coverage                  # Generate coverage report
+  ```
 - Note: Test setup file (`tests/setup.ts`) needs to be created for test environment configuration
 
 ### Frontend
 - Vitest for unit and integration tests
 - Testing Library for React components
 - Interactive UI available with `npm run test:ui`
-- Run single test: `npm test -- path/to/test.spec.tsx`
+- Commands:
+  ```bash
+  npm test                                # Run all tests
+  npm run test:ui                         # Run with UI interface
+  npm test -- src/pages/Login.test.tsx    # Run single test file
+  npm test -- --coverage                  # Generate coverage report
+  ```
 
 ## Build Configuration
 
@@ -256,11 +292,10 @@ Base URL: `/api/v1`
 
 ### Adding a New API Endpoint
 1. Create controller in `/backend/src/controllers/`
-2. Add route in `/backend/src/routes/`
+2. Add route in `/backend/src/routes/` with integrated express-validator validation
 3. Apply middleware: authMiddleware, tenantMiddleware
-4. Add validation in `/backend/src/validators/`
-5. Update frontend service in `/frontend/src/services/`
-6. Add TypeScript types in both backend and frontend
+4. Update frontend service in `/frontend/src/services/`
+5. Add TypeScript types in both backend and frontend
 
 ### Database Migration
 1. Create migration: `npx sequelize-cli migration:generate --name your-migration-name`
@@ -309,6 +344,20 @@ Base URL: `/api/v1`
 - Tenant isolation enforced at database level
 - File type validation for uploads
 - Secure video URLs with signed tokens
+
+## Deployment Information
+
+### Local Development
+- Backend runs on port 3001
+- Frontend runs on port 5173
+- PostgreSQL on port 5432
+- MinIO API on port 9000, Console on port 9001
+
+### Production Deployment (AWS)
+- EC2 Instance: ec2-52-55-189-120.compute-1.amazonaws.com
+- RDS Database: ec2-3-91-26-178.compute-1.amazonaws.com
+- Database Name: aristotest1
+- PM2 ecosystem files configured for both local and production environments
 
 ## Recent Features (v1.0.2-QA)
 

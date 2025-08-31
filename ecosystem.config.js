@@ -2,15 +2,15 @@ module.exports = {
   apps: [
     {
       name: 'aristotest-backend',
-      script: './backend/dist/server.js',
-      cwd: '/home/dynamtek/aristoTEST',
+      script: 'npm',
+      args: 'run dev',
+      cwd: '/Users/samuelquiroz/Documents/proyectos/quiz-app/backend',
       instances: 1,
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
       env: {
-        NODE_ENV: 'production',
-        PORT: 3001
+        NODE_ENV: 'development'
       },
       error_file: './logs/backend-error.log',
       out_file: './logs/backend-out.log',
@@ -20,29 +20,10 @@ module.exports = {
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z'
     },
     {
-      name: 'aristotest-frontend',
-      script: 'npx',
-      args: 'serve -s frontend/dist -l 80',
-      cwd: '/home/dynamtek/aristoTEST',
-      instances: 1,
-      autorestart: true,
-      watch: false,
-      max_memory_restart: '500M',
-      env: {
-        NODE_ENV: 'production'
-      },
-      error_file: './logs/frontend-error.log',
-      out_file: './logs/frontend-out.log',
-      log_file: './logs/frontend-combined.log',
-      time: true,
-      merge_logs: true,
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z'
-    },
-    {
       name: 'minio',
-      script: '/usr/local/bin/minio',
-      args: 'server /home/dynamtek/aristoTEST/backend/storage/minio-data --console-address :9001',
-      cwd: '/home/dynamtek/aristoTEST',
+      script: '/opt/homebrew/bin/minio',
+      args: 'server /Users/samuelquiroz/Documents/proyectos/quiz-app/backend/storage/minio-data --console-address :9001',
+      cwd: '/Users/samuelquiroz/Documents/proyectos/quiz-app',
       instances: 1,
       autorestart: true,
       watch: false,

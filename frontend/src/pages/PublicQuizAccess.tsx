@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import Button from '../components/common/Button';
-import Card from '../components/common/Card';
-import Input from '../components/common/Input';
-import { FiUser, FiMail, FiPhone, FiPlay } from 'react-icons/fi';
+import { 
+  RiUserLine, 
+  RiMailLine, 
+  RiPhoneLine, 
+  RiPlayCircleLine,
+  RiLoader4Line,
+  RiBookOpenLine,
+  RiTimeLine,
+  RiQuestionLine
+} from 'react-icons/ri';
 import toast from 'react-hot-toast';
 import { apiConfig, buildApiUrl } from '../config/api.config';
 
@@ -30,11 +36,9 @@ export default function PublicQuizAccess() {
   const [loading, setLoading] = useState(true);
   const [identified, setIdentified] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    name: '',
     email: '',
-    phone: '',
-    organization: ''
+    phone: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -81,18 +85,14 @@ export default function PublicQuizAccess() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = t('publicQuiz.errors.firstNameRequired');
-    }
-    
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = t('publicQuiz.errors.lastNameRequired');
+    if (!formData.name.trim()) {
+      newErrors.name = 'Por favor ingrese su nombre';
     }
     
     if (!formData.email.trim()) {
-      newErrors.email = t('publicQuiz.errors.emailRequired');
+      newErrors.email = 'Por favor ingrese su correo electrónico';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = t('publicQuiz.errors.emailInvalid');
+      newErrors.email = 'Por favor ingrese un correo electrónico válido';
     }
     
     setErrors(newErrors);
@@ -106,15 +106,20 @@ export default function PublicQuizAccess() {
       return;
     }
     
-    // Store participant data in session storage
+    // Store participant data in session storage (with compatibility for existing format)
     sessionStorage.setItem('publicQuizParticipant', JSON.stringify({
-      ...formData,
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      // Keep backward compatibility
+      firstName: formData.name.split(' ')[0] || formData.name,
+      lastName: formData.name.split(' ').slice(1).join(' ') || '',
       quizId: id,
       startTime: new Date().toISOString()
     }));
     
     setIdentified(true);
-    toast.success(t('publicQuiz.identificationSuccess'));
+    toast.success('Identificación completada exitosamente');
   };
 
   const handleStartQuiz = async () => {
@@ -159,10 +164,10 @@ export default function PublicQuizAccess() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="mt-4 text-text-secondary">{t('common.loading')}</p>
+          <RiLoader4Line className="animate-spin text-6xl text-purple-500 mx-auto mb-4" />
+          <p className="text-gray-400">Cargando quiz...</p>
         </div>
       </div>
     );
@@ -170,212 +175,183 @@ export default function PublicQuizAccess() {
 
   if (!quiz) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center">
-        <Card className="max-w-md w-full p-8 text-center">
-          <h2 className="text-2xl font-bold text-primary mb-4">{t('publicQuiz.notFound')}</h2>
-          <p className="text-text-secondary mb-6">{t('publicQuiz.notFoundDesc')}</p>
-          <Button variant="primary" onClick={() => navigate('/')}>
-            {t('common.back')}
-          </Button>
-        </Card>
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="max-w-md w-full bg-gray-800 rounded-xl shadow-2xl p-8 text-center">
+          <h2 className="text-2xl font-bold text-white mb-4">Quiz no encontrado</h2>
+          <p className="text-gray-400 mb-6">El quiz que buscas no está disponible o no existe.</p>
+          <button 
+            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
+            onClick={() => navigate('/')}
+          >
+            Volver
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header with Logo */}
-        <div className="text-center mb-8">
-          <img 
-            src="/images/logoAristoTest.svg" 
-            alt="AristoTest" 
-            className="h-24 w-auto mx-auto mb-4"
-          />
-          <h1 className="text-3xl font-bold text-primary">{t('publicQuiz.title')}</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
+      {!identified ? (
+        /* Simplified Identification Form */
+        <div className="max-w-md w-full bg-gray-800 rounded-xl shadow-2xl p-8">
+          <div className="text-center mb-6">
+            <div className="w-20 h-20 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <RiBookOpenLine className="text-4xl text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">
+              Quiz de Evaluación
+            </h2>
+            <p className="text-gray-400">
+              {quiz.title}
+            </p>
+          </div>
+
+          {/* Quiz Info */}
+          <div className="bg-gray-700/50 rounded-lg p-4 mb-6">
+            <div className="grid grid-cols-3 gap-2 text-center text-sm">
+              <div>
+                <RiQuestionLine className="inline w-4 h-4 text-gray-400 mb-1" />
+                <p className="text-white font-semibold">{quiz.questionsCount}</p>
+                <p className="text-gray-400 text-xs">Preguntas</p>
+              </div>
+              <div>
+                <RiTimeLine className="inline w-4 h-4 text-gray-400 mb-1" />
+                <p className="text-white font-semibold">{Math.floor(quiz.timeLimit / 60)}</p>
+                <p className="text-gray-400 text-xs">Minutos</p>
+              </div>
+              <div>
+                <p className="text-white font-semibold capitalize">{quiz.difficulty}</p>
+                <p className="text-gray-400 text-xs">Dificultad</p>
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleIdentification} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                <RiUserLine className="inline w-4 h-4 mr-1" />
+                Nombre completo *
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Juan Pérez"
+                required
+              />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-400">{errors.name}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                <RiMailLine className="inline w-4 h-4 mr-1" />
+                Correo electrónico *
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="juan@ejemplo.com"
+                required
+              />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-400">{errors.email}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                <RiPhoneLine className="inline w-4 h-4 mr-1" />
+                Teléfono (opcional)
+              </label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="+52 123 456 7890"
+              />
+            </div>
+
+            <div className="bg-purple-900/30 border border-purple-600/50 rounded-lg p-4">
+              <p className="text-sm text-purple-200">
+                <strong>Importante:</strong> El quiz tiene un tiempo límite. 
+                Una vez que comience, debe completarlo sin interrupciones.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
+            >
+              Comenzar Quiz
+            </button>
+          </form>
+
+          <p className="text-xs text-gray-500 text-center mt-6">
+            Sus respuestas serán registradas para evaluación
+          </p>
         </div>
-
-        {!identified ? (
-          /* Identification Form */
-          <Card className="max-w-2xl mx-auto">
-            <div className="p-8">
-              <h2 className="text-2xl font-bold text-primary mb-2">
-                {t('publicQuiz.identificationTitle')}
-              </h2>
-              <p className="text-text-secondary mb-6">
-                {t('publicQuiz.identificationSubtitle')}
-              </p>
-
-              {/* Quiz Info */}
-              <div className="bg-background rounded-lg p-4 mb-6">
-                <h3 className="text-xl font-semibold text-primary mb-2">{quiz.title}</h3>
-                <p className="text-text-secondary mb-3">{quiz.description}</p>
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <span className="flex items-center gap-1">
-                    <strong>{t('publicQuiz.questions')}:</strong> {quiz.questionsCount}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <strong>{t('publicQuiz.timeLimit')}:</strong> {Math.floor(quiz.timeLimit / 60)} {t('publicQuiz.minutes')}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <strong>{t('publicQuiz.difficulty')}:</strong>
-                    <span className={getDifficultyColor(quiz.difficulty)}>
-                      {t(`quizzes.card.difficulty.${quiz.difficulty}`)}
-                    </span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <strong>{t('publicQuiz.category')}:</strong> {quiz.category}
-                  </span>
-                </div>
-              </div>
-
-              {/* Identification Form */}
-              <form onSubmit={handleIdentification}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-1">
-                      {t('publicQuiz.firstName')} *
-                    </label>
-                    <Input
-                      type="text"
-                      placeholder={t('publicQuiz.firstNamePlaceholder')}
-                      value={formData.firstName}
-                      onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                      leftIcon={<FiUser />}
-                      error={errors.firstName}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-1">
-                      {t('publicQuiz.lastName')} *
-                    </label>
-                    <Input
-                      type="text"
-                      placeholder={t('publicQuiz.lastNamePlaceholder')}
-                      value={formData.lastName}
-                      onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                      leftIcon={<FiUser />}
-                      error={errors.lastName}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-1">
-                      {t('publicQuiz.email')} *
-                    </label>
-                    <Input
-                      type="email"
-                      placeholder={t('publicQuiz.emailPlaceholder')}
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      leftIcon={<FiMail />}
-                      error={errors.email}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-1">
-                      {t('publicQuiz.phone')}
-                    </label>
-                    <Input
-                      type="tel"
-                      placeholder={t('publicQuiz.phonePlaceholder')}
-                      value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                      leftIcon={<FiPhone />}
-                    />
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-text-primary mb-1">
-                    {t('publicQuiz.organization')}
-                  </label>
-                  <Input
-                    type="text"
-                    placeholder={t('publicQuiz.organizationPlaceholder')}
-                    value={formData.organization}
-                    onChange={(e) => setFormData({...formData, organization: e.target.value})}
-                  />
-                </div>
-
-                <div className="text-sm text-text-secondary mb-6">
-                  {t('publicQuiz.requiredFields')}
-                </div>
-
-                <Button type="submit" variant="primary" size="lg" fullWidth>
-                  {t('publicQuiz.continue')}
-                </Button>
-              </form>
+      ) : (
+        /* Ready to Start */
+        <div className="max-w-md w-full bg-gray-800 rounded-xl shadow-2xl p-8">
+          <div className="text-center mb-6">
+            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <RiPlayCircleLine className="text-4xl text-white" />
             </div>
-          </Card>
-        ) : (
-          /* Ready to Start */
-          <Card className="max-w-2xl mx-auto">
-            <div className="p-8 text-center">
-              <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <FiPlay className="text-success" size={32} />
-              </div>
-              
-              <h2 className="text-2xl font-bold text-primary mb-2">
-                {t('publicQuiz.readyTitle')}
-              </h2>
-              
-              <p className="text-text-secondary mb-2">
-                {t('publicQuiz.welcome')}, <strong>{formData.firstName} {formData.lastName}</strong>!
-              </p>
-              
-              <p className="text-text-secondary mb-6">
-                {t('publicQuiz.readyDesc')}
-              </p>
+            
+            <h2 className="text-2xl font-bold text-white mb-2">
+              ¡Listo para comenzar!
+            </h2>
+            
+            <p className="text-gray-400">
+              Bienvenido, <strong className="text-white">{formData.name}</strong>
+            </p>
+          </div>
 
-              {/* Quiz Summary */}
-              <div className="bg-background rounded-lg p-6 mb-6 text-left">
-                <h3 className="text-lg font-semibold text-primary mb-3">{quiz.title}</h3>
-                <div className="space-y-2 text-sm text-text-secondary">
-                  <p>• {quiz.questionsCount} {t('publicQuiz.questionsToAnswer')}</p>
-                  <p>• {Math.floor(quiz.timeLimit / 60)} {t('publicQuiz.minutesTimeLimit')}</p>
-                  <p>• {t('publicQuiz.difficultyLevel')}: <span className={getDifficultyColor(quiz.difficulty)}>{t(`quizzes.card.difficulty.${quiz.difficulty}`)}</span></p>
-                </div>
-              </div>
-
-              {/* Instructions */}
-              <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 mb-6 text-left">
-                <h4 className="font-semibold text-warning mb-2">{t('publicQuiz.instructions')}</h4>
-                <ul className="text-sm text-text-secondary space-y-1">
-                  <li>• {t('publicQuiz.instruction1')}</li>
-                  <li>• {t('publicQuiz.instruction2')}</li>
-                  <li>• {t('publicQuiz.instruction3')}</li>
-                  <li>• {t('publicQuiz.instruction4')}</li>
-                </ul>
-              </div>
-
-              <div className="flex gap-4">
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  onClick={() => setIdentified(false)}
-                  fullWidth
-                >
-                  {t('common.back')}
-                </Button>
-                <Button 
-                  variant="primary" 
-                  size="lg" 
-                  leftIcon={<FiPlay />}
-                  onClick={handleStartQuiz}
-                  fullWidth
-                >
-                  {t('publicQuiz.startQuiz')}
-                </Button>
-              </div>
+          {/* Quiz Summary */}
+          <div className="bg-gray-700 rounded-lg p-4 mb-6">
+            <h3 className="text-lg font-semibold text-white mb-3">{quiz.title}</h3>
+            <div className="space-y-2 text-sm text-gray-300">
+              <p>• {quiz.questionsCount} preguntas por responder</p>
+              <p>• {Math.floor(quiz.timeLimit / 60)} minutos de tiempo límite</p>
+              <p>• Nivel de dificultad: <span className="text-purple-400 capitalize">{quiz.difficulty}</span></p>
             </div>
-          </Card>
-        )}
-      </div>
+          </div>
+
+          {/* Instructions */}
+          <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-4 mb-6">
+            <h4 className="font-semibold text-yellow-400 mb-2">Instrucciones</h4>
+            <ul className="text-sm text-gray-300 space-y-1">
+              <li>• Una vez iniciado, no podrá pausar el quiz</li>
+              <li>• Responda todas las preguntas antes del tiempo límite</li>
+              <li>• Sus respuestas se guardarán automáticamente</li>
+              <li>• Al finalizar verá sus resultados inmediatamente</li>
+            </ul>
+          </div>
+
+          <div className="flex gap-4">
+            <button 
+              className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors"
+              onClick={() => setIdentified(false)}
+            >
+              Atrás
+            </button>
+            <button 
+              className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center"
+              onClick={handleStartQuiz}
+            >
+              <RiPlayCircleLine className="mr-2" />
+              Iniciar Quiz
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

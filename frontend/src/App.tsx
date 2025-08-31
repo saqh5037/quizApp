@@ -15,6 +15,7 @@ import { Toaster } from 'react-hot-toast';
 import { TenantProvider } from './contexts/TenantContext';
 import PrivateRoute from './components/PrivateRoute';
 import MainLayout from './components/layout/MainLayout';
+import InactivityWrapper from './components/InactivityWrapper';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -55,6 +56,8 @@ import GenerateQuiz from './pages/Manuals/GenerateQuiz';
 import GenerateQuizImproved from './pages/Manuals/GenerateQuizImproved';
 import TenantSettings from './pages/Tenant/TenantSettings';
 import GenerateSummary from './pages/Manuals/GenerateSummary';
+import ManualResources from './pages/Manuals/ManualResources';
+import ResourceViewer from './pages/Manuals/ResourceViewer';
 import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient({
@@ -207,6 +210,14 @@ const router = createBrowserRouter([
       {
         path: 'manuals/:manualId/generate-summary',
         element: <GenerateSummary />,
+      },
+      {
+        path: 'manuals/:manualId/resources',
+        element: <ManualResources />,
+      },
+      {
+        path: 'resources/:resourceType/:resourceId',
+        element: <ResourceViewer />,
       },
       {
         path: 'sessions',

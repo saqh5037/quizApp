@@ -63,6 +63,25 @@ export const apiPut = async (endpoint: string, data?: any, options?: RequestInit
 };
 
 /**
+ * Make a PATCH request to the API
+ */
+export const apiPatch = async (endpoint: string, data?: any, options?: RequestInit) => {
+  const token = useAuthStore.getState().accessToken;
+  const response = await fetch(`${apiConfig.baseURL}${endpoint}`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(token || undefined),
+    body: data ? JSON.stringify(data) : undefined,
+    ...options,
+  });
+  
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.statusText}`);
+  }
+  
+  return response.json();
+};
+
+/**
  * Make a DELETE request to the API
  */
 export const apiDelete = async (endpoint: string, options?: RequestInit) => {
