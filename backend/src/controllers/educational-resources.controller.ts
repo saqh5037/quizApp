@@ -6,6 +6,9 @@ import geminiService from '../services/gemini.service';
 
 export const generateEducationalResource = async (req: Request, res: Response) => {
   try {
+    console.log('Generating educational resource for manual:', req.params.manualId);
+    console.log('Request body:', req.body);
+    
     const { manualId } = req.params;
     const { 
       contentType,
@@ -82,6 +85,8 @@ export const generateEducationalResource = async (req: Request, res: Response) =
           user_id: userId,
           title: title.trim(),
           summary_type: summaryType,
+          content: '', // Initialize with empty content
+          word_count: 0, // Initialize with 0
           status: 'generating',
           generation_prompt: customPrompt || null,
           metadata: { isPublic, description }
@@ -111,6 +116,7 @@ export const generateEducationalResource = async (req: Request, res: Response) =
           user_id: userId,
           title: title.trim(),
           description: description?.trim() || null,
+          content: '', // Initialize with empty content
           difficulty_level: difficultyLevel,
           estimated_time: estimatedTime,
           topics: [],
@@ -178,9 +184,10 @@ export const generateEducationalResource = async (req: Request, res: Response) =
       message: `${contentType.replace('_', ' ')} generation started. Check status for completion.`
     });
   } catch (error) {
+    console.error('Error in generateEducationalResource:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to generate educational resource'
+      error: error.message || 'Failed to generate educational resource'
     });
   }
 };
@@ -263,8 +270,8 @@ const generateFlashCardsAsync = async (
 export const getEducationalResource = async (req: Request, res: Response) => {
   try {
     const { resourceType, resourceId } = req.params;
-    const userId = (req as any).user?.id;
-    const userRole = (req as any).user?.role;
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
     const { tenantId } = getTenantContext(req);
 
     let resource: any;
@@ -339,20 +346,29 @@ export const getEducationalResource = async (req: Request, res: Response) => {
 export const listEducationalResources = async (req: Request, res: Response) => {
   try {
     const { manualId } = req.params;
-    const userId = (req as any).user?.id;
-    const userRole = (req as any).user?.role;
+    console.log('req.user:', req.user);
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
     const { tenantId } = getTenantContext(req);
+    
+    console.log('Query params:', { manualId, userId, userRole, tenantId });
 
-    // Verify manual access
-    const manual = await Manual.findOne({
-      where: {
-        id: manualId,
-        ...(tenantId && { tenant_id: tenantId }),
-        [Op.or]: [
-          { user_id: userId },
-          { is_public: true }
-        ]
+    // Verify manual access - simplified for super_admin
+    const whereClause: any = { id: manualId };
+    
+    // Super admin can see all manuals
+    if (userRole !== 'super_admin') {
+      if (tenantId) {
+        whereClause.tenant_id = tenantId;
       }
+      whereClause[Op.or] = [
+        { user_id: userId },
+        { is_public: true }
+      ];
+    }
+    
+    const manual = await Manual.findOne({
+      where: whereClause
     });
 
     if (!manual) {
@@ -362,11 +378,11 @@ export const listEducationalResources = async (req: Request, res: Response) => {
       });
     }
 
-    const whereClause: any = { manual_id: manualId };
+    const resourceWhereClause: any = { manual_id: manualId };
     
     // Access control for resources
     if (userRole !== 'admin' && userRole !== 'super_admin') {
-      whereClause[Op.or] = [
+      resourceWhereClause[Op.or] = [
         { user_id: userId },
         { is_public: true }
       ];
@@ -375,7 +391,7 @@ export const listEducationalResources = async (req: Request, res: Response) => {
     // Fetch all resource types
     const [summaries, studyGuides, flashCards] = await Promise.all([
       ManualSummary.findAll({
-        where: whereClause,
+        where: resourceWhereClause,
         attributes: ['id', 'title', 'summary_type', 'status', 'created_at', 'user_id'],
         include: [{
           model: User,
@@ -385,7 +401,7 @@ export const listEducationalResources = async (req: Request, res: Response) => {
         order: [['created_at', 'DESC']]
       }),
       StudyGuide.findAll({
-        where: whereClause,
+        where: resourceWhereClause,
         attributes: ['id', 'title', 'difficulty_level', 'estimated_time', 'status', 'created_at', 'user_id'],
         include: [{
           model: User,
@@ -395,7 +411,7 @@ export const listEducationalResources = async (req: Request, res: Response) => {
         order: [['created_at', 'DESC']]
       }),
       FlashCard.findAll({
-        where: whereClause,
+        where: resourceWhereClause,
         attributes: ['id', 'set_title', 'total_cards', 'difficulty_level', 'status', 'created_at', 'user_id'],
         include: [{
           model: User,
@@ -432,9 +448,11 @@ export const listEducationalResources = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
+    console.error('Error listing educational resources:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to list educational resources'
+      error: 'Failed to list educational resources',
+      details: error.message
     });
   }
 };
@@ -443,7 +461,7 @@ export const updateFlashCardStats = async (req: Request, res: Response) => {
   try {
     const { flashCardId } = req.params;
     const { correctAnswers, totalReviews } = req.body;
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
 
     const flashCard = await FlashCard.findOne({
       where: {

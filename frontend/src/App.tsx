@@ -59,6 +59,7 @@ import TenantSettings from './pages/Tenant/TenantSettings';
 import GenerateSummary from './pages/Manuals/GenerateSummary';
 import ManualResources from './pages/Manuals/ManualResources';
 import ResourceViewer from './pages/Manuals/ResourceViewer';
+import ViewSummaryGlass from './pages/Manuals/ViewSummaryGlass';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import TenantManagement from './pages/Admin/TenantManagement';
 import TenantDetail from './pages/Admin/TenantDetail';
@@ -229,6 +230,10 @@ const router = createBrowserRouter([
       {
         path: 'resources/:resourceType/:resourceId',
         element: <ResourceViewer />,
+      },
+      {
+        path: 'resources/summary/:summaryId',
+        element: <ViewSummaryGlass />,
       },
       {
         path: 'sessions',

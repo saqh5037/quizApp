@@ -81,6 +81,20 @@ pm2 logs aristotest-backend                # View backend logs
 pm2 restart all                            # Restart all processes
 ```
 
+### Deployment Scripts
+```bash
+# QA Environment Deployment
+./deploy-qa-complete.sh         # Complete deployment to QA
+./deploy-qa-option1-clean.sh    # Clean deployment (fresh install)
+./deploy-qa-option2-update.sh   # Update existing deployment
+./deploy-qa-option3-recovery.sh # Recovery deployment
+
+# Production Deployment Options
+./deploy-option1-clean.sh        # Clean deployment strategy
+./deploy-option2-inplace.sh      # In-place update strategy
+./deploy-option3-bluegreen.sh    # Blue-green deployment strategy
+```
+
 ## Architecture Overview
 
 ### Backend Architecture
