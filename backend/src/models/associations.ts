@@ -29,6 +29,12 @@ export const setupAssociations = (): void => {
     foreignKey: 'organizationId',
     as: 'organization',
   });
+
+  // Tenant-User associations (Tenant.hasMany is in Tenant.model.ts)
+  User.belongsTo(Tenant, {
+    foreignKey: 'tenant_id',
+    as: 'tenant',
+  });
   
   // User associations
   User.hasMany(Quiz, {
@@ -129,6 +135,18 @@ export const setupAssociations = (): void => {
   Answer.belongsTo(QuizSession, {
     foreignKey: 'sessionId',
     as: 'session',
+  });
+
+  // Tenant associations for Answer
+  Answer.belongsTo(Tenant, {
+    foreignKey: 'tenantId', 
+    as: 'tenant',
+  });
+
+  // Tenant associations for Participant
+  Participant.belongsTo(Tenant, {
+    foreignKey: 'tenantId',
+    as: 'tenant', 
   });
 
   // Manual associations

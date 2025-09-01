@@ -13,6 +13,7 @@ import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { TenantProvider } from './contexts/TenantContext';
+import './i18n';
 import PrivateRoute from './components/PrivateRoute';
 import MainLayout from './components/layout/MainLayout';
 import InactivityWrapper from './components/InactivityWrapper';
@@ -58,6 +59,16 @@ import TenantSettings from './pages/Tenant/TenantSettings';
 import GenerateSummary from './pages/Manuals/GenerateSummary';
 import ManualResources from './pages/Manuals/ManualResources';
 import ResourceViewer from './pages/Manuals/ResourceViewer';
+import AdminDashboard from './pages/Admin/AdminDashboard';
+import TenantManagement from './pages/Admin/TenantManagement';
+import TenantDetail from './pages/Admin/TenantDetail';
+import TenantEdit from './pages/Admin/TenantEdit';
+import TenantUsers from './pages/Admin/TenantUsers';
+import CreateTenant from './pages/Admin/CreateTenant';
+import CreateUser from './pages/Admin/CreateUser';
+import UserManagement from './pages/Admin/UserManagement';
+import SystemActivity from './pages/Admin/SystemActivity';
+import ClassroomManagement from './pages/Admin/ClassroomManagement';
 import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient({
@@ -258,6 +269,47 @@ const router = createBrowserRouter([
       {
         path: 'docs',
         element: <Documentation />,
+      },
+      // Admin routes (Super Admin only)
+      {
+        path: 'admin',
+        element: <AdminDashboard />,
+      },
+      {
+        path: 'admin/tenants',
+        element: <TenantManagement />,
+      },
+      {
+        path: 'admin/tenants/:id',
+        element: <TenantDetail />,
+      },
+      {
+        path: 'admin/tenants/:id/edit',
+        element: <TenantEdit />,
+      },
+      {
+        path: 'admin/tenants/:id/users',
+        element: <TenantUsers />,
+      },
+      {
+        path: 'admin/tenants/create',
+        element: <CreateTenant />,
+      },
+      {
+        path: 'admin/users',
+        element: <UserManagement />,
+      },
+      {
+        path: 'admin/users/create',
+        element: <CreateUser />,
+      },
+      {
+        path: 'admin/system/activity',
+        element: <SystemActivity />,
+      },
+      {
+        path: 'admin/classrooms',
+        element: <ClassroomManagement />,
       },
     ],
   },

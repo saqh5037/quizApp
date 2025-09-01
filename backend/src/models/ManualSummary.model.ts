@@ -19,6 +19,7 @@ class ManualSummary extends Model<
   declare id: CreationOptional<number>;
   declare manual_id: ForeignKey<Manual['id']>;
   declare user_id: ForeignKey<User['id']>;
+  declare tenant_id: number;
   declare title: string;
   declare summary_type: 'brief' | 'detailed' | 'key_points';
   declare content: string;
@@ -65,6 +66,16 @@ ManualSummary.init(
       },
       onDelete: 'CASCADE',
       onUpdate: 'CASCADE',
+    },
+    tenant_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'tenants',
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
     },
     title: {
       type: DataTypes.STRING(255),
@@ -128,6 +139,9 @@ ManualSummary.init(
       },
       {
         fields: ['user_id']
+      },
+      {
+        fields: ['tenant_id']
       },
       {
         fields: ['summary_type']

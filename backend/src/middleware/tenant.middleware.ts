@@ -98,7 +98,12 @@ export const superAdminOnly = async (req: Request, res: Response, next: NextFunc
     
     // Verify tenant is internal (Dynamtek)
     const tenant = await Tenant.findByPk(user.tenant_id);
-    if (!tenant || tenant.type !== 'internal') {
+    console.log('SuperAdminOnly - User tenant_id:', user.tenant_id);
+    console.log('SuperAdminOnly - Tenant found:', tenant ? 'Yes' : 'No');
+    console.log('SuperAdminOnly - Tenant type:', tenant ? tenant.get('type') : 'N/A');
+    console.log('SuperAdminOnly - Tenant data:', tenant ? tenant.toJSON() : 'N/A');
+    
+    if (!tenant || tenant.get('type') !== 'internal') {
       return res.status(403).json({ 
         error: 'Forbidden',
         message: 'This action is restricted to internal users'

@@ -6,6 +6,7 @@ interface AnswerAttributes {
   participantId: number;
   questionId: number;
   sessionId: number;
+  tenantId: number; // Multi-tenant support
   answer: string | boolean | string[];
   isCorrect: boolean;
   points: number;
@@ -26,6 +27,7 @@ class Answer extends Model<AnswerAttributes, AnswerCreationAttributes>
   public participantId!: number;
   public questionId!: number;
   public sessionId!: number;
+  public tenantId!: number;
   public answer!: string | boolean | string[];
   public isCorrect!: boolean;
   public points!: number;
@@ -82,6 +84,17 @@ Answer.init(
       },
       onDelete: 'CASCADE',
     },
+    tenantId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      field: 'tenant_id',
+      references: {
+        model: 'tenants',
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
+    },
     answer: {
       type: DataTypes.JSON,
       allowNull: false,
@@ -127,11 +140,17 @@ Answer.init(
         fields: ['session_id'],
       },
       {
+        fields: ['tenant_id'],
+      },
+      {
         fields: ['participant_id', 'question_id'],
         unique: true,
       },
       {
         fields: ['is_correct'],
+      },
+      {
+        fields: ['tenant_id', 'session_id'],
       },
     ],
   }

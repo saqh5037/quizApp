@@ -5,8 +5,19 @@ interface TenantAttributes {
   name: string;
   slug: string;
   type: 'internal' | 'client';
-  settings: object;
-  branding: object;
+  settings: {
+    maxUsers?: number;
+    maxStorage?: number;
+    features?: string[];
+    allowPublicQuizzes?: boolean;
+    allowVideoUpload?: boolean;
+    aiCreditsMonthly?: number;
+  };
+  branding: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    logo?: string;
+  };
   is_active: boolean;
   created_at?: Date;
   updated_at?: Date;
@@ -19,8 +30,19 @@ class Tenant extends Model<TenantAttributes, TenantCreationAttributes> implement
   public name!: string;
   public slug!: string;
   public type!: 'internal' | 'client';
-  public settings!: object;
-  public branding!: object;
+  public settings!: {
+    maxUsers?: number;
+    maxStorage?: number;
+    features?: string[];
+    allowPublicQuizzes?: boolean;
+    allowVideoUpload?: boolean;
+    aiCreditsMonthly?: number;
+  };
+  public branding!: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    logo?: string;
+  };
   public is_active!: boolean;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;

@@ -9,7 +9,7 @@ export const simpleAuth = (req: Request, res: Response, next: NextFunction) => {
     const defaultUser = { 
       id: 2, 
       email: 'admin@aristotest.com', 
-      role: 'admin', 
+      role: 'super_admin', 
       tenant_id: 1 
     };
     

@@ -102,7 +102,8 @@ export const sendChatMessage = async (req: Request, res: Response) => {
       where: {
         manual_id: manualId,
         user_id: userId,
-        session_id: sessionId
+        session_id: sessionId,
+        tenant_id: tenantId
       },
       order: [['created_at', 'ASC']],
       limit: 10
@@ -123,6 +124,7 @@ export const sendChatMessage = async (req: Request, res: Response) => {
     const userChat = await ManualChat.create({
       manual_id: manualId,
       user_id: userId,
+      tenant_id: tenantId,
       session_id: sessionId,
       message: message.trim(),
       response: '', // User messages don't have responses
@@ -133,6 +135,7 @@ export const sendChatMessage = async (req: Request, res: Response) => {
     const aiChat = await ManualChat.create({
       manual_id: manualId,
       user_id: userId,
+      tenant_id: tenantId,
       session_id: sessionId,
       message: '', // AI responses don't have messages
       response: response,
@@ -185,7 +188,8 @@ export const getChatHistory = async (req: Request, res: Response) => {
       where: {
         manual_id: manualId,
         user_id: userId,
-        session_id: sessionId
+        session_id: sessionId,
+        tenant_id: tenantId
       },
       order: [['created_at', 'ASC']],
       include: [{
@@ -288,6 +292,7 @@ export const generateQuiz = async (req: Request, res: Response) => {
     const quiz = await AIGeneratedQuiz.create({
       manual_id: manualId,
       user_id: userId,
+      tenant_id: tenantId,
       title: title.trim(),
       description: description?.trim() || null,
       questions: [], // Will be updated after generation
@@ -348,10 +353,13 @@ export const getGeneratedQuiz = async (req: Request, res: Response) => {
     const userRole = (req as any).user?.role;
     const { tenantId } = getTenantContext(req);
 
-    const whereClause: any = { id: quizId };
+    const whereClause: any = { 
+      id: quizId,
+      tenant_id: tenantId 
+    };
     
     // Access control
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
       whereClause.user_id = userId;
     }
 
@@ -447,6 +455,7 @@ export const generateSummary = async (req: Request, res: Response) => {
     const summary = await ManualSummary.create({
       manual_id: manualId,
       user_id: userId,
+      tenant_id: tenantId,
       title: title.trim(),
       summary_type: summaryType,
       content: '', // Will be updated after generation
@@ -508,10 +517,15 @@ export const getGeneratedSummary = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
     const userRole = (req as any).user?.role;
 
-    const whereClause: any = { id: summaryId };
+    const { tenantId } = getTenantContext(req);
+    
+    const whereClause: any = { 
+      id: summaryId,
+      tenant_id: tenantId 
+    };
     
     // Access control
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
       whereClause.user_id = userId;
     }
 

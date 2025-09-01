@@ -6,6 +6,7 @@ interface ParticipantAttributes {
   id: number;
   sessionId: number;
   userId?: number; // Optional - can be a guest
+  tenantId: number; // Multi-tenant support
   nickname: string;
   status: ParticipantStatus;
   score: number;
@@ -31,6 +32,7 @@ class Participant extends Model<ParticipantAttributes, ParticipantCreationAttrib
   public id!: number;
   public sessionId!: number;
   public userId?: number;
+  public tenantId!: number;
   public nickname!: string;
   public status!: ParticipantStatus;
   public score!: number;
@@ -91,6 +93,17 @@ Participant.init(
         key: 'id',
       },
       onDelete: 'SET NULL',
+    },
+    tenantId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      field: 'tenant_id',
+      references: {
+        model: 'tenants',
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
     },
     nickname: {
       type: DataTypes.STRING(50),
@@ -166,6 +179,9 @@ Participant.init(
         fields: ['user_id'],
       },
       {
+        fields: ['tenant_id'],
+      },
+      {
         fields: ['session_id', 'nickname'],
         unique: true,
       },
@@ -174,6 +190,9 @@ Participant.init(
       },
       {
         fields: ['status'],
+      },
+      {
+        fields: ['tenant_id', 'status'],
       },
     ],
   }

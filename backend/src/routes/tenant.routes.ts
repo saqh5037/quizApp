@@ -21,18 +21,16 @@ router.put('/current', tenantMiddleware, tenantAdminOnly, (req, res) => {
   TenantController.updateTenant({ ...req, params: { id: req.tenantId } } as any, res);
 });
 
-// Admin routes
-router.use(tenantMiddleware);
-
-// Get single tenant (own tenant or super admin can see others)
-router.get('/:id', TenantController.getTenant);
-
-// Update tenant (own tenant admin or super admin)
-router.put('/:id', tenantAdminOnly, TenantController.updateTenant);
-
-// Super admin only routes
+// Super admin only routes (NO tenant middleware needed for creation)
 router.get('/', superAdminOnly, TenantController.getAllTenants);
 router.post('/', superAdminOnly, TenantController.createTenant);
 router.delete('/:id', superAdminOnly, TenantController.deleteTenant);
+
+// Admin routes (these need tenant context)
+// Get single tenant (own tenant or super admin can see others)
+router.get('/:id', tenantMiddleware, TenantController.getTenant);
+
+// Update tenant (own tenant admin or super admin)
+router.put('/:id', tenantMiddleware, tenantAdminOnly, TenantController.updateTenant);
 
 export default router;

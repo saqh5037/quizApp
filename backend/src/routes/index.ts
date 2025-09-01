@@ -15,6 +15,7 @@ import tenantRoutes from './tenant.routes';
 import classroomRoutes from './classroom.routes';
 import trainingProgramRoutes from './training-program.routes';
 import certificateRoutes from './certificate.routes';
+import adminRoutes from './admin.routes';
 // import aiRoutes from './ai.routes';
 // import { authenticateToken } from '@middleware/auth.middleware';
 // Manual routes disabled temporarily - direct implementation below
@@ -78,6 +79,7 @@ router.use('/tenants', tenantRoutes);
 router.use('/classrooms', classroomRoutes);
 router.use('/programs', trainingProgramRoutes);
 router.use('/certificates', certificateRoutes);
+router.use('/admin', adminRoutes);
 
 // AI routes
 import aiRoutes from './ai.routes';
