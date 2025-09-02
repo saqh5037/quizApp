@@ -1,0 +1,17 @@
+<svg width="100%" height="100%" viewBox="0 0 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="100%" height="100%" fill="transparent"/>
+<path d="M499.773 135.253L354.197 419.648L208.621 704.043L394.067 704.043L539.643 419.648L685.219 135.253L499.773 135.253Z" fill="#1A73E8"/>
+<path d="M499.773 135.253L685.219 135.253L539.643 419.648L394.067 704.043L208.621 704.043L354.197 419.648L499.773 135.253Z" fill="url(#paint0_linear_1_2)"/>
+<path d="M499.773 135.253L685.219 135.253L539.643 419.648L394.067 704.043L208.621 704.043L354.197 419.648L499.773 135.253Z" fill="url(#paint1_linear_1_2)"/>
+<text x="50%" y="85%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="60" fill="#000000">ARISTOTEST</text>
+<defs>
+<linearGradient id="paint0_linear_1_2" x1="499.773" y1="135.253" x2="499.773" y2="704.043" gradientUnits="userSpaceOnUse">
+<stop stop-color="#2196F3"/>
+<stop offset="1" stop-color="#1A73E8"/>
+</linearGradient>
+<linearGradient id="paint1_linear_1_2" x1="499.773" y1="135.253" x2="499.773" y2="704.043" gradientUnits="userSpaceOnUse">
+<stop stop-color="#2196F3"/>
+<stop offset="1" stop-color="#1A73E8"/>
+</linearGradient>
+</defs>
+</svg>

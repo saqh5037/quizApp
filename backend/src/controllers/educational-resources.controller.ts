@@ -28,7 +28,7 @@ export const generateEducationalResource = async (req: Request, res: Response) =
       isPublic = false,
       customPrompt
     } = req.body;
-    const userId = (req as any).user?.id || 2; // Default to admin user for testing
+    const userId = (req as any).user?.id || 1; // Default to admin user for testing
     const { tenantId } = getTenantContext(req);
 
     // Validate input
@@ -353,11 +353,11 @@ export const listEducationalResources = async (req: Request, res: Response) => {
     
     console.log('Query params:', { manualId, userId, userRole, tenantId });
 
-    // Verify manual access - simplified for super_admin
+    // Verify manual access - simplified for super_admin and admin
     const whereClause: any = { id: manualId };
     
-    // Super admin can see all manuals
-    if (userRole !== 'super_admin') {
+    // Super admin and admin can see all manuals in their tenant
+    if (userRole !== 'super_admin' && userRole !== 'admin') {
       if (tenantId) {
         whereClause.tenant_id = tenantId;
       }
@@ -365,7 +365,11 @@ export const listEducationalResources = async (req: Request, res: Response) => {
         { user_id: userId },
         { is_public: true }
       ];
+    } else if (userRole === 'admin' && tenantId) {
+      // Admin can see all manuals in their tenant
+      whereClause.tenant_id = tenantId;
     }
+    // Super admin has no restrictions
     
     const manual = await Manual.findOne({
       where: whereClause

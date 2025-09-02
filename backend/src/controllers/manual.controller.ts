@@ -5,6 +5,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
 import { getTenantContext } from '@middleware/tenant.middleware';
+import pdf from 'pdf-parse';
 
 // Configure multer for PDF uploads
 const storage = multer.diskStorage({
@@ -73,15 +74,8 @@ export const uploadManual = async (req: Request, res: Response) => {
       }
     });
 
-    // TODO: Queue PDF processing job here
-    // For now, just mark as ready after a delay
-    setTimeout(async () => {
-      try {
-        await manual.markAsReady();
-      } catch (error) {
-        console.error('Error marking manual as ready:', error);
-      }
-    }, 2000);
+    // Extract text from PDF asynchronously
+    extractTextFromPDF(manual, req.file.path);
 
     res.status(201).json({
       success: true,
@@ -374,5 +368,40 @@ export const downloadManual = async (req: Request, res: Response) => {
       success: false,
       error: 'Failed to download manual'
     });
+  }
+};
+
+// Helper function to extract text from PDF
+const extractTextFromPDF = async (manual: any, filePath: string) => {
+  try {
+    // Read PDF file
+    const dataBuffer = await fs.readFile(filePath);
+    
+    // Parse PDF and extract text
+    const data = await pdf(dataBuffer);
+    
+    // Update manual with extracted text
+    manual.extracted_text = data.text;
+    manual.status = 'ready';
+    manual.metadata = {
+      ...manual.metadata,
+      num_pages: data.numpages,
+      pdf_info: data.info
+    };
+    
+    await manual.save();
+    
+    console.log(`Text extracted from manual ${manual.id}: ${data.text.length} characters`);
+  } catch (error) {
+    console.error(`Error extracting text from manual ${manual.id}:`, error);
+    
+    // Mark as failed
+    manual.status = 'failed';
+    manual.metadata = {
+      ...manual.metadata,
+      error: error.message
+    };
+    
+    await manual.save();
   }
 };

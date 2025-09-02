@@ -78,25 +78,38 @@ pm2 start ecosystem.config.js --only minio # Start with PM2
 ```bash
 pm2 start ecosystem.config.js              # Start backend + MinIO (local)
 pm2 start ecosystem.prod.config.js         # Production with AWS RDS
+pm2 start ecosystem.remote.js              # Remote production environment
 pm2 logs aristotest-backend                # View backend logs
+pm2 logs minio                             # View MinIO logs
 pm2 restart all                            # Restart all processes
+pm2 status                                 # Check process status
+pm2 monit                                  # Monitor processes
 ```
 
 ### Deployment Scripts
 ```bash
-# Educational Resources Deployment
-./deploy-educational-resources.sh    # Deploy study guides & flash cards feature
-
 # QA Environment Deployment
-./deploy-qa-complete.sh         # Complete deployment to QA
-./deploy-qa-option1-clean.sh    # Clean deployment (fresh install)
-./deploy-qa-option2-update.sh   # Update existing deployment
-./deploy-qa-option3-recovery.sh # Recovery deployment
+./deploy-qa-v2-option1-clean.sh    # Clean deployment (fresh install)
+./deploy-qa-v2-option2-update.sh   # Update existing deployment
+./deploy-qa-v2-option3-docker.sh   # Docker-based deployment
 
-# Production Deployment Options
-./deploy-option1-clean.sh        # Clean deployment strategy
-./deploy-option2-inplace.sh      # In-place update strategy
-./deploy-option3-bluegreen.sh    # Blue-green deployment strategy
+# Production deployment from GitHub
+./deploy-aristotest-from-github.sh # Deploy from GitHub repository
+
+# Fix deployment issues
+./deploy-fix.sh                    # General deployment fixes
+./fix-backend-final.sh              # Backend specific fixes
+./fix-remote-backend.sh             # Remote backend fixes
+./fix-typescript-issue.sh           # TypeScript compilation fixes
+./emergency-restart.sh              # Emergency restart services
+```
+
+### Docker Development
+```bash
+docker-compose up -d        # Start all services (PostgreSQL, Redis, Backend, Frontend)
+docker-compose down         # Stop all services
+docker-compose logs -f      # View logs
+docker-compose ps          # Check container status
 ```
 
 ## Architecture Overview
@@ -110,20 +123,20 @@ pm2 restart all                            # Restart all processes
 - **Storage**: MinIO S3-compatible storage for videos and files
 - **Video Processing**: FFmpeg for transcoding and HLS streaming (360p, 480p, 720p)
 - **File Structure**:
-  - Controllers handle HTTP requests and business logic (including AI controllers)
-  - Models define database schemas using Sequelize with tenant isolation
-  - Routes organize API endpoints by domain (auth, quiz, session, ai, manual, video, interactive-video, educational-resources)
+  - Controllers handle HTTP requests and business logic (26 controllers including AI controllers)
+  - Models define database schemas using Sequelize with tenant isolation (31 models)
+  - Routes organize API endpoints by domain (19 route files)
   - Socket handlers manage real-time events separately
-  - Middleware provides auth, tenant isolation, validation, rate limiting, and error handling
-  - Services contain business logic (Gemini AI, MinIO storage, FFmpeg video processing, video transcription)
+  - Middleware provides auth, tenant isolation, validation, rate limiting, and error handling (9 middleware modules)
+  - Services contain business logic (9 services: Gemini AI, MinIO storage, FFmpeg video processing, video transcription)
 
 ### Frontend Architecture
 - **React SPA**: Built with Vite, using React Router for navigation
-- **State Management**: Zustand stores for auth, quiz, session, and tenant context
+- **State Management**: Zustand stores for auth, quiz, session, interactive video, and tenant context
 - **Real-time**: Socket.io-client for live quiz participation
-- **Data Fetching**: React Query/Axios for server state management
+- **Data Fetching**: React Query/TanStack Query with Axios for server state management
 - **Styling**: Tailwind CSS with glassmorphism components for educational resources
-- **Form Handling**: React Hook Form with validation
+- **Form Handling**: React Hook Form with Zod validation
 - **Media**: Video.js for video playback with HLS support
 - **Charts**: Chart.js and Recharts for data visualization
 - **Key Pages**: Dashboard, Quiz management, Session hosting, Quiz playing, Video library with interactive layers, Manual management with AI chat, Study guides, Flash cards, Classrooms, Training programs
@@ -357,3 +370,42 @@ npm run migrate
 **Multi-tenant (v1.0.1)**: Complete isolation, tenant branding, cross-tenant management for super admins, usage analytics
 
 **AI Quiz Import**: Bulk import with validation, automatic answer index conversion, multiple question types
+
+## Project File Structure
+
+```
+quiz-app/
+├── backend/
+│   ├── src/
+│   │   ├── config/        # Database, environment, constants configuration
+│   │   ├── controllers/   # 26 controllers for business logic
+│   │   ├── middleware/    # 9 middleware modules (auth, tenant, validation)
+│   │   ├── models/        # 31 Sequelize models with associations
+│   │   ├── routes/        # 19 API route definitions
+│   │   ├── services/      # 9 business services (AI, storage, video)
+│   │   ├── socket/        # WebSocket event handlers
+│   │   ├── types/         # TypeScript type definitions
+│   │   ├── utils/         # Helper functions
+│   │   └── server.ts      # Entry point
+│   ├── migrations/        # 17 database migrations
+│   ├── tests/            # Jest test files
+│   └── storage/          # MinIO local storage data
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/    # Reusable React components
+│   │   ├── pages/         # 32 page components
+│   │   ├── stores/        # Zustand state stores
+│   │   ├── hooks/         # Custom React hooks
+│   │   ├── services/      # API service layer
+│   │   ├── types/         # TypeScript types
+│   │   ├── utils/         # Utility functions
+│   │   └── App.tsx        # Main application component
+│   └── public/           # Static assets
+│
+├── docker-compose.yml    # Docker development setup
+├── ecosystem.config.js   # PM2 local configuration
+├── ecosystem.prod.config.js  # PM2 production configuration
+├── ecosystem.remote.js   # PM2 remote configuration
+└── deploy-*.sh          # Deployment scripts
+```
