@@ -1,5 +1,51 @@
 # Changelog - AristoTest
 
+## [1.2.0] - 2025-09-02
+
+### ✨ Nuevas Características
+- **Nuevo Logo Oficial**: Implementación del logo SVG oficial de AristoTest en toda la aplicación
+- **Rediseño de Login**: Mejora en el diseño de la página de login con mejor integración visual del logo
+  - Panel izquierdo con fondo blanco para el logo
+  - Panel derecho con fondo azul gradiente para el formulario
+- **Scripts de Deployment**: Nuevos scripts optimizados para QA
+  - `deploy-qa-v2-option1-clean.sh` - Instalación limpia
+  - `deploy-qa-v2-option2-update.sh` - Actualización incremental
+
+### 🛠️ Mejoras Técnicas
+- Actualización de todos los componentes para usar el nuevo sistema de logos
+- Eliminación de archivos SVG antiguos no utilizados
+- Scripts de corrección de backend mejorados
+
+### 📦 Características del Sistema
+- Sistema multi-tenant completo con aislamiento de datos
+- Recursos educativos avanzados:
+  - Procesamiento de manuales PDF
+  - Generación automática de guías de estudio
+  - Creación de flashcards interactivas
+- Videos interactivos con evaluación automática
+- Integración con Google Gemini para generación de contenido IA
+- Sistema de sesiones en tiempo real con Socket.io
+- Certificados automáticos en PDF
+- Dashboard con métricas y estadísticas detalladas
+- Sistema de autenticación JWT con refresh tokens
+
+### 📝 Archivos Modificados
+- `frontend/src/components/common/Logo.tsx`
+- `frontend/src/components/layout/MainLayout.tsx`
+- `frontend/src/pages/Login.tsx`
+- `frontend/src/pages/Register.tsx`
+- `frontend/src/pages/JoinSession.tsx`
+- `frontend/src/pages/NotFound.tsx`
+
+### 🗑️ Archivos Eliminados
+- `frontend/public/images/aristotest-isotipo.svg`
+- `frontend/public/images/aristotest-logo.svg`
+
+### ➕ Archivos Agregados
+- `frontend/public/images/logoAristoTest.svg`
+- `frontend/public/images/aristotest-logo-oficial.png`
+- Scripts de deployment para QA
+
 ## [1.1.0] - 2025-08-23
 
 ### Added
