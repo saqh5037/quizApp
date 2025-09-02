@@ -32,9 +32,9 @@ export default function Login() {
       <div className="hidden lg:flex lg:w-1/2 xl:w-2/5 bg-gradient-to-br from-blue-50 via-white to-blue-50 p-12 flex-col justify-between">
         <div className="animate-fade-in">
           <img 
-            src="/images/isoTipoAristoTest.svg" 
+            src="/images/aristotest-isotipo.svg" 
             alt="AristoTest" 
-            className="h-32 w-auto"
+            className="h-32 w-auto object-contain"
           />
         </div>
         
@@ -88,9 +88,9 @@ export default function Login() {
           {/* Logo móvil y tablet */}
           <div className="lg:hidden">
             <img 
-              src="/images/logoAristoTest.svg" 
+              src="/images/aristotest-logo.svg" 
               alt="AristoTest" 
-              className="h-20 sm:h-24 w-auto mx-auto mb-8"
+              className="h-20 sm:h-24 w-auto mx-auto mb-8 object-contain"
             />
           </div>
 

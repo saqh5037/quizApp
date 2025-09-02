@@ -8,9 +8,9 @@ export default function Register() {
       <div className="bg-white p-8 rounded-lg shadow-card max-w-md w-full">
         <div className="text-center mb-6">
           <img 
-            src="/images/logoAristoTest.svg" 
+            src="/images/aristotest-logo.svg" 
             alt="AristoTest" 
-            className="h-20 mx-auto mb-4"
+            className="h-20 mx-auto mb-4 object-contain"
           />
           <h1 className="text-2xl font-bold text-gray-900">{t('auth.register.title')}</h1>
           <p className="text-text-secondary mt-2">{t('auth.register.subtitle')}</p>

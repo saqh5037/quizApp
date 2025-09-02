@@ -8,9 +8,9 @@ export default function NotFound() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center">
         <img 
-          src="/images/logoAristoTest.svg" 
+          src="/images/aristotest-logo.svg" 
           alt="AristoTest" 
-          className="h-20 mx-auto mb-8"
+          className="h-20 mx-auto mb-8 object-contain"
         />
         <h1 className="text-6xl font-bold text-primary mb-4">404</h1>
         <p className="text-xl text-text-secondary mb-8">Page not found</p>

@@ -123,9 +123,9 @@ export default function JoinSession() {
       <Card className="w-full max-w-md p-8">
         <div className="text-center mb-8">
           <img 
-            src="/images/logoAristoTest.svg" 
+            src="/images/aristotest-logo.svg" 
             alt="AristoTest" 
-            className="h-16 mx-auto mb-4"
+            className="h-16 mx-auto mb-4 object-contain"
           />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Join Session</h1>
           <p className="text-text-secondary">Enter the code to join a live assessment</p>
