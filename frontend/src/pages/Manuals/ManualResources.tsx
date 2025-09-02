@@ -137,7 +137,13 @@ const ManualResources: React.FC = () => {
 
         <div className="flex justify-between">
           <button
-            onClick={() => navigate(`/resources/${type}/${resource.id}`)}
+            onClick={() => {
+              if (type === 'summary') {
+                navigate(`/resources/summary/${resource.id}`);
+              } else {
+                navigate(`/resources/${type}/${resource.id}`);
+              }
+            }}
             disabled={resource.status !== 'ready'}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               resource.status === 'ready'

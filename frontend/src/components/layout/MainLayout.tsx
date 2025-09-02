@@ -34,8 +34,9 @@ export default function MainLayout() {
     navigate('/login');
   };
 
-  // Check if user is admin
+  // Check if user is admin or super admin
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const isSuperAdmin = user?.role === 'super_admin';
 
   const navItems = [
     { path: '/dashboard', label: t('navigation.dashboard', { defaultValue: 'Dashboard' }), key: 'launch' },
@@ -47,6 +48,7 @@ export default function MainLayout() {
     { path: '/public-results', label: 'Resultados', key: 'reports' },
     { path: '/results', label: 'Resultados En Vivo', key: 'live-results' },
     ...(isAdmin ? [{ path: '/docs', label: 'Documentación', key: 'docs' }] : []),
+    ...(isSuperAdmin ? [{ path: '/admin', label: 'Administración', key: 'admin' }] : []),
   ];
 
   return (

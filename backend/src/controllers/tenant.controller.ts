@@ -127,10 +127,21 @@ export class TenantController {
         });
       }
 
+      // Generate unique slug
+      let baseSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      let slug = baseSlug;
+      let counter = 1;
+      
+      // Check if slug already exists and generate a unique one
+      while (await Tenant.findOne({ where: { slug } })) {
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+      }
+
       // Create tenant
       const tenant = await Tenant.create({
         name,
-        slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug,
         type,
         settings,
         branding,
@@ -138,11 +149,17 @@ export class TenantController {
       }, { transaction: t });
 
       // Create default classroom for the tenant
+      const tenantData = tenant.get ? tenant.get() : tenant;
+      
+      // Generate unique classroom code
+      const randomCode = Math.random().toString(36).substring(2, 5).toUpperCase();
+      const classroomCode = `${tenantData.slug.toUpperCase().substring(0, 3)}-GEN-${randomCode}`;
+      
       await Classroom.create({
-        tenant_id: tenant.id,
+        tenant_id: tenantData.id,
         name: 'General',
-        code: `${tenant.slug.toUpperCase().substring(0, 3)}-GEN-001`,
-        description: `Default classroom for ${tenant.name}`,
+        code: classroomCode,
+        description: `Default classroom for ${tenantData.name}`,
         max_capacity: 100,
         is_active: true
       }, { transaction: t });
@@ -154,12 +171,31 @@ export class TenantController {
         data: tenant,
         message: 'Tenant created successfully'
       });
-    } catch (error) {
+    } catch (error: any) {
       await t.rollback();
       console.error('Error creating tenant:', error);
+      
+      // Handle specific Sequelize errors
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        return res.status(400).json({
+          success: false,
+          error: 'A tenant with this name already exists',
+          message: 'Please choose a different name for the tenant'
+        });
+      }
+      
+      if (error.name === 'SequelizeValidationError') {
+        return res.status(400).json({
+          success: false,
+          error: 'Validation error',
+          message: error.errors?.[0]?.message || 'Invalid data provided'
+        });
+      }
+      
       res.status(500).json({
         success: false,
-        error: 'Failed to create tenant'
+        error: 'Failed to create tenant',
+        message: 'An unexpected error occurred while creating the tenant'
       });
     }
   }

@@ -130,6 +130,9 @@ ManualSummary.init(
         fields: ['user_id']
       },
       {
+        fields: ['tenant_id']
+      },
+      {
         fields: ['summary_type']
       },
       {

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AristoTest is a multi-tenant interactive learning and assessment platform built with TypeScript, React, Node.js, and PostgreSQL. It features real-time quiz sessions using Socket.io, AI-powered content generation with Google Gemini, video streaming with MinIO, interactive video layers with auto-evaluation, PDF manual processing, and comprehensive quiz management capabilities.
+AristoTest is a multi-tenant interactive learning and assessment platform built with TypeScript, React, Node.js, and PostgreSQL. It features real-time quiz sessions using Socket.io, AI-powered content generation with Google Gemini, video streaming with MinIO, interactive video layers with auto-evaluation, PDF manual processing, and comprehensive educational resource management including study guides and flash cards.
 
 ## Development Commands
 
@@ -49,16 +49,17 @@ npm test -- --coverage   # Generate coverage report
 
 ### Database Commands
 ```bash
-# Connect to database
+# Local Database Connection
 PGPASSWORD=AristoTest2024 psql -U aristotest -d aristotest -h localhost
 
-# Check connectivity
-PGPASSWORD=AristoTest2024 psql -U aristotest -h localhost -c "\l"
+# QA/Production Database Connection (AWS RDS)
+PGPASSWORD=',U8x=]N02SX4' psql -U labsis -h ec2-3-91-26-178.compute-1.amazonaws.com -d aristotest1
 
-# Common queries with password
+# Common queries
 PGPASSWORD=AristoTest2024 psql -U aristotest -h localhost -c "SELECT * FROM tenants;"
 PGPASSWORD=AristoTest2024 psql -U aristotest -h localhost -c "SELECT * FROM users;"
-PGPASSWORD=AristoTest2024 psql -U aristotest -h localhost -c "SELECT * FROM classrooms;"
+PGPASSWORD=AristoTest2024 psql -U aristotest -h localhost -c "SELECT * FROM study_guides;"
+PGPASSWORD=AristoTest2024 psql -U aristotest -h localhost -c "SELECT * FROM flash_cards;"
 ```
 
 ### MinIO Storage
@@ -81,6 +82,23 @@ pm2 logs aristotest-backend                # View backend logs
 pm2 restart all                            # Restart all processes
 ```
 
+### Deployment Scripts
+```bash
+# Educational Resources Deployment
+./deploy-educational-resources.sh    # Deploy study guides & flash cards feature
+
+# QA Environment Deployment
+./deploy-qa-complete.sh         # Complete deployment to QA
+./deploy-qa-option1-clean.sh    # Clean deployment (fresh install)
+./deploy-qa-option2-update.sh   # Update existing deployment
+./deploy-qa-option3-recovery.sh # Recovery deployment
+
+# Production Deployment Options
+./deploy-option1-clean.sh        # Clean deployment strategy
+./deploy-option2-inplace.sh      # In-place update strategy
+./deploy-option3-bluegreen.sh    # Blue-green deployment strategy
+```
+
 ## Architecture Overview
 
 ### Backend Architecture
@@ -94,7 +112,7 @@ pm2 restart all                            # Restart all processes
 - **File Structure**:
   - Controllers handle HTTP requests and business logic (including AI controllers)
   - Models define database schemas using Sequelize with tenant isolation
-  - Routes organize API endpoints by domain (auth, quiz, session, ai, manual, video, interactive-video) with integrated express-validator validation
+  - Routes organize API endpoints by domain (auth, quiz, session, ai, manual, video, interactive-video, educational-resources)
   - Socket handlers manage real-time events separately
   - Middleware provides auth, tenant isolation, validation, rate limiting, and error handling
   - Services contain business logic (Gemini AI, MinIO storage, FFmpeg video processing, video transcription)
@@ -104,11 +122,11 @@ pm2 restart all                            # Restart all processes
 - **State Management**: Zustand stores for auth, quiz, session, and tenant context
 - **Real-time**: Socket.io-client for live quiz participation
 - **Data Fetching**: React Query/Axios for server state management
-- **Styling**: Tailwind CSS with custom components
+- **Styling**: Tailwind CSS with glassmorphism components for educational resources
 - **Form Handling**: React Hook Form with validation
 - **Media**: Video.js for video playback with HLS support
 - **Charts**: Chart.js and Recharts for data visualization
-- **Key Pages**: Dashboard, Quiz management, Session hosting, Quiz playing, Video library with interactive layers, Manual management with AI chat, Classrooms, Training programs
+- **Key Pages**: Dashboard, Quiz management, Session hosting, Quiz playing, Video library with interactive layers, Manual management with AI chat, Study guides, Flash cards, Classrooms, Training programs
 
 ### Real-time Flow
 1. Host creates session → generates unique session code and QR
@@ -133,7 +151,9 @@ pm2 restart all                            # Restart all processes
 ### AI & Content Models
 - **Manual**: PDF/document storage with extracted text
 - **ManualChat**: Chat history with AI about manuals
-- **ManualSummary**: AI-generated summaries of manuals
+- **ManualSummary**: AI-generated summaries of manuals with status tracking
+- **StudyGuide**: Structured study guides generated from manual content
+- **FlashCard**: Interactive flash cards for learning and memorization
 - **AIGeneratedQuiz**: Quizzes created by AI from manual content
 - **Video**: Video content with streaming URLs
 - **InteractiveVideoLayer**: AI-generated questions that pause video at timestamps
@@ -150,7 +170,10 @@ pm2 restart all                            # Restart all processes
 - Tenant has many Users, Quizzes, Manuals, Videos, Classrooms
 - User belongs to Tenant, has many Quizzes, Videos, Manuals
 - Quiz has many Questions, QuizSessions
-- Manual has many ManualChats, ManualSummaries, AIGeneratedQuizzes
+- Manual has many ManualChats, ManualSummaries, StudyGuides, FlashCards, AIGeneratedQuizzes
+- ManualSummary belongs to Manual and User
+- StudyGuide belongs to ManualSummary
+- FlashCard belongs to ManualSummary
 - Video has one InteractiveVideoLayer, many InteractiveVideoResults
 - Classroom has many ClassroomEnrollments
 - TrainingProgram has many ProgramQuizzes
@@ -168,6 +191,9 @@ Base URL: `/api/v1`
 - `/videos/*` - Video upload, streaming, management
 - `/interactive-video/*` - Interactive video layers and AI generation
 - `/manuals/*` - Manual upload, processing, text extraction
+- `/manuals/:id/generate-summary` - Generate AI summary for manual
+- `/manuals/:id/summaries` - List summaries for a manual
+- `/manual-summaries/:id` - Get specific summary with study guide and flash cards
 - `/ai/*` - AI operations (chat, quiz generation, summaries)
 - `/classrooms/*` - Classroom management and enrollment
 - `/training-programs/*` - Training program management
@@ -211,12 +237,12 @@ Base URL: `/api/v1`
   npm test -- tests/auth.spec.ts          # Run single test file
   npm test -- --coverage                  # Generate coverage report
   ```
-- Note: Test setup file (`tests/setup.ts`) needs to be created for test environment configuration
 
 ### Frontend
 - Vitest for unit and integration tests
 - Testing Library for React components
 - Interactive UI available with `npm run test:ui`
+- Test files for educational resources in `/frontend/src/pages/Manuals/`
 - Commands:
   ```bash
   npm test                                # Run all tests
@@ -253,7 +279,7 @@ Base URL: `/api/v1`
 7. **FFmpeg Integration**: Video transcoding for HLS adaptive streaming
 8. **Zustand**: Lightweight state management without Redux boilerplate
 9. **Vite**: Fast development builds with HMR and optimized production bundles
-10. **Tailwind CSS**: Utility-first styling for rapid UI development
+10. **Tailwind CSS**: Utility-first styling with glassmorphism components for modern UI
 11. **JWT Auth**: Stateless authentication with refresh token rotation and role-based access
 12. **PDF Processing**: pdf-parse for extracting text from manual uploads
 
@@ -270,7 +296,15 @@ Base URL: `/api/v1`
   - generateQuiz(): Create quiz from manual content
   - generateInteractiveContent(): Create video interaction layers
   - chatWithManual(): Interactive Q&A about manuals
-  - generateSummary(): Create manual summaries
+  - generateSummary(): Create manual summaries with study guides and flash cards
+  - generateStudyGuide(): Create structured study content from summaries
+  - generateFlashCards(): Create interactive learning cards
+
+### Educational Resources
+- Manual summaries include auto-generated study guides and flash cards
+- Study guides provide structured learning content with sections and key points
+- Flash cards offer interactive Q&A format for memorization
+- All resources are tenant-scoped and linked to original manual content
 
 ### Adding New API Endpoint
 1. Create controller in `/backend/src/controllers/`
@@ -311,12 +345,15 @@ npm run migrate
 - EC2 Instance: ec2-52-55-189-120.compute-1.amazonaws.com
 - RDS Database: ec2-3-91-26-178.compute-1.amazonaws.com
 - Database Name: aristotest1
+- Database User: labsis
 - PM2 ecosystem files configured for both local and production environments
 
-## Recent Features (v1.0.2-QA)
+## Recent Features
 
-**Interactive Videos**: AI-generated questions at timestamps, auto-pause, transcription, progress tracking, QR sharing
+**Educational Resources (v1.0.3)**: AI-generated study guides and flash cards from manual content, glassmorphism UI components, status tracking for generation process
 
-**Multi-tenant**: Complete isolation, tenant branding, cross-tenant management for super admins, usage analytics
+**Interactive Videos (v1.0.2)**: AI-generated questions at timestamps, auto-pause, transcription, progress tracking, QR sharing
+
+**Multi-tenant (v1.0.1)**: Complete isolation, tenant branding, cross-tenant management for super admins, usage analytics
 
 **AI Quiz Import**: Bulk import with validation, automatic answer index conversion, multiple question types

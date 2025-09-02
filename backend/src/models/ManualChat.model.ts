@@ -19,6 +19,7 @@ class ManualChat extends Model<
   declare id: CreationOptional<number>;
   declare manual_id: ForeignKey<Manual['id']>;
   declare user_id: ForeignKey<User['id']>;
+  declare tenant_id: number; // Multi-tenant support
   declare session_id: string;
   declare message: string;
   declare response: string;
@@ -63,6 +64,16 @@ ManualChat.init(
       },
       onDelete: 'CASCADE',
       onUpdate: 'CASCADE',
+    },
+    tenant_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'tenants',
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
     },
     session_id: {
       type: DataTypes.STRING(50),

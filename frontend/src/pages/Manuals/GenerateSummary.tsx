@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import educationalResourcesService, { EducationalResourceRequest } from '../../services/educationalResourcesService';
+import toast from 'react-hot-toast';
 
 type ContentType = 'summary' | 'study_guide' | 'flash_cards';
 
@@ -95,17 +96,29 @@ const GenerateSummary: React.FC = () => {
     },
     onSuccess: (response) => {
       console.log('Resource generation started:', response);
-      // Navigate to the manual page with a success message
-      navigate(`/manuals/${manualId}`, { 
-        state: { 
-          message: `${response.contentType.replace('_', ' ')} generation started successfully!`,
-          resourceId: response.id 
-        } 
-      });
+      
+      // Show success notification
+      const resourceType = response.contentType === 'summary' ? 'Resumen' :
+                          response.contentType === 'study_guide' ? 'Guía de Estudio' :
+                          'Tarjetas de Estudio';
+      
+      toast.success(
+        <div>
+          <strong>¡{resourceType} en proceso!</strong>
+          <p className="text-sm mt-1">Se está generando tu {resourceType.toLowerCase()}. Esto puede tomar unos momentos.</p>
+        </div>,
+        { duration: 5000 }
+      );
+      
+      // Navigate to the resources page where they can see all generated resources
+      navigate(`/manuals/${manualId}/resources`);
     },
     onError: (error: any) => {
       console.error('Error generating content:', error);
-      // You could add toast notification here
+      toast.error(
+        error.response?.data?.error || 
+        'Error al generar el recurso educativo. Por favor, intenta de nuevo.'
+      );
     }
   });
 

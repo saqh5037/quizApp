@@ -9,8 +9,8 @@ import {
 
 const router = Router();
 
-// Apply auth middleware to all routes (commented out for testing)
-// router.use(authenticate);
+// Apply auth middleware to all routes
+router.use(authenticate);
 
 // Generate educational resource (summary, study guide, or flash cards)
 router.post('/manuals/:manualId/resources', generateEducationalResource);

@@ -11,6 +11,7 @@ interface AIGeneratedQuizAttributes {
   status: string;
   user_id?: number;
   manual_id?: number;
+  tenant_id: number;
   metadata?: any;
   created_at?: Date;
   updated_at?: Date;
@@ -29,6 +30,7 @@ class AIGeneratedQuiz extends Model<AIGeneratedQuizAttributes, AIGeneratedQuizCr
   declare status: string;
   declare user_id?: number;
   declare manual_id?: number;
+  declare tenant_id: number;
   declare metadata?: any;
   declare readonly created_at: Date;
   declare readonly updated_at: Date;
@@ -76,6 +78,16 @@ AIGeneratedQuiz.init(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    tenant_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'tenants',
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
+    },
     metadata: {
       type: DataTypes.JSONB,
       allowNull: true,
@@ -97,6 +109,23 @@ AIGeneratedQuiz.init(
     tableName: 'ai_generated_quizzes',
     timestamps: false,
     underscored: true,
+    indexes: [
+      {
+        fields: ['tenant_id']
+      },
+      {
+        fields: ['user_id']
+      },
+      {
+        fields: ['manual_id']
+      },
+      {
+        fields: ['status']
+      },
+      {
+        fields: ['created_at']
+      }
+    ],
   }
 );
 

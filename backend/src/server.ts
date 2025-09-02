@@ -65,7 +65,7 @@ const corsOptions = {
   },
   credentials: env.CORS_CREDENTIALS,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-student-info'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-student-info', 'Cache-Control'],
 };
 
 app.use(cors(corsOptions));
