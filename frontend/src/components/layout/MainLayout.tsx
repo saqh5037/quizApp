@@ -62,7 +62,7 @@ export default function MainLayout() {
               {/* Logo */}
               <Link to="/dashboard" className="flex items-center mr-8">
                 <img 
-                  src="/images/aristotest-isotipo.svg" 
+                  src="/images/logoAristoTest.svg" 
                   alt="AristoTest" 
                   className="h-14 object-contain"
                 />

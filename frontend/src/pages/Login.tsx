@@ -29,10 +29,10 @@ export default function Login() {
   return (
     <div className="min-h-screen flex">
       {/* Panel Izquierdo - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-2/5 bg-gradient-to-br from-blue-50 via-white to-blue-50 p-12 flex-col justify-between">
+      <div className="hidden lg:flex lg:w-1/2 xl:w-2/5 bg-white p-12 flex-col justify-between">
         <div className="animate-fade-in">
           <img 
-            src="/images/aristotest-isotipo.svg" 
+            src="/images/logoAristoTest.svg" 
             alt="AristoTest" 
             className="h-32 w-auto object-contain"
           />
@@ -83,12 +83,12 @@ export default function Login() {
       </div>
 
       {/* Panel Derecho - Formulario */}
-      <div className="w-full lg:w-1/2 xl:w-3/5 flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-white">
+      <div className="w-full lg:w-1/2 xl:w-3/5 flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-gradient-to-br from-blue-50 via-white to-blue-50">
         <div className="w-full max-w-md xl:max-w-lg space-y-8">
           {/* Logo móvil y tablet */}
           <div className="lg:hidden">
             <img 
-              src="/images/aristotest-logo.svg" 
+              src="/images/logoAristoTest.svg" 
               alt="AristoTest" 
               className="h-20 sm:h-24 w-auto mx-auto mb-8 object-contain"
             />
@@ -178,7 +178,7 @@ export default function Login() {
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center text-base">
-              <span className="px-4 bg-white text-gray-600">
+              <span className="px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 text-gray-600">
                 {t('auth.login.noAccount', { defaultValue: '¿No tienes una cuenta?' })}
               </span>
             </div>

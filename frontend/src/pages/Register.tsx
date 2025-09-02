@@ -8,7 +8,7 @@ export default function Register() {
       <div className="bg-white p-8 rounded-lg shadow-card max-w-md w-full">
         <div className="text-center mb-6">
           <img 
-            src="/images/aristotest-logo.svg" 
+            src="/images/logoAristoTest.svg" 
             alt="AristoTest" 
             className="h-20 mx-auto mb-4 object-contain"
           />

@@ -13,7 +13,7 @@ const sizeClasses = {
 export default function Logo({ size = 'md', className = '' }: LogoProps) {
   return (
     <img 
-      src="/images/aristotest-logo.svg" 
+      src="/images/logoAristoTest.svg" 
       alt="AristoTest" 
       className={`${sizeClasses[size]} ${className} object-contain`}
       style={{ maxWidth: '100%', height: 'auto' }}
