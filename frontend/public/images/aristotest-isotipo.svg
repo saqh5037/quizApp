@@ -1,9 +1,13 @@
-<svg width="100%" height="100%" viewBox="0 0 500 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="100%" height="100%" viewBox="0 0 600 700" fill="none" xmlns="http://www.w3.org/2000/svg">
 <rect width="100%" height="100%" fill="transparent"/>
-<path d="M250 20L104.424 304.395L-41.152 588.79L144.294 588.79L289.87 304.395L435.446 20L250 20Z" fill="#1A73E8"/>
-<path d="M250 20L435.446 20L289.87 304.395L144.294 588.79L-41.152 588.79L104.424 304.395L250 20Z" fill="url(#paint0_linear)"/>
+<g transform="translate(100, 50)">
+  <path d="M200 100L100 300L0 500L150 500L250 300L350 100L200 100Z" fill="#1A73E8"/>
+  <path d="M200 100L350 100L250 300L150 500L0 500L100 300L200 100Z" fill="url(#paint0_linear)"/>
+  <path d="M320 180L400 350L380 350L300 180Z" fill="#2196F3"/>
+  <path d="M270 420L290 420L370 590L350 590Z" fill="#2196F3"/>
+</g>
 <defs>
-<linearGradient id="paint0_linear" x1="250" y1="20" x2="250" y2="588.79" gradientUnits="userSpaceOnUse">
+<linearGradient id="paint0_linear" x1="200" y1="100" x2="200" y2="500" gradientUnits="userSpaceOnUse">
 <stop stop-color="#2196F3"/>
 <stop offset="1" stop-color="#1A73E8"/>
 </linearGradient>
