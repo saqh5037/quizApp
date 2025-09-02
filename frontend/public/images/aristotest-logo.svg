@@ -1,19 +1,23 @@
-<svg width="100%" height="100%" viewBox="0 0 1200 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="100%" height="100%" viewBox="0 0 1000 400" fill="none" xmlns="http://www.w3.org/2000/svg">
 <rect width="100%" height="100%" fill="transparent"/>
-<g transform="translate(150, 100)">
-  <!-- Isotipo A -->
-  <path d="M200 100L100 300L0 500L150 500L250 300L350 100L200 100Z" fill="#1A73E8"/>
-  <path d="M200 100L350 100L250 300L150 500L0 500L100 300L200 100Z" fill="url(#paint0_linear)"/>
-  <path d="M320 180L400 350L380 350L300 180Z" fill="#2196F3"/>
-  <path d="M270 420L290 420L370 590L350 590Z" fill="#2196F3"/>
+<!-- Logo A con check -->
+<g transform="translate(50, 50)">
+  <!-- Parte izquierda de la A -->
+  <path d="M150 50L50 250L100 250L200 50L150 50Z" fill="#2196F3"/>
+  <!-- Parte derecha de la A con gradiente -->
+  <path d="M200 50L250 50L350 250L300 250L200 50Z" fill="url(#gradient1)"/>
+  <!-- Barra horizontal de la A -->
+  <path d="M125 175L275 175L285 200L115 200L125 175Z" fill="#1976D2"/>
+  <!-- Check mark -->
+  <path d="M280 80L320 120L400 40L420 60L320 160L260 100L280 80Z" fill="#2196F3"/>
 </g>
 <!-- Texto ARISTOTEST -->
-<text x="600" y="450" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="#000000">ARISTO</text>
-<text x="875" y="450" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="#2196F3">TEST</text>
+<text x="500" y="220" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="#000000">ARISTO</text>
+<text x="735" y="220" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="#2196F3">TEST</text>
 <defs>
-<linearGradient id="paint0_linear" x1="200" y1="100" x2="200" y2="500" gradientUnits="userSpaceOnUse">
-<stop stop-color="#2196F3"/>
-<stop offset="1" stop-color="#1A73E8"/>
+<linearGradient id="gradient1" x1="200" y1="50" x2="350" y2="250" gradientUnits="userSpaceOnUse">
+<stop offset="0%" stop-color="#2196F3"/>
+<stop offset="100%" stop-color="#1565C0"/>
 </linearGradient>
 </defs>
 </svg>
