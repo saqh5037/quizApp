@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { promisify } from 'util';
 import minioService from './minio.service';
 import ffmpegService from './ffmpeg.service';
+import { sanitizeFilenameWithExtension } from '../utils/filename.utils';
 
 const mkdir = promisify(fs.mkdir);
 const unlink = promisify(fs.unlink);
@@ -170,8 +171,9 @@ class VideoUploadService {
       throw new Error('Not all chunks have been uploaded');
     }
 
-    // Combine chunks
-    const finalFilename = `${Date.now()}_${session.filename}`;
+    // Combine chunks with sanitized filename
+    const sanitizedFilename = sanitizeFilenameWithExtension(session.filename);
+    const finalFilename = `${Date.now()}_${sanitizedFilename}`;
     const finalPath = path.join(this.uploadDir, finalFilename);
     
     const writeStream = fs.createWriteStream(finalPath);
@@ -194,12 +196,13 @@ class VideoUploadService {
     // Get video metadata
     const metadata = await ffmpegService.getMetadata(finalPath);
 
-    // Upload to MinIO
+    // Upload to MinIO with sanitized filename for headers
     const minioObjectName = `videos/original/${finalFilename}`;
+    const sanitizedOriginalFilename = sanitizeFilenameWithExtension(session.filename);
     await minioService.uploadFile(finalPath, minioObjectName, {
       'content-type': session.mimeType,
       'user-id': session.userId.toString(),
-      'original-filename': session.filename
+      'original-filename': sanitizedOriginalFilename
     });
 
     // Clean up upload session
