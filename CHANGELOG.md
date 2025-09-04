@@ -1,5 +1,30 @@
 # Changelog - AristoTest
 
+## [1.2.1] - 2025-09-04
+
+### ✨ Nuevas Características
+- **Internacionalización (i18n)**: Sistema completo de traducciones español/inglés
+  - Traducción completa del dashboard y todos los módulos
+  - Archivo de traducciones `frontend/src/i18n/locales/es.json` con todas las secciones
+  - Soporte para cambio dinámico de idioma
+
+### 🛠️ Mejoras Técnicas
+- **Documentación actualizada**: CLAUDE.md actualizado con conteos precisos de archivos
+  - 23 controladores backend
+  - 28 modelos de base de datos  
+  - 7 middleware
+  - 7 servicios
+  - 60 páginas frontend
+
+### 🐛 Correcciones
+- Corrección de traducciones faltantes en el dashboard
+- Mejoras en la estructura del proyecto documentada
+
+### 📦 Archivos Agregados/Modificados
+- `frontend/src/i18n/locales/es.json` - Traducciones completas al español
+- `CLAUDE.md` - Documentación actualizada del proyecto
+- Scripts de deployment y recuperación mejorados
+
 ## [1.2.0] - 2025-09-02
 
 ### ✨ Nuevas Características
