@@ -1,4 +1,395 @@
 {
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "all": "Todos",
+    "public": "Público",
+    "private": "Privado",
+    "yes": "Sí",
+    "no": "No",
+    "confirm": "Confirmar",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "submit": "Enviar",
+    "start": "Iniciar",
+    "finish": "Finalizar",
+    "play": "Reproducir",
+    "logout": "Cerrar sesión",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "share": "Compartir"
+  },
+  "auth": {
+    "login": {
+      "title": "Iniciar Sesión",
+      "subtitle": "Ingresa a tu cuenta",
+      "email": "Correo Electrónico",
+      "emailPlaceholder": "Ingresa tu correo",
+      "password": "Contraseña",
+      "passwordPlaceholder": "Ingresa tu contraseña",
+      "submit": "Iniciar Sesión",
+      "noAccount": "¿No tienes cuenta?",
+      "signup": "Regístrate",
+      "forgotPassword": "¿Olvidaste tu contraseña?",
+      "rememberMe": "Recuérdame"
+    },
+    "register": {
+      "title": "Crear Cuenta",
+      "subtitle": "Únete a AristoTest",
+      "firstName": "Nombre",
+      "firstNamePlaceholder": "Ingresa tu nombre",
+      "lastName": "Apellido",
+      "lastNamePlaceholder": "Ingresa tu apellido",
+      "email": "Correo Electrónico",
+      "emailPlaceholder": "Ingresa tu correo",
+      "password": "Contraseña",
+      "passwordPlaceholder": "Crea una contraseña",
+      "confirmPassword": "Confirmar Contraseña",
+      "confirmPasswordPlaceholder": "Confirma tu contraseña",
+      "submit": "Registrarse",
+      "hasAccount": "¿Ya tienes cuenta?",
+      "signin": "Iniciar Sesión",
+      "terms": "Al registrarte, aceptas nuestros",
+      "termsLink": "Términos y Condiciones",
+      "privacy": "y",
+      "privacyLink": "Política de Privacidad"
+    }
+  },
+  "navigation": {
+    "dashboard": "Panel de Control",
+    "assessments": "Evaluaciones",
+    "sessions": "Sesiones",
+    "results": "Resultados",
+    "profile": "Perfil",
+    "docs": "Documentación"
+  },
+  "dashboard": {
+    "title": "Panel de Control",
+    "welcome": "Bienvenido de nuevo, {{name}}",
+    "subtitle": "Aquí está tu resumen de actividad",
+    "stats": {
+      "totalQuizzes": "Evaluaciones Totales",
+      "activeSessions": "Sesiones Activas",
+      "totalStudents": "Estudiantes Totales",
+      "averageScore": "Puntaje Promedio"
+    },
+    "quickActions": {
+      "title": "Acciones Rápidas",
+      "createQuiz": "Crear Evaluación",
+      "startSession": "Iniciar Sesión",
+      "viewReports": "Ver Reportes",
+      "inviteStudents": "Invitar Estudiantes"
+    },
+    "recentActivity": {
+      "title": "Actividad Reciente",
+      "noActivity": "No hay actividad reciente"
+    },
+    "upcomingSessions": {
+      "title": "Próximas Sesiones",
+      "noSessions": "No hay sesiones programadas",
+      "startingSoon": "Comenzando pronto",
+      "inProgress": "En progreso",
+      "scheduled": "Programada"
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "noNotifications": "No hay nuevas notificaciones",
+      "markAllRead": "Marcar todas como leídas"
+    },
+    "weeklyPerformance": "Rendimiento Semanal"
+  },
+  "quizzes": {
+    "title": "Mis Evaluaciones",
+    "subtitle": "Crea y gestiona tu colección de evaluaciones",
+    "createButton": "Crear Evaluación",
+    "searchPlaceholder": "Buscar evaluaciones...",
+    "stats": {
+      "total": "Evaluaciones Totales",
+      "questions": "Preguntas Totales",
+      "timesPlayed": "Veces Jugadas",
+      "public": "Evaluaciones Públicas"
+    },
+    "card": {
+      "questions": "preguntas",
+      "plays": "jugadas",
+      "lastUsed": "Último uso",
+      "difficulty": {
+        "easy": "Fácil",
+        "medium": "Intermedio",
+        "hard": "Difícil"
+      },
+      "actions": {
+        "start": "Iniciar",
+        "edit": "Editar",
+        "duplicate": "Duplicar",
+        "delete": "Eliminar"
+      }
+    },
+    "empty": {
+      "title": "No se encontraron evaluaciones",
+      "subtitle": "Crea tu primera evaluación para comenzar",
+      "searchSubtitle": "Intenta ajustar tus términos de búsqueda",
+      "createFirst": "Crear Tu Primera Evaluación"
+    },
+    "create": {
+      "title": "Crear Nueva Evaluación",
+      "subtitle": "Diseña tu cuestionario con múltiples tipos de pregunta",
+      "preview": "Vista Previa",
+      "saveQuiz": "Guardar Cuestionario",
+      "tabs": {
+        "details": "Detalles",
+        "questions": "Preguntas",
+        "settings": "Configuración"
+      },
+      "form": {
+        "title": "Título del Cuestionario",
+        "titlePlaceholder": "Ingresa el título del cuestionario",
+        "description": "Descripción",
+        "descriptionPlaceholder": "Describe de qué trata este cuestionario",
+        "category": "Categoría",
+        "categoryPlaceholder": "Selecciona una categoría",
+        "difficulty": "Nivel de Dificultad",
+        "difficultyLevels": {
+          "easy": "Fácil",
+          "medium": "Intermedio",
+          "hard": "Difícil"
+        },
+        "timeLimit": "Límite de Tiempo (minutos)",
+        "passingScore": "Puntaje de Aprobación (%)",
+        "isPublic": "Hacer esta evaluación pública",
+        "allowReview": "Permitir revisión después de completar",
+        "randomizeQuestions": "Aleatorizar orden de preguntas",
+        "showCorrectAnswers": "Mostrar respuestas correctas",
+        "questions": "Preguntas",
+        "addQuestion": "Agregar Pregunta",
+        "question": "Pregunta",
+        "questionType": "Tipo de Pregunta",
+        "multipleChoice": "Opción Múltiple",
+        "trueFalse": "Verdadero/Falso",
+        "shortAnswer": "Respuesta Corta",
+        "questionText": "Texto de la Pregunta",
+        "questionPlaceholder": "Ingresa tu pregunta aquí",
+        "answerOptions": "Opciones de Respuesta",
+        "option": "Opción",
+        "correctAnswerHint": "Selecciona la respuesta correcta haciendo clic en el botón de radio",
+        "points": "Puntos",
+        "timeLimitSeconds": "Límite de Tiempo (segundos)",
+        "explanation": "Explicación (Opcional)",
+        "explanationPlaceholder": "Proporciona una explicación para la respuesta correcta",
+        "deleteQuestion": "Eliminar Pregunta",
+        "duplicateQuestion": "Duplicar Pregunta",
+        "noQuestions": "No hay preguntas aún",
+        "noQuestionsHint": "Agrega tu primera pregunta para comenzar a construir tu cuestionario",
+        "isPublicHint": "Permitir que cualquiera tome este cuestionario",
+        "randomizeQuestionsHint": "Mostrar preguntas en orden aleatorio",
+        "allowReviewHint": "Permitir a los estudiantes revisar sus respuestas después del envío",
+        "showCorrectAnswersHint": "Mostrar respuestas correctas después de completar el cuestionario",
+        "correctAnswer": "Respuesta Correcta",
+        "acceptableAnswers": "Respuesta(s) Aceptable(s)",
+        "acceptableAnswersPlaceholder": "Ingresa respuesta(s) aceptable(s)",
+        "acceptableAnswersHint": "Separa múltiples respuestas aceptables con comas"
+      }
+    }
+  },
+  "sessions": {
+    "title": "Sesiones",
+    "subtitle": "Gestiona tus sesiones de evaluación",
+    "activeNow": "Activas Ahora",
+    "hostSession": "Iniciar Sesión",
+    "myTitle": "Mis Sesiones",
+    "sessionCode": "Código de Sesión",
+    "progress": "Progreso",
+    "tabs": {
+      "active": "Activas",
+      "hosted": "Organizadas",
+      "participated": "Participadas"
+    },
+    "joinSession": {
+      "title": "Unirse a Sesión",
+      "codePlaceholder": "Ingresa el código de sesión",
+      "joinButton": "Unirse",
+      "invalidCode": "Código de sesión inválido"
+    },
+    "card": {
+      "host": "Anfitrión",
+      "participants": "participantes",
+      "status": {
+        "waiting": "Esperando",
+        "inProgress": "En Progreso",
+        "completed": "Completada",
+        "scheduled": "Programada"
+      },
+      "actions": {
+        "view": "Ver",
+        "start": "Iniciar",
+        "join": "Unirse",
+        "results": "Resultados"
+      }
+    },
+    "empty": {
+      "active": "No hay sesiones activas",
+      "hosted": "No has organizado ninguna sesión",
+      "participated": "No has participado en ninguna sesión"
+    }
+  },
+  "results": {
+    "title": "Resultados",
+    "subtitle": "Revisa tu rendimiento y progreso",
+    "noResults": "No Hay Resultados Disponibles",
+    "noCompletedSessions": "No hay sesiones completadas para mostrar.",
+    "goToSessions": "Ir a Sesiones",
+    "loadingResults": "Cargando resultados...",
+    "sessionResults": "Resultados de Sesión",
+    "averageScore": "Puntaje Promedio",
+    "name": "Nombre",
+    "showNames": "Mostrar Nombres",
+    "showResponses": "Mostrar Respuestas",
+    "selected": "Seleccionada",
+    "correctAnswer": "Respuesta Correcta",
+    "noAnswer": "Sin Respuesta",
+    "filters": {
+      "all": "Todos",
+      "passed": "Aprobados",
+      "failed": "Reprobados",
+      "dateRange": "Rango de Fechas"
+    },
+    "summary": {
+      "score": "Puntaje",
+      "correct": "Correctas",
+      "incorrect": "Incorrectas",
+      "timeSpent": "Tiempo Empleado",
+      "rank": "Posición",
+      "participants": "Participantes"
+    },
+    "details": {
+      "questionAnalysis": "Análisis de Preguntas",
+      "performanceChart": "Gráfico de Rendimiento",
+      "compareWithAverage": "Comparar con Promedio"
+    },
+    "export": {
+      "pdf": "Exportar PDF",
+      "excel": "Exportar Excel",
+      "email": "Enviar por Correo"
+    }
+  },
+  "profile": {
+    "title": "Mi Perfil",
+    "subtitle": "Gestiona tu información personal y preferencias",
+    "personalInformation": "Información Personal",
+    "edit": "Editar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "email": "Correo Electrónico",
+    "bio": "Biografía",
+    "bioPlaceholder": "Cuéntanos sobre ti...",
+    "joined": "Se unió",
+    "adminAccount": "Cuenta de Administrador",
+    "teacherAccount": "Cuenta de Profesor",
+    "studentAccount": "Cuenta de Estudiante",
+    "security": "Seguridad",
+    "currentPassword": "Contraseña Actual",
+    "newPassword": "Nueva Contraseña",
+    "confirmPassword": "Confirmar Contraseña",
+    "changePassword": "Cambiar Contraseña",
+    "recentActivity": "Actividad Reciente",
+    "noRecentActivity": "No hay actividad reciente",
+    "preferences": "Preferencias",
+    "emailNotifications": "Notificaciones por Correo",
+    "smsNotifications": "Notificaciones SMS",
+    "publicProfile": "Perfil Público",
+    "showActivity": "Mostrar Actividad",
+    "updatePreferences": "Actualizar Preferencias",
+    "dangerZone": "Zona de Peligro",
+    "deleteAccount": "Eliminar Cuenta",
+    "deleteAccountWarning": "Una vez que elimines tu cuenta, no hay vuelta atrás. Por favor, asegúrate.",
+    "teachingStatistics": "Estadísticas de Enseñanza",
+    "learningStatistics": "Estadísticas de Aprendizaje",
+    "quizzesCreated": "Cuestionarios Creados",
+    "sessionsHosted": "Sesiones Organizadas",
+    "studentsReached": "Estudiantes Alcanzados",
+    "avgScore": "Puntaje Prom.",
+    "quizzesTaken": "Cuestionarios Tomados",
+    "sessionsJoined": "Sesiones Unidas",
+    "averageScore": "Puntaje Promedio",
+    "improvement": "Mejora",
+    "timeJustNow": "justo ahora",
+    "pleaseLogin": "Por favor inicia sesión para ver tu perfil.",
+    "goToLogin": "Ir a Iniciar Sesión",
+    "tabs": {
+      "personal": "Información Personal",
+      "security": "Seguridad",
+      "preferences": "Preferencias",
+      "notifications": "Notificaciones"
+    },
+    "personal": {
+      "firstName": "Nombre",
+      "lastName": "Apellido",
+      "email": "Correo Electrónico",
+      "phone": "Teléfono",
+      "bio": "Biografía",
+      "avatar": "Foto de Perfil",
+      "changeAvatar": "Cambiar Foto",
+      "removeAvatar": "Eliminar Foto"
+    },
+    "preferences": {
+      "language": "Idioma",
+      "languageLabel": "Selecciona tu idioma preferido",
+      "theme": "Tema",
+      "themeLight": "Claro",
+      "themeDark": "Oscuro",
+      "themeAuto": "Automático",
+      "timezone": "Zona Horaria",
+      "dateFormat": "Formato de Fecha",
+      "emailNotifications": "Notificaciones por Correo",
+      "pushNotifications": "Notificaciones Push"
+    },
+    "stats": {
+      "totalQuizzes": "Evaluaciones Creadas",
+      "totalSessions": "Sesiones Organizadas",
+      "totalParticipations": "Participaciones",
+      "averageScore": "Puntaje Promedio"
+    },
+    "activity": {
+      "title": "Actividad Reciente",
+      "quizCreated": "Evaluación creada",
+      "sessionHosted": "Sesión organizada",
+      "sessionJoined": "Se unió a sesión",
+      "quizCompleted": "Evaluación completada"
+    }
+  },
+  "errors": {
+    "general": "Algo salió mal. Por favor, intenta de nuevo.",
+    "network": "Error de conexión. Verifica tu internet.",
+    "unauthorized": "No autorizado. Por favor, inicia sesión.",
+    "forbidden": "No tienes permiso para realizar esta acción.",
+    "notFound": "No pudimos encontrar lo que estás buscando.",
+    "validation": "Por favor verifica los datos ingresados.",
+    "serverError": "Error del servidor. Intenta más tarde."
+  },
+  "success": {
+    "saved": "Guardado exitosamente",
+    "created": "Creado exitosamente",
+    "updated": "Actualizado exitosamente",
+    "deleted": "Eliminado exitosamente",
+    "copied": "Copiado al portapapeles"
+  },
+  "confirmation": {
+    "delete": "¿Estás seguro de que quieres eliminar esto?",
+    "unsavedChanges": "Tienes cambios sin guardar. ¿Deseas continuar?",
+    "logout": "¿Estás seguro de que quieres cerrar sesión?"
+  },
   "admin": {
     "dashboard": {
       "title": "Administración del Sistema",
@@ -107,5 +498,81 @@
       "system": "Sistema",
       "activity": "Actividad"
     }
+  },
+  "publicQuiz": {
+    "title": "Evaluación Pública",
+    "notFound": "Evaluación no encontrada",
+    "notFoundDesc": "La evaluación que buscas no existe o no está disponible públicamente.",
+    "notPublic": "Esta evaluación no es pública",
+    "identificationTitle": "Identificación",
+    "identificationSubtitle": "Por favor ingresa tus datos para comenzar la evaluación",
+    "identificationSuccess": "Identificación exitosa",
+    "firstName": "Nombre",
+    "firstNamePlaceholder": "Ingresa tu nombre",
+    "lastName": "Apellido",
+    "lastNamePlaceholder": "Ingresa tu apellido",
+    "email": "Correo Electrónico",
+    "emailPlaceholder": "Ingresa tu correo",
+    "phone": "Teléfono",
+    "phonePlaceholder": "Ingresa tu teléfono (opcional)",
+    "organization": "Organización/Institución",
+    "organizationPlaceholder": "Ingresa tu organización (opcional)",
+    "requiredFields": "* Campos requeridos",
+    "continue": "Continuar",
+    "readyTitle": "¡Todo Listo!",
+    "welcome": "Bienvenido",
+    "readyDesc": "Estás a punto de comenzar la evaluación. Por favor lee las instrucciones cuidadosamente antes de empezar.",
+    "questions": "Preguntas",
+    "timeLimit": "Límite de tiempo",
+    "minutes": "minutos",
+    "difficulty": "Dificultad",
+    "category": "Categoría",
+    "questionsToAnswer": "preguntas para responder",
+    "minutesTimeLimit": "minutos de límite de tiempo",
+    "difficultyLevel": "Nivel de dificultad",
+    "instructions": "Instrucciones Importantes",
+    "instruction1": "Una vez que comiences, no podrás pausar la evaluación",
+    "instruction2": "Asegúrate de tener una conexión a internet estable",
+    "instruction3": "El temporizador comenzará inmediatamente",
+    "instruction4": "Tus respuestas se guardarán automáticamente",
+    "startQuiz": "Iniciar Evaluación",
+    "shareLink": "Compartir enlace",
+    "linkCopied": "Enlace copiado al portapapeles",
+    "scanQR": "Escanear código QR",
+    "orUseLink": "O usa este enlace",
+    "errors": {
+      "firstNameRequired": "El nombre es requerido",
+      "lastNameRequired": "El apellido es requerido",
+      "emailRequired": "El correo es requerido",
+      "emailInvalid": "El correo no es válido"
+    },
+    "identificationRequired": "Debes identificarte antes de tomar la evaluación",
+    "errorLoadingQuiz": "Error cargando la evaluación",
+    "quizCompleted": "Evaluación completada",
+    "errorSubmitting": "Error enviando las respuestas",
+    "congratulations": "¡Felicidades!",
+    "quizCompletedDesc": "Has completado exitosamente la evaluación",
+    "yourScore": "Tu puntaje",
+    "questionsAnswered": "Preguntas respondidas",
+    "backToHome": "Volver al inicio",
+    "takeAnother": "Tomar otra evaluación",
+    "question": "Pregunta",
+    "of": "de",
+    "points": "puntos",
+    "true": "Verdadero",
+    "false": "Falso",
+    "typeYourAnswer": "Escribe tu respuesta aquí...",
+    "answered": "Respondida",
+    "notAnswered": "No respondida",
+    "submit": "Enviar",
+    "questionNavigator": "Navegador de preguntas",
+    "quizCompletedTitle": "Evaluación Completada",
+    "passedMessage": "¡Felicidades! Has aprobado exitosamente la evaluación.",
+    "failedMessage": "Has completado la evaluación. Necesitas más práctica para mejorar tu puntaje.",
+    "correctAnswers": "Respuestas Correctas",
+    "pointsEarned": "Puntos Obtenidos",
+    "timeSpent": "Tiempo Empleado",
+    "passed": "APROBADO",
+    "needsImprovement": "NECESITA MEJORAR"
   }
 }

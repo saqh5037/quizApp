@@ -123,12 +123,12 @@ docker-compose ps          # Check container status
 - **Storage**: MinIO S3-compatible storage for videos and files
 - **Video Processing**: FFmpeg for transcoding and HLS streaming (360p, 480p, 720p)
 - **File Structure**:
-  - Controllers handle HTTP requests and business logic (26 controllers including AI controllers)
-  - Models define database schemas using Sequelize with tenant isolation (31 models)
-  - Routes organize API endpoints by domain (19 route files)
+  - Controllers handle HTTP requests and business logic (23 controllers including AI controllers)
+  - Models define database schemas using Sequelize with tenant isolation (28 models)
+  - Routes organize API endpoints by domain
   - Socket handlers manage real-time events separately
-  - Middleware provides auth, tenant isolation, validation, rate limiting, and error handling (9 middleware modules)
-  - Services contain business logic (9 services: Gemini AI, MinIO storage, FFmpeg video processing, video transcription)
+  - Middleware provides auth, tenant isolation, validation, rate limiting, and error handling (7 middleware modules)
+  - Services contain business logic (7 services: Gemini AI, MinIO storage, FFmpeg video processing, video transcription, tenant management)
 
 ### Frontend Architecture
 - **React SPA**: Built with Vite, using React Router for navigation
@@ -139,7 +139,7 @@ docker-compose ps          # Check container status
 - **Form Handling**: React Hook Form with Zod validation
 - **Media**: Video.js for video playback with HLS support
 - **Charts**: Chart.js and Recharts for data visualization
-- **Key Pages**: Dashboard, Quiz management, Session hosting, Quiz playing, Video library with interactive layers, Manual management with AI chat, Study guides, Flash cards, Classrooms, Training programs
+- **Key Pages**: Dashboard, Quiz management, Session hosting, Quiz playing, Video library with interactive layers, Manual management with AI chat, Study guides, Flash cards, Classrooms, Training programs, Admin panel for super admins (60 pages total)
 
 ### Real-time Flow
 1. Host creates session → generates unique session code and QR
@@ -378,23 +378,24 @@ quiz-app/
 ├── backend/
 │   ├── src/
 │   │   ├── config/        # Database, environment, constants configuration
-│   │   ├── controllers/   # 26 controllers for business logic
-│   │   ├── middleware/    # 9 middleware modules (auth, tenant, validation)
-│   │   ├── models/        # 31 Sequelize models with associations
-│   │   ├── routes/        # 19 API route definitions
-│   │   ├── services/      # 9 business services (AI, storage, video)
+│   │   ├── controllers/   # 23 controllers for business logic
+│   │   ├── middleware/    # 7 middleware modules (auth, tenant, validation)
+│   │   ├── models/        # 28 Sequelize models with associations
+│   │   ├── routes/        # API route definitions
+│   │   ├── services/      # 7 business services (AI, storage, video)
 │   │   ├── socket/        # WebSocket event handlers
 │   │   ├── types/         # TypeScript type definitions
 │   │   ├── utils/         # Helper functions
 │   │   └── server.ts      # Entry point
-│   ├── migrations/        # 17 database migrations
+│   ├── migrations/        # 18 database migrations
 │   ├── tests/            # Jest test files
-│   └── storage/          # MinIO local storage data
+│   ├── storage/          # MinIO local storage data
+│   └── ecosystem.remote.js  # PM2 remote configuration
 │
 ├── frontend/
 │   ├── src/
 │   │   ├── components/    # Reusable React components
-│   │   ├── pages/         # 32 page components
+│   │   ├── pages/         # 60 page components including admin panel
 │   │   ├── stores/        # Zustand state stores
 │   │   ├── hooks/         # Custom React hooks
 │   │   ├── services/      # API service layer
@@ -406,6 +407,5 @@ quiz-app/
 ├── docker-compose.yml    # Docker development setup
 ├── ecosystem.config.js   # PM2 local configuration
 ├── ecosystem.prod.config.js  # PM2 production configuration
-├── ecosystem.remote.js   # PM2 remote configuration
 └── deploy-*.sh          # Deployment scripts
 ```
