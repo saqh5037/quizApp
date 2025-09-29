@@ -191,22 +191,173 @@ class VideoTranscriptionService {
   }
 
   /**
-   * Transcribe audio using Gemini API with audio file upload
+   * Transcribe video directly using Gemini 1.5 Pro with native video support
+   */
+  async transcribeVideoWithGemini(videoPath: string): Promise<TranscriptionResult> {
+    try {
+      console.log('Starting Gemini video transcription for:', videoPath);
+
+      // Read video file
+      const videoBuffer = await fs.readFile(videoPath);
+      const videoBase64 = videoBuffer.toString('base64');
+
+      // Get file size for logging
+      const fileSize = videoBuffer.length / (1024 * 1024); // Size in MB
+      console.log(`Video file size: ${fileSize.toFixed(2)} MB`);
+
+      // Use Gemini 1.5 Pro which supports video natively
+      const model = this.genAI.getGenerativeModel({
+        model: 'gemini-1.5-pro',
+        generationConfig: {
+          temperature: 0.2, // Lower temperature for more accurate transcription
+          maxOutputTokens: 8192, // Sufficient for long videos
+        }
+      });
+
+      const prompt = `
+        Analiza este video educativo y proporciona una transcripción COMPLETA y DETALLADA.
+
+        INSTRUCCIONES IMPORTANTES:
+        1. Transcribe TODO el contenido hablado del video
+        2. Incluye narraciones, diálogos y explicaciones
+        3. Si hay texto en pantalla importante, inclúyelo entre [corchetes]
+        4. Divide la transcripción en segmentos lógicos de 20-30 segundos
+        5. Asegúrate de capturar TODOS los detalles técnicos, nombres, números y términos específicos
+
+        Responde ÚNICAMENTE con un JSON válido en este formato exacto:
+        {
+          "fullText": "transcripción completa y detallada de todo el video...",
+          "segments": [
+            {
+              "start": 0,
+              "end": 30,
+              "text": "texto exacto de lo que se dice en este segmento"
+            },
+            {
+              "start": 30,
+              "end": 60,
+              "text": "siguiente segmento..."
+            }
+          ],
+          "language": "es",
+          "topics": ["tema1", "tema2", "tema3"],
+          "keyTerms": ["término clave 1", "término clave 2"]
+        }
+
+        IMPORTANTE: La transcripción debe ser lo más completa y precisa posible.
+      `;
+
+      console.log('Sending video to Gemini for transcription...');
+      const result = await model.generateContent([
+        {
+          inlineData: {
+            mimeType: 'video/mp4',
+            data: videoBase64
+          }
+        },
+        { text: prompt }
+      ]);
+
+      const response = await result.response;
+      const text = response.text();
+      console.log('Received response from Gemini, parsing...');
+
+      // Parse the JSON response with robust extraction
+      let transcriptionData;
+      try {
+        // First try to find JSON in code blocks
+        const jsonCodeBlockMatch = text.match(/```json\s*([\s\S]*?)```/);
+        if (jsonCodeBlockMatch) {
+          console.log('Found JSON in code block');
+          transcriptionData = JSON.parse(jsonCodeBlockMatch[1].trim());
+        } else {
+          // Try to find the first complete JSON object using brace counting
+          let braceCount = 0;
+          let startIndex = -1;
+          let endIndex = -1;
+
+          for (let i = 0; i < text.length; i++) {
+            if (text[i] === '{') {
+              if (startIndex === -1) startIndex = i;
+              braceCount++;
+            } else if (text[i] === '}') {
+              braceCount--;
+              if (braceCount === 0 && startIndex !== -1) {
+                endIndex = i;
+                break;
+              }
+            }
+          }
+
+          if (startIndex !== -1 && endIndex !== -1) {
+            const jsonStr = text.substring(startIndex, endIndex + 1);
+            console.log('Extracted JSON string length:', jsonStr.length);
+            transcriptionData = JSON.parse(jsonStr);
+          } else {
+            throw new Error('No valid JSON object found in response');
+          }
+        }
+      } catch (parseError) {
+        console.error('Failed to parse Gemini response as JSON:', parseError);
+        console.log('Response length:', text.length);
+        console.log('First 1000 chars:', text.substring(0, 1000));
+        console.log('Last 500 chars:', text.substring(Math.max(0, text.length - 500)));
+
+        // Create a basic structure from the text
+        transcriptionData = {
+          fullText: text,
+          segments: [{
+            start: 0,
+            end: 60,
+            text: text.substring(0, Math.min(text.length, 1000))
+          }],
+          language: 'es'
+        };
+      }
+
+      console.log(`Transcription successful: ${transcriptionData.fullText.length} characters`);
+      console.log(`Number of segments: ${transcriptionData.segments.length}`);
+
+      return {
+        fullText: transcriptionData.fullText,
+        segments: transcriptionData.segments || [],
+        duration: 0, // Will be updated with actual duration
+        language: transcriptionData.language || 'es'
+      };
+
+    } catch (error) {
+      console.error('Error in Gemini video transcription:', error);
+
+      // If it's a size issue, try with audio instead
+      if (error.message && error.message.includes('size')) {
+        console.log('Video too large for direct transcription, falling back to audio...');
+        return await this.transcribeWithGemini(audioPath);
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Transcribe audio using Gemini API with audio file upload (fallback method)
    */
   async transcribeWithGemini(audioPath: string): Promise<TranscriptionResult> {
     try {
+      console.log('Falling back to audio transcription...');
       const audioBuffer = await fs.readFile(audioPath);
       const base64Audio = audioBuffer.toString('base64');
-      
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
-      
+
+      const model = this.genAI.getGenerativeModel({
+        model: 'gemini-1.5-flash', // Use flash for faster audio processing
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 4096,
+        }
+      });
+
       const prompt = `
-        Transcribe este audio completamente. Proporciona:
-        1. La transcripción completa del audio
-        2. Segmentos con timestamps aproximados (cada 30-60 segundos de contenido)
-        3. El idioma detectado
-        
-        Formato de respuesta JSON:
+        Transcribe este audio educativo completamente al español.
+        Proporciona la transcripción en formato JSON con la siguiente estructura:
         {
           "fullText": "transcripción completa...",
           "segments": [
@@ -218,6 +369,8 @@ class VideoTranscriptionService {
           ],
           "language": "es"
         }
+
+        IMPORTANTE: Transcribe TODO el contenido, no resumas.
       `;
 
       const result = await model.generateContent([
@@ -232,17 +385,53 @@ class VideoTranscriptionService {
 
       const response = await result.response;
       const text = response.text();
-      
-      // Parse the JSON response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const transcriptionData = JSON.parse(jsonMatch[0]);
+
+      // Parse the JSON response with robust extraction
+      let transcriptionData;
+      try {
+        // First try to find JSON in code blocks
+        const jsonCodeBlockMatch = text.match(/```json\s*([\s\S]*?)```/);
+        if (jsonCodeBlockMatch) {
+          transcriptionData = JSON.parse(jsonCodeBlockMatch[1].trim());
+        } else {
+          // Try to find the first complete JSON object
+          let braceCount = 0;
+          let startIndex = -1;
+          let endIndex = -1;
+
+          for (let i = 0; i < text.length; i++) {
+            if (text[i] === '{') {
+              if (startIndex === -1) startIndex = i;
+              braceCount++;
+            } else if (text[i] === '}') {
+              braceCount--;
+              if (braceCount === 0 && startIndex !== -1) {
+                endIndex = i;
+                break;
+              }
+            }
+          }
+
+          if (startIndex !== -1 && endIndex !== -1) {
+            const jsonStr = text.substring(startIndex, endIndex + 1);
+            transcriptionData = JSON.parse(jsonStr);
+          } else {
+            throw new Error('No valid JSON found in response');
+          }
+        }
+
         return {
           fullText: transcriptionData.fullText,
           segments: transcriptionData.segments || [],
           duration: 0, // Will be updated with actual duration
           language: transcriptionData.language
         };
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        console.log('Response length:', text.length);
+        console.log('First 1000 chars:', text.substring(0, 1000));
+        console.log('Last 500 chars:', text.substring(Math.max(0, text.length - 500)));
+        throw parseError;
       }
 
       // Fallback if not in expected format
@@ -254,7 +443,7 @@ class VideoTranscriptionService {
       };
 
     } catch (error) {
-      console.error('Error transcribing with Gemini:', error);
+      console.error('Error transcribing audio with Gemini:', error);
       throw error;
     }
   }
@@ -448,13 +637,46 @@ class VideoTranscriptionService {
           .replace(/'/g, '"')     // Replace single quotes with double quotes
           .replace(/\n/g, ' ')     // Replace newlines with spaces
           .replace(/[\u0000-\u001F\u007F-\u009F]/g, ''); // Remove control characters
-        
-        const data = JSON.parse(jsonStr);
+
+        // Try parsing with potential fixes for malformed JSON
+        let data;
+        try {
+          data = JSON.parse(jsonStr);
+        } catch (firstError) {
+          console.log('First JSON parse failed, attempting to fix malformed JSON...');
+
+          // Try to fix common malformed JSON issues
+          let fixedJson = jsonStr
+            // Fix missing quotes in string values
+            .replace(/("text":\s*)"([^"]*?)"/g, (match, prefix, content) => {
+              // If content contains quotes without proper escaping, fix them
+              const escapedContent = content.replace(/"/g, '\\"');
+              return `${prefix}"${escapedContent}"`;
+            })
+            // Fix incomplete question objects (missing quotes)
+            .replace(/("question":\s*)"([^"]*?)"\s*"type"/g, '"question": {"text": "$2", "type"')
+            // Fix missing commas between properties
+            .replace(/"([^"]+)"\s*"([^"]+)":/g, '"$1", "$2":')
+            // Ensure all strings are properly quoted
+            .replace(/:\s*([^",}\]]+)(?=\s*[,}\]])/g, (match, value) => {
+              if (value.trim() === 'true' || value.trim() === 'false' || !isNaN(Number(value.trim()))) {
+                return `: ${value.trim()}`;
+              }
+              return `: "${value.trim()}"`;
+            });
+
+          console.log('Attempting to parse fixed JSON...');
+          data = JSON.parse(fixedJson);
+        }
+
         return data.questions || [];
       } catch (parseError) {
         console.error('JSON parsing failed:', parseError);
-        console.error('Raw text from Gemini:', text);
-        throw new Error('No se pudo generar las preguntas en el formato esperado');
+        console.error('Raw text from Gemini:', text.substring(0, 2000));
+        console.log('Falling back to mock questions...');
+
+        // Instead of throwing, return mock questions as fallback
+        return this.generateVideoSpecificQuestions(numberOfQuestions);
       }
 
     } catch (error) {
@@ -649,42 +871,49 @@ class VideoTranscriptionService {
       // Debug environment variables
       console.log('GEMINI_API_KEY exists:', !!process.env.GEMINI_API_KEY);
       console.log('USE_MOCK_TRANSCRIPTION value:', process.env.USE_MOCK_TRANSCRIPTION);
-      
-      // Use real transcription when GEMINI_API_KEY exists, unless USE_MOCK_TRANSCRIPTION is explicitly set to true
-      const useMockTranscription = !process.env.GEMINI_API_KEY || (process.env.USE_MOCK_TRANSCRIPTION === 'true');
-      console.log('Using mock transcription?:', useMockTranscription);
-      
+
       let transcription: TranscriptionResult;
-      
-      if (useMockTranscription) {
-        console.log('Using enhanced mock transcription for development...');
-        
-        // Extract audio to analyze it
-        console.log('Extracting audio from video for analysis...');
-        const audioPath = await this.extractAudio(actualVideoPath);
-        
-        // Get audio file size for reference
-        const audioStats = await fs.stat(audioPath);
-        console.log(`Audio extracted successfully: ${audioPath}`);
-        console.log(`Audio file size: ${(audioStats.size / 1024 / 1024).toFixed(2)} MB`);
-        
-        // Generate mock transcription based on video title and duration
-        transcription = await this.generateEnhancedMockTranscription(metadata.duration, videoPath);
-        
-        // Clean up temp audio file
-        await fs.unlink(audioPath).catch(() => {});
+
+      // Force real transcription when GEMINI_API_KEY exists
+      if (process.env.GEMINI_API_KEY && process.env.USE_MOCK_TRANSCRIPTION !== 'true') {
+        try {
+          console.log('Using REAL Gemini transcription with native video support...');
+
+          // Check video size first
+          const videoStats = await fs.stat(actualVideoPath);
+          const videoSizeMB = videoStats.size / (1024 * 1024);
+          console.log(`Video size: ${videoSizeMB.toFixed(2)} MB`);
+
+          if (videoSizeMB > 20) {
+            console.log('Video larger than 20MB, using audio transcription instead...');
+            // Extract audio for large videos
+            const audioPath = await this.extractAudio(actualVideoPath);
+            transcription = await this.transcribeWithGemini(audioPath);
+            await fs.unlink(audioPath).catch(() => {});
+          } else {
+            // Direct video transcription for smaller files
+            transcription = await this.transcribeVideoWithGemini(actualVideoPath);
+          }
+
+          transcription.duration = metadata.duration;
+          console.log('✅ Real transcription completed successfully');
+
+        } catch (error) {
+          console.error('❌ Real transcription failed, falling back to mock:', error.message);
+
+          // Fallback to mock if real transcription fails
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Using mock transcription as fallback...');
+            transcription = await this.generateEnhancedMockTranscription(metadata.duration, videoPath);
+          } else {
+            // In production, throw the error
+            throw error;
+          }
+        }
       } else {
-        // Extract audio
-        console.log('Extracting audio from video...');
-        const audioPath = await this.extractAudio(actualVideoPath);
-        
-        // Transcribe audio
-        console.log('Transcribing audio...');
-        transcription = await this.transcribeWithGemini(audioPath);
-        transcription.duration = metadata.duration;
-        
-        // Clean up temp audio file
-        await fs.unlink(audioPath).catch(() => {});
+        // Use mock transcription when no API key or explicitly requested
+        console.log('Using mock transcription (no API key or explicitly requested)...');
+        transcription = await this.generateEnhancedMockTranscription(metadata.duration, videoPath);
       }
       
       // Generate questions

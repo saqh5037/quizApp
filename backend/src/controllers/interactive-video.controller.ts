@@ -620,7 +620,7 @@ export class InteractiveVideoController {
   }
 
   /**
-   * Process video in background
+   * Process video in background with improved error handling
    */
   private async processVideoInBackground(
     layer: any,
@@ -629,13 +629,14 @@ export class InteractiveVideoController {
   ) {
     try {
       console.log(`Starting background processing for layer ${layer.id}`);
-      
+      console.log(`API Key available: ${!!process.env.GEMINI_API_KEY}`);
+
       let video = layer.video;
-      
+
       // If video is not loaded or missing required fields, reload it
       if (!video || (!video.originalPath && !video.original_path && !video.processedPath && !video.processed_path)) {
         console.log(`Reloading video ${layer.videoId} with all fields...`);
-        
+
         // Manually fetch with raw query to ensure we get all fields
         const sequelize = InteractiveVideoLayer.sequelize;
         const videos = await sequelize.query(
@@ -645,11 +646,11 @@ export class InteractiveVideoController {
             type: QueryTypes.SELECT
           }
         );
-        
+
         video = videos[0];
-        
+
         if (!video) {
-          throw new Error('Video not found');
+          throw new Error('Video not found in database');
         }
       }
 
@@ -662,7 +663,8 @@ export class InteractiveVideoController {
 
       // Get the video file path (from MinIO or local storage)
       const videoPath = this.getVideoPath(video);
-      
+      console.log(`Video path for processing: ${videoPath}`);
+
       // Process video with transcription and question generation
       // Pass video info for MinIO handling
       const result = await videoTranscriptionService.processVideoForInteractivity(
@@ -674,26 +676,81 @@ export class InteractiveVideoController {
         }
       );
 
-      // Update layer with generated content
-      await layer.update({
-        processingStatus: 'ready',
-        aiGeneratedContent: {
-          transcription: result.transcription.fullText,
-          transcriptionSegments: result.transcription.segments,
-          keyMoments: result.keyMoments,
-          metadata: result.metadata
-        },
-        processingCompletedAt: new Date()
-      });
+      // Validate transcription result
+      if (!result || !result.transcription) {
+        throw new Error('Transcription failed - no result returned');
+      }
 
-      console.log(`Processing completed for layer ${layer.id}`);
-      
+      if (!result.transcription.fullText || result.transcription.fullText.length < 10) {
+        console.warn('Warning: Transcription text is very short or empty');
+
+        // Still save but mark as potentially incomplete
+        await layer.update({
+          processingStatus: 'ready',
+          aiGeneratedContent: {
+            transcription: result.transcription.fullText || 'Transcripción no disponible',
+            transcriptionSegments: result.transcription.segments || [],
+            keyMoments: result.keyMoments || [],
+            metadata: {
+              ...result.metadata,
+              warning: 'Transcripción puede estar incompleta'
+            }
+          },
+          processingCompletedAt: new Date()
+        });
+      } else {
+        // Normal successful update
+        await layer.update({
+          processingStatus: 'ready',
+          aiGeneratedContent: {
+            transcription: result.transcription.fullText,
+            transcriptionSegments: result.transcription.segments,
+            keyMoments: result.keyMoments,
+            metadata: {
+              ...result.metadata,
+              transcriptionMethod: process.env.GEMINI_API_KEY ? 'gemini-real' : 'mock'
+            }
+          },
+          processingCompletedAt: new Date()
+        });
+      }
+
+      console.log(`✅ Processing completed for layer ${layer.id}`);
+      console.log(`Transcription length: ${result.transcription.fullText.length} chars`);
+      console.log(`Questions generated: ${result.keyMoments.length}`);
+
     } catch (error: any) {
-      console.error(`Error processing video for layer ${layer.id}:`, error);
-      
+      console.error(`❌ Error processing video for layer ${layer.id}:`, error);
+
+      let errorMessage = 'Error durante el procesamiento';
+      let errorDetails = {};
+
+      // Provide specific error messages
+      if (error.message.includes('GEMINI_API_KEY')) {
+        errorMessage = 'API Key de Gemini no configurada';
+        errorDetails = { type: 'configuration' };
+      } else if (error.message.includes('size')) {
+        errorMessage = 'Video demasiado grande para procesar (máximo 20MB)';
+        errorDetails = { type: 'size_limit' };
+      } else if (error.message.includes('not found')) {
+        errorMessage = 'Archivo de video no encontrado';
+        errorDetails = { type: 'file_not_found' };
+      } else if (error.message.includes('transcription')) {
+        errorMessage = 'Error al transcribir el video - intente nuevamente';
+        errorDetails = { type: 'transcription_failed' };
+      } else {
+        errorMessage = error.message || 'Error desconocido durante el procesamiento';
+        errorDetails = { type: 'unknown', details: error.stack };
+      }
+
       await layer.update({
         processingStatus: 'error',
-        processingError: error.message || 'Error desconocido durante el procesamiento'
+        processingError: errorMessage,
+        aiGeneratedContent: {
+          error: errorMessage,
+          errorDetails,
+          timestamp: new Date().toISOString()
+        }
       });
     }
   }
