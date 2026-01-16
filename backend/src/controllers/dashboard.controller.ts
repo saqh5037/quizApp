@@ -9,7 +9,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
   try {
     let stats: any = {};
 
-    if (userRole === 'teacher' || userRole === 'admin') {
+    if (userRole === 'teacher' || userRole === 'admin' || userRole === 'super_admin') {
       // Comprehensive Admin/Teacher Dashboard Stats
       const [basicStats]: any = await sequelize.query(
         `SELECT 
@@ -205,7 +205,7 @@ export const getUpcomingSessions = async (req: Request, res: Response) => {
   try {
     let sessions;
 
-    if (userRole === 'teacher' || userRole === 'admin') {
+    if (userRole === 'teacher' || userRole === 'admin' || userRole === 'super_admin') {
       // Get teacher's upcoming sessions
       sessions = await sequelize.query(
         `SELECT 

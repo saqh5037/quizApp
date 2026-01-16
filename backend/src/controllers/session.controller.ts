@@ -562,6 +562,95 @@ export const getSessionResults = async (req: Request, res: Response) => {
   }
 };
 
+// Get all sessions (with pagination)
+export const getAllSessions = async (req: Request, res: Response) => {
+  try {
+    const { page = 1, limit = 20, status } = req.query;
+    const offset = (Number(page) - 1) * Number(limit);
+
+    let whereClause = '';
+    const replacements: any = { limit: Number(limit), offset };
+
+    if (status) {
+      whereClause = 'WHERE s.status = :status';
+      replacements.status = status;
+    }
+
+    const sessions = await sequelize.query(
+      `SELECT
+        s.id,
+        s.session_code as code,
+        s.name,
+        s.status,
+        s.mode,
+        s.current_question_index,
+        s.started_at,
+        s.ended_at,
+        s.created_at,
+        q.id as quiz_id,
+        q.title as quiz_title,
+        q.total_questions as questions_count,
+        q.time_limit_minutes,
+        u.first_name || ' ' || u.last_name as host_name,
+        (SELECT COUNT(*) FROM session_participants WHERE session_id = s.id) as participants_count
+      FROM quiz_sessions s
+      JOIN quizzes q ON s.quiz_id = q.id
+      LEFT JOIN users u ON s.host_id = u.id
+      ${whereClause}
+      ORDER BY s.created_at DESC
+      LIMIT :limit OFFSET :offset`,
+      {
+        replacements,
+        type: QueryTypes.SELECT
+      }
+    );
+
+    // Get total count
+    const [countResult]: any = await sequelize.query(
+      `SELECT COUNT(*) as total FROM quiz_sessions s ${whereClause}`,
+      {
+        replacements,
+        type: QueryTypes.SELECT
+      }
+    );
+
+    res.json({
+      success: true,
+      data: sessions.map((s: any) => ({
+        id: s.id,
+        code: s.code,
+        name: s.name,
+        status: s.status,
+        mode: s.mode,
+        currentQuestionIndex: s.current_question_index,
+        startedAt: s.started_at,
+        endedAt: s.ended_at,
+        createdAt: s.created_at,
+        hostName: s.host_name,
+        quiz: {
+          id: s.quiz_id,
+          title: s.quiz_title,
+          questionsCount: s.questions_count || 0,
+          timeLimit: s.time_limit_minutes
+        },
+        participantsCount: parseInt(s.participants_count) || 0
+      })),
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total: parseInt(countResult.total) || 0,
+        totalPages: Math.ceil((parseInt(countResult.total) || 0) / Number(limit))
+      }
+    });
+  } catch (error) {
+    console.error('Get all sessions error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get sessions'
+    });
+  }
+};
+
 // Get active sessions
 export const getActiveSessions = async (req: Request, res: Response) => {
   try {
@@ -770,6 +859,7 @@ export default {
   getCurrentQuestion,
   submitAnswer,
   getSessionResults,
+  getAllSessions,
   getActiveSessions,
   getMySessions,
   joinSession

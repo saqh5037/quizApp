@@ -73,12 +73,14 @@ export const getPublicQuizById = async (req: Request, res: Response) => {
 export const getQuizzes = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
+    const tenantId = (req as any).user?.tenant_id;
     const { page = 1, limit = 20, category, search } = req.query;
-    
+
     const offset = (Number(page) - 1) * Number(limit);
-    
-    let whereConditions = ['(q.is_public = true OR q.creator_id = :userId)', 'q.deleted_at IS NULL'];
-    const replacements: any = { userId, limit: Number(limit), offset };
+
+    // Filter by tenant_id - users can only see quizzes from their own tenant
+    let whereConditions = ['q.tenant_id = :tenantId', '(q.is_public = true OR q.creator_id = :userId)', 'q.deleted_at IS NULL'];
+    const replacements: any = { userId, tenantId, limit: Number(limit), offset };
     
     if (category) {
       whereConditions.push('q.category = :category');
@@ -145,11 +147,11 @@ export const getQuizzes = async (req: Request, res: Response) => {
     let aiTotal = 0;
     
     if (!category || category === 'AI Generated') {
-      // Get AI quizzes from ai_generated_quizzes table
+      // Get AI quizzes from ai_generated_quizzes table - filtered by tenant
       const aiSearchCondition = search ? `AND (title ILIKE :aiSearch OR description ILIKE :aiSearch)` : '';
-      
+
       const aiQuizResults = await sequelize.query(
-        `SELECT 
+        `SELECT
           id,
           title,
           description,
@@ -160,11 +162,12 @@ export const getQuizzes = async (req: Request, res: Response) => {
           updated_at,
           user_id
         FROM ai_generated_quizzes
-        WHERE status = 'ready' ${aiSearchCondition}
+        WHERE status = 'ready' AND tenant_id = :aiTenantId ${aiSearchCondition}
         ORDER BY created_at DESC
         LIMIT :aiLimit OFFSET :aiOffset`,
         {
-          replacements: { 
+          replacements: {
+            aiTenantId: tenantId,
             aiLimit: category === 'AI Generated' ? Number(limit) : Math.max(0, Number(limit) - quizzes.length),
             aiOffset: category === 'AI Generated' ? offset : 0,
             aiSearch: search ? `%${search}%` : ''
@@ -172,14 +175,17 @@ export const getQuizzes = async (req: Request, res: Response) => {
           type: QueryTypes.SELECT
         }
       );
-      
+
       // Get AI quiz count
       const [aiCountResult] = await sequelize.query(
         `SELECT COUNT(*) as total
         FROM ai_generated_quizzes
-        WHERE status = 'ready' ${aiSearchCondition}`,
+        WHERE status = 'ready' AND tenant_id = :aiTenantId ${aiSearchCondition}`,
         {
-          replacements: { aiSearch: search ? `%${search}%` : '' },
+          replacements: {
+            aiTenantId: tenantId,
+            aiSearch: search ? `%${search}%` : ''
+          },
           type: QueryTypes.SELECT
         }
       ) as any;
@@ -261,15 +267,16 @@ export const getQuizById = async (req: Request, res: Response) => {
     const { id } = req.params;
     const numericId = parseInt(id);
     const userId = (req as any).user?.id;
+    const tenantId = (req as any).user?.tenant_id;
     const userRole = (req as any).user?.role || 'teacher';
     
     // Check if this is an AI quiz (ID > 100000)
     if (numericId > 100000) {
       const aiQuizId = numericId - 100000;
       
-      // Get AI quiz
+      // Get AI quiz - filtered by tenant
       const [aiQuiz] = await sequelize.query(
-        `SELECT 
+        `SELECT
           aq.*,
           u.id as creator_id,
           u.first_name as creator_first_name,
@@ -277,9 +284,9 @@ export const getQuizById = async (req: Request, res: Response) => {
           u.email as creator_email
         FROM ai_generated_quizzes aq
         LEFT JOIN users u ON aq.user_id = u.id
-        WHERE aq.id = :id AND aq.status = 'ready'`,
+        WHERE aq.id = :id AND aq.status = 'ready' AND aq.tenant_id = :tenantId`,
         {
-          replacements: { id: aiQuizId },
+          replacements: { id: aiQuizId, tenantId },
           type: QueryTypes.SELECT
         }
       ) as any;
@@ -348,13 +355,13 @@ export const getQuizById = async (req: Request, res: Response) => {
       });
     }
     
-    // Regular quiz logic
-    const whereClause = userRole === 'admin' 
-      ? 'WHERE q.id = :id AND q.deleted_at IS NULL'
-      : 'WHERE q.id = :id AND (q.is_public = true OR q.creator_id = :userId) AND q.deleted_at IS NULL';
-    
+    // Regular quiz logic - filter by tenant_id
+    const whereClause = userRole === 'admin'
+      ? 'WHERE q.id = :id AND q.tenant_id = :tenantId AND q.deleted_at IS NULL'
+      : 'WHERE q.id = :id AND q.tenant_id = :tenantId AND (q.is_public = true OR q.creator_id = :userId) AND q.deleted_at IS NULL';
+
     const [quiz] = await sequelize.query(
-      `SELECT 
+      `SELECT
         q.*,
         u.id as creator_id,
         u.first_name as creator_first_name,
@@ -364,7 +371,7 @@ export const getQuizById = async (req: Request, res: Response) => {
       LEFT JOIN users u ON q.creator_id = u.id
       ${whereClause}`,
       {
-        replacements: userRole === 'admin' ? { id } : { id, userId },
+        replacements: userRole === 'admin' ? { id, tenantId } : { id, userId, tenantId },
         type: QueryTypes.SELECT
       }
     ) as any;

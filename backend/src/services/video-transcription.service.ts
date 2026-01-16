@@ -207,7 +207,7 @@ class VideoTranscriptionService {
 
       // Use Gemini 1.5 Pro which supports video natively
       const model = this.genAI.getGenerativeModel({
-        model: 'gemini-1.5-pro',
+        model: 'gemini-2.5-flash',
         generationConfig: {
           temperature: 0.2, // Lower temperature for more accurate transcription
           maxOutputTokens: 8192, // Sufficient for long videos
@@ -348,7 +348,7 @@ class VideoTranscriptionService {
       const base64Audio = audioBuffer.toString('base64');
 
       const model = this.genAI.getGenerativeModel({
-        model: 'gemini-1.5-flash', // Use flash for faster audio processing
+        model: 'gemini-2.5-flash', // Use flash for faster audio processing
         generationConfig: {
           temperature: 0.2,
           maxOutputTokens: 4096,
@@ -563,7 +563,7 @@ class VideoTranscriptionService {
     } = params;
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
       
       const prompt = `
         Basándote en la siguiente transcripción de video, genera ${numberOfQuestions} preguntas interactivas.

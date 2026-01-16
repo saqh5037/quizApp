@@ -10,11 +10,13 @@ const chatSessions = new Map<string, { manualContent: string; history: any[] }>(
 
 // Initialize Gemini
 const initializeGemini = () => {
-  // Use the correct API key provided by the user
-  const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyAGlwn2nDECzKnqRYqHo4hVUlNqGMsp1mw';
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY not configured in environment variables');
+  }
   const genAI = new GoogleGenerativeAI(apiKey);
-  // Use gemini-1.5-flash which is the current available model
-  return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  // Use gemini-2.5-flash - the latest available model
+  return genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 };
 
 // Helper to extract text from manual
@@ -394,6 +396,9 @@ export const generateSummary = async (req: Request, res: Response) => {
     // Get manual content
     const manualContent = await extractManualContent(manualId);
     const manual = await Manual.findByPk(manualId);
+
+    // Use provided title or generate from manual
+    const summaryTitle = title?.trim() || `Resumen de ${manual?.title || 'Manual'}`;
     
     // Initialize Gemini
     const model = initializeGemini();
@@ -425,7 +430,7 @@ export const generateSummary = async (req: Request, res: Response) => {
       success: true,
       data: {
         id: summaryId,
-        title: title.trim(),
+        title: summaryTitle,
         summaryType: summaryType,
         content: summary,
         word_count: summary.split(' ').length,

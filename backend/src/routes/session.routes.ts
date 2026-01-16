@@ -5,6 +5,9 @@ import * as resultsController from '../controllers/results.controller';
 
 const router = Router();
 
+// Get all sessions (with pagination and filters)
+router.get('/', simpleAuth, sessionController.getAllSessions);
+
 // Get active sessions
 router.get('/active', simpleAuth, sessionController.getActiveSessions);
 

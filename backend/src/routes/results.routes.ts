@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.middleware';
+import { simpleAuth } from '../middleware/auth.simple.middleware';
 import {
   getPublicQuizResults,
   getPublicQuizResultsByQuizId,
   getPublicQuizResultDetail,
-  getResultsStatistics
+  getResultsStatistics,
+  getResultsByQuizId
 } from '../controllers/results.controller';
 
 const router = Router();
@@ -36,8 +38,11 @@ router.get('/public', async (req, res, next) => {
   }
 });
 
-// Get results for a specific quiz
+// Get results for a specific quiz (owner only)
 router.get('/public/quiz/:quizId', authenticate, getPublicQuizResultsByQuizId);
+
+// Get results for a quiz by ID (admin/teacher access)
+router.get('/quiz/:quizId', simpleAuth, getResultsByQuizId);
 
 // Get detailed result - temporarily without auth for testing  
 router.get('/public/detail/:resultType/:resultId', async (req, res) => {

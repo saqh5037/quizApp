@@ -279,6 +279,103 @@ export const getPublicQuizResultDetail = async (req: Request, res: Response) => 
   }
 };
 
+// Get results for a quiz by ID (admin access - no ownership check)
+export const getResultsByQuizId = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (Number(page) - 1) * Number(limit);
+
+    // Get quiz info
+    const [quiz] = await sequelize.query(
+      'SELECT id, title, category, difficulty, pass_percentage FROM quizzes WHERE id = :quizId',
+      {
+        replacements: { quizId },
+        type: QueryTypes.SELECT
+      }
+    ) as any;
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        error: 'Quiz not found'
+      });
+    }
+
+    // Get results
+    const results = await sequelize.query(`
+      SELECT
+        pr.id,
+        pr.participant_name,
+        pr.participant_email,
+        pr.participant_phone,
+        pr.score,
+        pr.total_questions,
+        pr.correct_answers,
+        pr.total_points,
+        pr.time_spent_seconds,
+        pr.completed_at,
+        pr.ip_address,
+        CASE WHEN pr.score >= :passingScore THEN true ELSE false END as passed
+      FROM public_quiz_results pr
+      WHERE pr.quiz_id = :quizId
+      ORDER BY pr.completed_at DESC
+      LIMIT :limit OFFSET :offset
+    `, {
+      replacements: {
+        quizId,
+        passingScore: quiz.pass_percentage || 70,
+        limit: Number(limit),
+        offset
+      },
+      type: QueryTypes.SELECT
+    });
+
+    // Get total count and stats
+    const [stats] = await sequelize.query(`
+      SELECT
+        COUNT(*) as total_attempts,
+        COUNT(DISTINCT participant_email) as unique_participants,
+        ROUND(AVG(score), 2) as average_score,
+        SUM(CASE WHEN score >= :passingScore THEN 1 ELSE 0 END) as passed_count
+      FROM public_quiz_results
+      WHERE quiz_id = :quizId
+    `, {
+      replacements: { quizId, passingScore: quiz.pass_percentage || 70 },
+      type: QueryTypes.SELECT
+    }) as any;
+
+    res.json({
+      success: true,
+      data: {
+        quiz,
+        results,
+        statistics: {
+          totalAttempts: parseInt(stats.total_attempts) || 0,
+          uniqueParticipants: parseInt(stats.unique_participants) || 0,
+          averageScore: parseFloat(stats.average_score) || 0,
+          passedCount: parseInt(stats.passed_count) || 0,
+          passRate: stats.total_attempts > 0
+            ? Math.round((stats.passed_count / stats.total_attempts) * 100)
+            : 0
+        },
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total: parseInt(stats.total_attempts) || 0,
+          totalPages: Math.ceil((parseInt(stats.total_attempts) || 0) / Number(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching quiz results:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch quiz results'
+    });
+  }
+};
+
 // Get statistics for a quiz
 export const getResultsStatistics = async (req: Request, res: Response) => {
   try {

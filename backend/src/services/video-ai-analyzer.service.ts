@@ -49,7 +49,7 @@ export class VideoAIAnalyzerService {
     const apiKey = process.env.GEMINI_API_KEY || '';
     if (apiKey) {
       this.genAI = new GoogleGenerativeAI(apiKey);
-      this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+      this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     }
   }
 
@@ -199,7 +199,7 @@ export class VideoAIAnalyzerService {
 
       await layer.update({
         aiGeneratedContent: aiContent,
-        aiModelUsed: 'gemini-1.5-pro',
+        aiModelUsed: 'gemini-2.5-flash',
         confidenceScore: analysisResult.confidenceScore,
         processingStatus: 'ready',
         processingLog: 'Análisis completado exitosamente (100%)',
