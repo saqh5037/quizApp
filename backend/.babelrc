@@ -1,11 +1,39 @@
 {
   "presets": [
     [
-      "@babel/preset-typescript",
+      "@babel/preset-env",
       {
-        "allowDeclareFields": true
+        "targets": {
+          "node": "18"
+        },
+        "modules": "commonjs"
       }
     ],
-    "@babel/preset-env"
+    [
+      "@babel/preset-typescript",
+      {
+        "allowDeclareFields": true,
+        "onlyRemoveTypeImports": true
+      }
+    ]
+  ],
+  "plugins": [
+    ["module-resolver", {
+      "root": ["./src"],
+      "alias": {
+        "@": "./src",
+        "@controllers": "./src/controllers",
+        "@models": "./src/models",
+        "@services": "./src/services",
+        "@middleware": "./src/middleware",
+        "@routes": "./src/routes",
+        "@config": "./src/config",
+        "@utils": "./src/utils"
+      }
+    }]
+  ],
+  "ignore": [
+    "**/*.test.ts",
+    "**/*.spec.ts"
   ]
 }

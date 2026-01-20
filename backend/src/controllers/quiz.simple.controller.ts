@@ -79,7 +79,7 @@ export const getQuizzes = async (req: Request, res: Response) => {
     const offset = (Number(page) - 1) * Number(limit);
 
     // Filter by tenant_id - users can only see quizzes from their own tenant
-    let whereConditions = ['q.tenant_id = :tenantId', '(q.is_public = true OR q.creator_id = :userId)', 'q.deleted_at IS NULL'];
+    let whereConditions = ['(q.tenant_id = :tenantId OR q.tenant_id IS NULL)', '(q.is_public = true OR q.creator_id = :userId)', 'q.deleted_at IS NULL'];
     const replacements: any = { userId, tenantId, limit: Number(limit), offset };
     
     if (category) {
@@ -355,10 +355,10 @@ export const getQuizById = async (req: Request, res: Response) => {
       });
     }
     
-    // Regular quiz logic - filter by tenant_id
-    const whereClause = userRole === 'admin'
-      ? 'WHERE q.id = :id AND q.tenant_id = :tenantId AND q.deleted_at IS NULL'
-      : 'WHERE q.id = :id AND q.tenant_id = :tenantId AND (q.is_public = true OR q.creator_id = :userId) AND q.deleted_at IS NULL';
+    // Regular quiz logic - filter by tenant_id (handle NULL tenant_id for backward compatibility)
+    const whereClause = userRole === 'admin' || userRole === 'super_admin'
+      ? 'WHERE q.id = :id AND (q.tenant_id = :tenantId OR q.tenant_id IS NULL) AND q.deleted_at IS NULL'
+      : 'WHERE q.id = :id AND (q.tenant_id = :tenantId OR q.tenant_id IS NULL) AND (q.is_public = true OR q.creator_id = :userId) AND q.deleted_at IS NULL';
 
     const [quiz] = await sequelize.query(
       `SELECT

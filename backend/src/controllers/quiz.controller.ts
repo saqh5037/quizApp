@@ -21,7 +21,7 @@ export const getQuizzes = catchAsync(async (
   const where: any = {
     [Op.or]: [
       { isPublic: true },
-      { userId },
+      { creatorId: userId },
     ],
     isActive: true,
   };
@@ -262,7 +262,7 @@ export const getQuizById = catchAsync(async (
   }
 
   // Check access rights
-  if (!quiz.isPublic && quiz.userId !== userId) {
+  if (!quiz.isPublic && quiz.creatorId !== userId) {
     throw new AuthorizationError('Access denied to this quiz');
   }
 
@@ -277,8 +277,8 @@ export const createQuiz = catchAsync(async (
   res: Response,
   next: NextFunction
 ) => {
-  const userId = req.user!.id;
-  const quizData = { ...req.body, userId };
+  const creatorId = req.user!.id;
+  const quizData = { ...req.body, creatorId };
 
   const quiz = await Quiz.create(quizData);
 
@@ -303,7 +303,7 @@ export const updateQuiz = catchAsync(async (
     throw new NotFoundError('Quiz not found');
   }
 
-  if (quiz.userId !== userId && req.user!.role !== 'admin') {
+  if (quiz.creatorId !== userId && req.user!.role !== 'admin') {
     throw new AuthorizationError('You can only edit your own quizzes');
   }
 
@@ -330,7 +330,7 @@ export const deleteQuiz = catchAsync(async (
     throw new NotFoundError('Quiz not found');
   }
 
-  if (quiz.userId !== userId && req.user!.role !== 'admin') {
+  if (quiz.creatorId !== userId && req.user!.role !== 'admin') {
     throw new AuthorizationError('You can only delete your own quizzes');
   }
 
@@ -374,7 +374,7 @@ export const addQuestion = catchAsync(async (
     throw new NotFoundError('Quiz not found');
   }
 
-  if (quiz.userId !== userId && req.user!.role !== 'admin') {
+  if (quiz.creatorId !== userId && req.user!.role !== 'admin') {
     throw new AuthorizationError('You can only add questions to your own quizzes');
   }
 
@@ -407,7 +407,7 @@ export const updateQuestion = catchAsync(async (
     throw new NotFoundError('Quiz not found');
   }
 
-  if (quiz.userId !== userId && req.user!.role !== 'admin') {
+  if (quiz.creatorId !== userId && req.user!.role !== 'admin') {
     throw new AuthorizationError('You can only edit questions in your own quizzes');
   }
 
@@ -442,7 +442,7 @@ export const deleteQuestion = catchAsync(async (
     throw new NotFoundError('Quiz not found');
   }
 
-  if (quiz.userId !== userId && req.user!.role !== 'admin') {
+  if (quiz.creatorId !== userId && req.user!.role !== 'admin') {
     throw new AuthorizationError('You can only delete questions from your own quizzes');
   }
 
