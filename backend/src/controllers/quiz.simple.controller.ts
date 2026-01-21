@@ -423,14 +423,18 @@ export const createQuiz = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     const organizationId = (req as any).user?.organizationId || 1;
-    const { 
-      title, 
-      description, 
-      category, 
+    const {
+      title,
+      description,
+      category,
       difficulty = 'medium',
       questions = [],
       settings = {},
-      isPublic = false
+      isPublic = false,
+      timeLimitMinutes,
+      timeLimit,
+      passPercentage,
+      passingScore
     } = req.body;
     
     // Create quiz
@@ -439,14 +443,14 @@ export const createQuiz = async (req: Request, res: Response) => {
         title, description, creator_id, organization_id, category,
         difficulty, is_public, is_active, total_questions,
         shuffle_questions, shuffle_options, show_correct_answers,
-        show_score, allow_review, settings, metadata,
-        created_at, updated_at
+        show_score, allow_review, time_limit_minutes, pass_percentage,
+        settings, metadata, created_at, updated_at
       ) VALUES (
         :title, :description, :creatorId, :organizationId, :category,
         :difficulty, :isPublic, true, :totalQuestions,
         :shuffleQuestions, :shuffleOptions, :showCorrectAnswers,
-        :showScore, :allowReview, :settings, :metadata,
-        NOW(), NOW()
+        :showScore, :allowReview, :timeLimitMinutes, :passPercentage,
+        :settings, :metadata, NOW(), NOW()
       ) RETURNING *`,
       {
         replacements: {
@@ -463,6 +467,8 @@ export const createQuiz = async (req: Request, res: Response) => {
           showCorrectAnswers: settings.showCorrectAnswers !== false,
           showScore: settings.showScore !== false,
           allowReview: settings.allowReview !== false,
+          timeLimitMinutes: timeLimitMinutes || timeLimit || null,
+          passPercentage: passPercentage || passingScore || 60,
           settings: JSON.stringify(settings),
           metadata: JSON.stringify({})
         },
@@ -681,7 +687,15 @@ export const updateQuiz = async (req: Request, res: Response) => {
       updateFields.push('settings = :settings');
       replacements.settings = JSON.stringify(updates.settings);
     }
-    
+    if (updates.timeLimitMinutes !== undefined || updates.timeLimit !== undefined) {
+      updateFields.push('time_limit_minutes = :timeLimitMinutes');
+      replacements.timeLimitMinutes = updates.timeLimitMinutes ?? updates.timeLimit;
+    }
+    if (updates.passPercentage !== undefined || updates.passingScore !== undefined) {
+      updateFields.push('pass_percentage = :passPercentage');
+      replacements.passPercentage = updates.passPercentage ?? updates.passingScore;
+    }
+
     updateFields.push('updated_at = NOW()');
     
     // Update quiz
