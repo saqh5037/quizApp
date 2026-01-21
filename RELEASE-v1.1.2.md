@@ -1,15 +1,16 @@
-# RELEASE v1.1.1 - AristoTest
+# RELEASE v1.1.2 - AristoTest
 
-**Fecha:** 2026-01-20
-**Commit:** 6f7569b
-**Tag:** v1.1.1
-**GitHub Release:** https://github.com/saqh5037/quizApp/releases/tag/v1.1.1
+**Fecha:** 2026-01-21
+**Commit:** 35d3202
+**Tag:** v1.1.2
+**GitHub Release:** https://github.com/saqh5037/quizApp/releases/tag/v1.1.2
 
 ---
 
 ## RESUMEN EJECUTIVO
 
 Esta release incluye correcciones críticas que afectaban:
+- **NUEVO v1.1.2:** Tiempo límite y porcentaje de aprobación no se guardaban en quizzes
 - El sistema de build (Babel → tsc)
 - El error "Quiz not found" (404) al crear/obtener quizzes
 - La funcionalidad del dashboard para usuarios `super_admin`
@@ -19,7 +20,23 @@ Esta release incluye correcciones críticas que afectaban:
 
 ---
 
-## CAMBIOS EN v1.1.1 (2026-01-20) - **CRÍTICO**
+## CAMBIOS EN v1.1.2 (2026-01-21) - **CRÍTICO**
+
+### Fix: Tiempo límite y porcentaje de aprobación no se guardaban
+
+| Problema | Causa | Solución |
+|----------|-------|----------|
+| Al configurar `timeLimit` y `passPercentage` en un quiz, usaba valores por defecto | El INSERT/UPDATE en `quiz.simple.controller.ts` no incluía estos campos | Agregar `time_limit_minutes` y `pass_percentage` a las queries |
+
+### Archivos Modificados en v1.1.2
+
+```
+backend/src/controllers/quiz.simple.controller.ts  # Agregar time_limit_minutes y pass_percentage
+```
+
+---
+
+## CAMBIOS EN v1.1.1 (2026-01-20)
 
 ### Fix: "Quiz not found" (404) Error
 
@@ -183,20 +200,20 @@ TOKEN=$(curl -s -X POST http://localhost:3001/api/v1/auth/login \
 echo $TOKEN
 ```
 
-### 3. Crear y Obtener Quiz (CRÍTICO - fix principal v1.1.1)
+### 3. Crear Quiz con Tiempo y Porcentaje (CRÍTICO - fix principal v1.1.2)
 
 ```bash
-# Crear quiz
+# Crear quiz CON configuración de tiempo y porcentaje
 curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   http://localhost:3001/api/v1/quizzes \
-  -d '{"title":"Test v1.1.1","description":"Testing fix","category":"Test","isPublic":true}' | jq '{success, id: .data.id}'
-# Esperado: {success: true, id: <número>}
+  -d '{"title":"Test v1.1.2","timeLimitMinutes":30,"passPercentage":75,"isPublic":true}' | jq '{success, id: .data.id, time_limit: .data.time_limit_minutes, pass_pct: .data.pass_percentage}'
+# Esperado: {success: true, id: <número>, time_limit: 30, pass_pct: 75}
 
 # Obtener quiz (usar el ID del paso anterior)
 curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:3001/api/v1/quizzes/<ID> | jq '{success, title: .data.title}'
-# Esperado: {success: true, title: "Test v1.1.1"} - NO 404!
+  http://localhost:3001/api/v1/quizzes/<ID> | jq '{success, time_limit: .data.time_limit_minutes, pass_pct: .data.pass_percentage}'
+# Esperado: {success: true, time_limit: 30, pass_pct: 75} - NO valores por defecto!
 ```
 
 ### 4. Dashboard Stats (CRÍTICO - debe mostrar datos)
@@ -253,7 +270,8 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 - [ ] `pm2 restart` ejecutado
 - [ ] Health check responde correctamente
 - [ ] Login funciona
-- [ ] **CREAR QUIZ funciona** (fix v1.1.1)
+- [ ] **CREAR QUIZ con timeLimit y passPercentage funciona** (fix v1.1.2)
+- [ ] **Los valores de tiempo y porcentaje se guardan correctamente** (fix v1.1.2)
 - [ ] **OBTENER QUIZ por ID funciona - NO 404** (fix v1.1.1)
 - [ ] Dashboard stats muestra datos (NO todos 0)
 - [ ] GET /sessions responde con paginación
@@ -270,8 +288,8 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 # En el servidor
 cd /home/dynamtek/aristoTEST
 
-# Volver al commit anterior (v1.1.0)
-git checkout 01ce350
+# Volver al commit anterior (v1.1.1)
+git checkout baef67b
 
 # Reinstalar y recompilar
 cd backend
@@ -333,5 +351,5 @@ pm2 start ecosystem.prod.config.js
 ---
 
 **Preparado por:** Claude Opus 4.5
-**Fecha:** 2026-01-20
-**Versión anterior:** v1.1.0 (01ce350)
+**Fecha:** 2026-01-21
+**Versión anterior:** v1.1.1 (baef67b)
