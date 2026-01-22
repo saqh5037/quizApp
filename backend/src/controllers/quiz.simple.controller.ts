@@ -9,14 +9,14 @@ export const getPublicQuizById = async (req: Request, res: Response) => {
     
     // Get quiz details if it's public
     const [quiz] = await sequelize.query(
-      `SELECT 
+      `SELECT
         q.id,
         q.title,
         q.description,
         q.category,
         q.cover_image_url,
         q.difficulty,
-        q.estimated_time_minutes,
+        q.time_limit_minutes,
         q.pass_percentage,
         q.is_public,
         q.is_active,
@@ -53,7 +53,8 @@ export const getPublicQuizById = async (req: Request, res: Response) => {
         coverImageUrl: quiz.cover_image_url,
         difficulty: quiz.difficulty,
         questionsCount: quiz.total_questions || 0,
-        timeLimit: (quiz.estimated_time_minutes || 10) * 60, // Convert to seconds
+        timeLimit: (quiz.time_limit_minutes || 10) * 60, // Convert to seconds
+        passPercentage: quiz.pass_percentage || 70,
         createdBy: {
           firstName: quiz.creator_first_name,
           lastName: quiz.creator_last_name
@@ -1207,8 +1208,8 @@ export const getPublicQuizQuestions = async (req: Request, res: Response) => {
     
     // Verify quiz is public
     const [quiz] = await sequelize.query(
-      `SELECT id, title, estimated_time_minutes, total_questions 
-       FROM quizzes 
+      `SELECT id, title, time_limit_minutes, pass_percentage, total_questions
+       FROM quizzes
        WHERE id = :id AND is_public = true AND is_active = true`,
       {
         replacements: { id },
@@ -1261,7 +1262,8 @@ export const getPublicQuizQuestions = async (req: Request, res: Response) => {
       data: {
         quizId: quiz.id,
         title: quiz.title,
-        timeLimit: quiz.estimated_time_minutes || 10,
+        timeLimit: quiz.time_limit_minutes || 10,
+        passPercentage: quiz.pass_percentage || 70,
         totalQuestions: quiz.total_questions || sanitizedQuestions.length,
         questions: sanitizedQuestions
       }
