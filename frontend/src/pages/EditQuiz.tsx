@@ -330,7 +330,10 @@ export default function EditQuiz() {
         isPublic: quiz.isPublic,
         is_public: quiz.isPublic,
         passingScore: quiz.passingScore,
-        pass_percentage: quiz.passingScore
+        pass_percentage: quiz.passingScore,
+        passPercentage: quiz.passingScore,
+        timeLimit: quiz.timeLimit,
+        timeLimitMinutes: quiz.timeLimit
       };
       
       const response = await fetch(buildApiUrl(`/quizzes/${id}`), {

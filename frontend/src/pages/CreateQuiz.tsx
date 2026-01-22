@@ -217,6 +217,8 @@ export default function CreateQuiz() {
         ...quiz,
         questions: formattedQuestions,
         isPublic: quiz.isPublic,
+        timeLimitMinutes: quiz.timeLimit,
+        passPercentage: quiz.passingScore,
         settings: {
           allowReview: quiz.allowReview,
           randomizeQuestions: quiz.randomizeQuestions,
