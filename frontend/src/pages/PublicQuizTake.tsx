@@ -255,7 +255,7 @@ export default function PublicQuizTake() {
               window.close();
             } else {
               // Si no se puede cerrar, mostrar mensaje
-              toast.info('Quiz finalizado. Puede cerrar esta ventana.');
+              toast('Quiz finalizado. Puede cerrar esta ventana.', { icon: 'ℹ️' });
               // Redirigir a página en blanco
               setTimeout(() => {
                 window.location.href = 'about:blank';

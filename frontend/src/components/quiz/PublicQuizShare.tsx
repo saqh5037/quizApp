@@ -62,7 +62,7 @@ export default function PublicQuizShare({ quizId, quizTitle }: PublicQuizSharePr
       const input = document.querySelector('input[readonly]') as HTMLInputElement;
       if (input) {
         input.select();
-        toast.info('Presiona Ctrl+C o Cmd+C para copiar');
+        toast('Presiona Ctrl+C o Cmd+C para copiar', { icon: 'ℹ️' });
       } else {
         toast.error('No se pudo copiar el enlace');
       }

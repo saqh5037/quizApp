@@ -259,7 +259,7 @@ const PublicInteractiveVideoWrapperEnhanced: FC<PublicInteractiveVideoWrapperEnh
     
     // Show complete button instead of auto-completing
     setShowCompleteButton(true);
-    toast.info('Video completado. Presione "Finalizar Evaluación" para enviar sus respuestas.');
+    toast('Video completado. Presione "Finalizar Evaluación" para enviar sus respuestas.', { icon: 'ℹ️' });
   };
   
   const handleCompleteEvaluation = async () => {

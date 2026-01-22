@@ -126,7 +126,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     });
 
     socket.on('participant_left', (data) => {
-      toast.info(`${data.nickname} left the session`);
+      toast(`${data.nickname} left the session`, { icon: 'ℹ️' });
     });
 
     // Quiz events
