@@ -191,7 +191,10 @@ export default function ResultDetail() {
     );
   }
 
-  const passed = parseFloat(result.score.toString()) >= 70;
+  // Use passed from backend, or calculate using pass_percentage (default 70)
+  const passed = result.passed !== undefined
+    ? result.passed
+    : parseFloat(result.score.toString()) >= (result.pass_percentage || 70);
   const scorePercentage = parseFloat(result.score.toString());
 
   return (

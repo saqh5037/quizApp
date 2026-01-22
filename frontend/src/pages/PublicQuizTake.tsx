@@ -284,7 +284,8 @@ export default function PublicQuizTake() {
 
   if (quizCompleted) {
     const results = JSON.parse(sessionStorage.getItem('publicQuizResults') || '{}');
-    const passed = parseFloat(results.score) >= 70;
+    // Use the passed value from backend (which uses quiz.pass_percentage)
+    const passed = results.passed;
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4 md:p-8">
