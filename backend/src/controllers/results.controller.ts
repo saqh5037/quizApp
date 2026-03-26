@@ -12,7 +12,7 @@ export const getPublicQuizResults = async (req: Request, res: Response) => {
     let query = `
       WITH combined_results AS (
         -- Quiz Results
-        SELECT 
+        SELECT
           'quiz' as result_type,
           pr.id,
           pr.quiz_id as content_id,
@@ -25,9 +25,12 @@ export const getPublicQuizResults = async (req: Request, res: Response) => {
           pr.score,
           pr.total_questions,
           pr.correct_answers,
+          pr.earned_points,
+          pr.total_points,
+          pr.time_spent_seconds,
           pr.time_spent_seconds as time_taken,
           CASE WHEN pr.score >= COALESCE(q.pass_percentage, 70) THEN true ELSE false END as passed,
-          pr.completed_at,
+          pr.completed_at AT TIME ZONE 'UTC' as completed_at,
           pr.ip_address,
           pr.user_agent,
           q.pass_percentage as passing_score
@@ -38,7 +41,7 @@ export const getPublicQuizResults = async (req: Request, res: Response) => {
         UNION ALL
         
         -- Interactive Video Results
-        SELECT 
+        SELECT
           'video' as result_type,
           pvr.id,
           pvr.video_id as content_id,
@@ -51,9 +54,12 @@ export const getPublicQuizResults = async (req: Request, res: Response) => {
           pvr.score,
           pvr.total_questions,
           pvr.correct_answers,
+          NULL as earned_points,
+          NULL as total_points,
+          pvr.duration_seconds as time_spent_seconds,
           pvr.duration_seconds as time_taken,
           pvr.passed,
-          pvr.completed_at,
+          pvr.completed_at AT TIME ZONE 'UTC' as completed_at,
           pvr.ip_address,
           pvr.user_agent,
           pvr.passing_score

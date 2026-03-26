@@ -224,7 +224,7 @@ export default function QuizDetail() {
           </button>
           
           <button
-            onClick={() => navigate(`/quizzes/${id}/questions`)}
+            onClick={() => navigate(`/quizzes/${id}/edit`)}
             className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
           >
             <h3 className="font-medium mb-1">View Questions</h3>

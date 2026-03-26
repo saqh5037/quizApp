@@ -438,14 +438,36 @@ export const submitAnswer = async (req: Request, res: Response) => {
       isCorrect = JSON.stringify(answer) === JSON.stringify(question.correct_answers);
     } else if (question.question_type === 'short_answer') {
       // Simple text comparison (case insensitive)
-      const correctAnswers = Array.isArray(question.correct_answers) 
-        ? question.correct_answers 
+      const correctAnswers = Array.isArray(question.correct_answers)
+        ? question.correct_answers
         : [question.correct_answers];
-      isCorrect = correctAnswers.some((correct: string) => 
+      isCorrect = correctAnswers.some((correct: string) =>
         correct.toLowerCase().trim() === String(answer).toLowerCase().trim()
       );
+    } else if (question.question_type === 'multiple_select') {
+      if (Array.isArray(answer) && Array.isArray(question.correct_answers)) {
+        const sortedUser = [...answer].map(Number).sort((a, b) => a - b);
+        const sortedCorrect = [...question.correct_answers].map(Number).sort((a, b) => a - b);
+        isCorrect = JSON.stringify(sortedUser) === JSON.stringify(sortedCorrect);
+      }
+    } else if (question.question_type === 'dropdown') {
+      isCorrect = Number(answer) === Number(question.correct_answers?.[0]);
+    } else if (question.question_type === 'multiple_choice_grid' || question.question_type === 'checkbox_grid') {
+      // For live sessions, binary scoring (fully correct or not)
+      if (typeof answer === 'object' && answer !== null && typeof question.correct_answers === 'object') {
+        const rows = Object.keys(question.correct_answers);
+        if (question.question_type === 'multiple_choice_grid') {
+          isCorrect = rows.every(row => Number(answer[row]) === Number(question.correct_answers[row]));
+        } else {
+          isCorrect = rows.every(row => {
+            const userRow = (answer[row] || []).map(Number).sort((a: number, b: number) => a - b);
+            const correctRow = (question.correct_answers[row] || []).map(Number).sort((a: number, b: number) => a - b);
+            return JSON.stringify(userRow) === JSON.stringify(correctRow);
+          });
+        }
+      }
     }
-    
+
     if (isCorrect) {
       points = question.points || 1;
     }

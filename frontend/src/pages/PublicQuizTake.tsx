@@ -25,8 +25,8 @@ import useDeviceDetect from '../hooks/useDeviceDetect';
 interface Question {
   id: number;
   question_text: string;
-  question_type: 'multiple_choice' | 'true_false' | 'short_answer';
-  options?: any;
+  question_type: 'multiple_choice' | 'true_false' | 'short_answer' | 'multiple_select' | 'dropdown' | 'multiple_choice_grid' | 'checkbox_grid';
+  options?: { choices?: { id: string; text: string }[] } | { rows: string[]; columns: string[] };
   time_limit_seconds?: number;
   points: number;
 }
@@ -108,7 +108,17 @@ export default function PublicQuizTake() {
               }))
             };
           }
-          
+
+          if ((q.question_type === 'multiple_select' || q.question_type === 'dropdown') && Array.isArray(options) && typeof options[0] === 'string') {
+            options = {
+              choices: options.map((opt: string, index: number) => ({
+                id: String.fromCharCode(97 + index),
+                text: opt
+              }))
+            };
+          }
+          // Grid types: options already in {rows, columns} format - pass through as-is
+
           if (q.question_type === 'true_false' && (!options || !options.choices)) {
             options = {
               choices: [
@@ -164,7 +174,12 @@ export default function PublicQuizTake() {
     });
 
     // Auto-avanzar en móviles después de seleccionar respuesta
-    if (device.isMobile && currentQuestionIndex < questions.length - 1) {
+    // No aplica para tipos donde el usuario selecciona múltiples valores antes de avanzar
+    const questionType = questions[currentQuestionIndex]?.question_type;
+    if (device.isMobile && currentQuestionIndex < questions.length - 1
+        && questionType !== 'multiple_select'
+        && questionType !== 'multiple_choice_grid'
+        && questionType !== 'checkbox_grid') {
       setTimeout(() => {
         handleNextQuestion();
       }, 300);
@@ -390,10 +405,10 @@ export default function PublicQuizTake() {
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      {/* Header compacto para móviles */}
-      <div className="bg-gray-800 border-b border-gray-700 sticky top-0 z-10">
-        <div className="px-4 py-3">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-hidden">
+      {/* Header — fijo arriba */}
+      <div className="bg-gray-800 border-b border-gray-700 flex-shrink-0 z-10">
+        <div className="px-4 py-3 max-w-4xl mx-auto">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <button
@@ -409,7 +424,7 @@ export default function PublicQuizTake() {
                 </p>
               </div>
             </div>
-            
+
             <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
               timeLeft < 60 ? 'bg-red-900/30 text-red-400' : 'bg-purple-900/30 text-purple-400'
             }`}>
@@ -417,11 +432,11 @@ export default function PublicQuizTake() {
               <span className="font-semibold text-lg">{formatTime(timeLeft)}</span>
             </div>
           </div>
-          
+
           {/* Barra de progreso */}
           <div className="mt-3">
             <div className="bg-gray-700 rounded-full h-2">
-              <div 
+              <div
                 className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
@@ -459,11 +474,12 @@ export default function PublicQuizTake() {
         </div>
       )}
 
-      {/* Contenido de la pregunta */}
-      <div className="p-4 md:p-8 max-w-4xl mx-auto">
-        <div className="bg-gray-800 rounded-xl shadow-2xl p-6 md:p-8">
-          {/* Indicador de puntos */}
-          <div className="flex justify-between items-start mb-6">
+      {/* Cuerpo principal — ocupa todo el espacio restante */}
+      <div className="flex-1 flex flex-col min-h-0 p-4 md:p-6 max-w-4xl mx-auto w-full">
+        <div className="bg-gray-800 rounded-xl shadow-2xl flex flex-col min-h-0 flex-1">
+
+          {/* Pregunta — siempre visible, no scrollea */}
+          <div className="flex justify-between items-start p-6 md:p-8 pb-4 flex-shrink-0 border-b border-gray-700">
             <div className="flex-1">
               <h3 className="text-xl md:text-2xl font-semibold text-white leading-relaxed">
                 {currentQuestion.question_text}
@@ -474,158 +490,284 @@ export default function PublicQuizTake() {
             </span>
           </div>
 
-          {/* Opciones de respuesta optimizadas para táctil */}
-          <div className="space-y-3 mb-8">
-            {currentQuestion.question_type === 'multiple_choice' && currentQuestion.options?.choices && (
-              <>
-                {currentQuestion.options.choices.map((option: any) => (
-                  <button
-                    key={option.id}
-                    onClick={() => handleAnswerSelect(currentQuestion.id, option.id)}
-                    className={`w-full flex items-center gap-4 p-4 md:p-5 rounded-xl border-2 transition-all duration-200 text-left ${
-                      answers[currentQuestion.id] === option.id
-                        ? 'border-purple-500 bg-purple-900/30'
-                        : 'border-gray-600 hover:border-purple-400 bg-gray-700/50'
-                    }`}
-                  >
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                      answers[currentQuestion.id] === option.id
-                        ? 'border-purple-500 bg-purple-500'
-                        : 'border-gray-400'
-                    }`}>
-                      {answers[currentQuestion.id] === option.id && (
-                        <RiCheckLine className="text-white text-sm" />
-                      )}
-                    </div>
-                    <span className={`text-base md:text-lg ${
-                      answers[currentQuestion.id] === option.id
-                        ? 'text-white font-medium'
-                        : 'text-gray-300'
-                    }`}>
-                      {option.text}
-                    </span>
-                  </button>
-                ))}
-              </>
-            )}
-
-            {currentQuestion.question_type === 'true_false' && currentQuestion.options?.choices && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {currentQuestion.options.choices.map((option: any) => (
-                  <button
-                    key={option.id}
-                    onClick={() => handleAnswerSelect(currentQuestion.id, option.id)}
-                    className={`p-6 rounded-xl border-2 transition-all duration-200 ${
-                      answers[currentQuestion.id] === option.id
-                        ? 'border-purple-500 bg-purple-900/30'
-                        : 'border-gray-600 hover:border-purple-400 bg-gray-700/50'
-                    }`}
-                  >
-                    <div className="text-center">
-                      {option.id === 'true' ? (
-                        <RiCheckLine className={`text-4xl mb-2 mx-auto ${
-                          answers[currentQuestion.id] === option.id
-                            ? 'text-green-400'
-                            : 'text-gray-400'
-                        }`} />
-                      ) : (
-                        <RiCloseLine className={`text-4xl mb-2 mx-auto ${
-                          answers[currentQuestion.id] === option.id
-                            ? 'text-red-400'
-                            : 'text-gray-400'
-                        }`} />
-                      )}
-                      <span className={`text-lg font-medium ${
+          {/* Opciones — zona con scroll independiente */}
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 md:px-8 py-4">
+            <div className="space-y-3">
+              {currentQuestion.question_type === 'multiple_choice' && currentQuestion.options?.choices && (
+                <>
+                  {currentQuestion.options.choices.map((option: any) => (
+                    <button
+                      key={option.id}
+                      onClick={() => handleAnswerSelect(currentQuestion.id, option.id)}
+                      className={`w-full flex items-center gap-4 p-4 md:p-5 rounded-xl border-2 transition-all duration-200 text-left ${
                         answers[currentQuestion.id] === option.id
-                          ? 'text-white'
+                          ? 'border-purple-500 bg-purple-900/30'
+                          : 'border-gray-600 hover:border-purple-400 bg-gray-700/50'
+                      }`}
+                    >
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        answers[currentQuestion.id] === option.id
+                          ? 'border-purple-500 bg-purple-500'
+                          : 'border-gray-400'
+                      }`}>
+                        {answers[currentQuestion.id] === option.id && (
+                          <RiCheckLine className="text-white text-sm" />
+                        )}
+                      </div>
+                      <span className={`text-base md:text-lg ${
+                        answers[currentQuestion.id] === option.id
+                          ? 'text-white font-medium'
                           : 'text-gray-300'
                       }`}>
                         {option.text}
                       </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+                    </button>
+                  ))}
+                </>
+              )}
 
-            {currentQuestion.question_type === 'short_answer' && (
-              <div>
-                <textarea
-                  value={answers[currentQuestion.id] || ''}
-                  onChange={(e) => handleAnswerSelect(currentQuestion.id, e.target.value)}
-                  placeholder="Escribe tu respuesta aquí..."
-                  className="w-full p-4 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                  rows={device.isMobile ? 4 : 6}
-                />
-              </div>
-            )}
-          </div>
+              {currentQuestion.question_type === 'true_false' && currentQuestion.options?.choices && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {currentQuestion.options.choices.map((option: any) => (
+                    <button
+                      key={option.id}
+                      onClick={() => handleAnswerSelect(currentQuestion.id, option.id)}
+                      className={`p-6 rounded-xl border-2 transition-all duration-200 ${
+                        answers[currentQuestion.id] === option.id
+                          ? 'border-purple-500 bg-purple-900/30'
+                          : 'border-gray-600 hover:border-purple-400 bg-gray-700/50'
+                      }`}
+                    >
+                      <div className="text-center">
+                        {option.id === 'true' ? (
+                          <RiCheckLine className={`text-4xl mb-2 mx-auto ${
+                            answers[currentQuestion.id] === option.id
+                              ? 'text-green-400'
+                              : 'text-gray-400'
+                          }`} />
+                        ) : (
+                          <RiCloseLine className={`text-4xl mb-2 mx-auto ${
+                            answers[currentQuestion.id] === option.id
+                              ? 'text-red-400'
+                              : 'text-gray-400'
+                          }`} />
+                        )}
+                        <span className={`text-lg font-medium ${
+                          answers[currentQuestion.id] === option.id
+                            ? 'text-white'
+                            : 'text-gray-300'
+                        }`}>
+                          {option.text}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
 
-          {/* Navegación de preguntas - Optimizada para móvil */}
-          <div className="flex gap-3">
-            <button
-              onClick={handlePreviousQuestion}
-              disabled={currentQuestionIndex === 0}
-              className={`flex-1 py-4 px-4 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
-                currentQuestionIndex === 0
-                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
-              }`}
-            >
-              <RiArrowLeftLine />
-              <span className="hidden sm:inline">Anterior</span>
-            </button>
+              {currentQuestion.question_type === 'short_answer' && (
+                <div>
+                  <textarea
+                    value={answers[currentQuestion.id] || ''}
+                    onChange={(e) => handleAnswerSelect(currentQuestion.id, e.target.value)}
+                    placeholder="Escribe tu respuesta aquí..."
+                    className="w-full p-4 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                    rows={device.isMobile ? 4 : 6}
+                  />
+                </div>
+              )}
 
-            {currentQuestionIndex === questions.length - 1 ? (
-              <button
-                onClick={handleSubmitQuiz}
-                className="flex-1 py-4 px-4 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                <RiSendPlaneLine />
-                <span>Finalizar Quiz</span>
-              </button>
-            ) : (
-              <button
-                onClick={handleNextQuestion}
-                className="flex-1 py-4 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                <span className="hidden sm:inline">Siguiente</span>
-                <RiArrowRightLine />
-              </button>
-            )}
-          </div>
+              {currentQuestion.question_type === 'multiple_select' && (currentQuestion.options as any)?.choices && (
+                <>
+                  {(currentQuestion.options as any).choices.map((option: any) => {
+                    const selected = Array.isArray(answers[currentQuestion.id]) &&
+                      answers[currentQuestion.id].includes(option.id);
+                    return (
+                      <button
+                        key={option.id}
+                        onClick={() => {
+                          const current = Array.isArray(answers[currentQuestion.id]) ? [...answers[currentQuestion.id]] : [];
+                          const newAnswer = selected
+                            ? current.filter((id: string) => id !== option.id)
+                            : [...current, option.id];
+                          handleAnswerSelect(currentQuestion.id, newAnswer);
+                        }}
+                        className={`w-full flex items-center gap-4 p-4 md:p-5 rounded-xl border-2 transition-all duration-200 text-left ${
+                          selected
+                            ? 'border-purple-500 bg-purple-900/30'
+                            : 'border-gray-600 hover:border-purple-400 bg-gray-700/50'
+                        }`}
+                      >
+                        <div className={`w-6 h-6 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                          selected ? 'border-purple-500 bg-purple-500' : 'border-gray-400'
+                        }`}>
+                          {selected && <RiCheckLine className="text-white text-sm" />}
+                        </div>
+                        <span className={`text-base md:text-lg ${selected ? 'text-white font-medium' : 'text-gray-300'}`}>
+                          {option.text}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
 
-          {/* Indicador de respuestas para tablets y desktop */}
-          {!device.isMobile && (
-            <div className="mt-6 pt-6 border-t border-gray-700">
-              <p className="text-sm text-gray-400 mb-3">Progreso de respuestas:</p>
-              <div className="flex flex-wrap gap-2">
-                {questions.map((q, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentQuestionIndex(index)}
-                    className={`w-10 h-10 rounded-lg font-semibold text-sm transition-all ${
-                      answers[q.id]
-                        ? 'bg-green-600 text-white'
-                        : index === currentQuestionIndex
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-                    }`}
+              {currentQuestion.question_type === 'dropdown' && (currentQuestion.options as any)?.choices && (
+                <div className="space-y-3">
+                  <select
+                    value={answers[currentQuestion.id] || ''}
+                    onChange={(e) => handleAnswerSelect(currentQuestion.id, e.target.value)}
+                    className="w-full p-4 bg-gray-700 border-2 border-gray-600 rounded-xl text-white text-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none cursor-pointer"
                   >
-                    {index + 1}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+                    <option value="" disabled>Selecciona una opcion...</option>
+                    {(currentQuestion.options as any).choices.map((option: any) => (
+                      <option key={option.id} value={option.id}>{option.text}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
-        {/* Indicador de dispositivo (solo desarrollo) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 text-center text-gray-500 text-sm">
-            {getDeviceIcon()} {device.isMobile ? 'Móvil' : device.isTablet ? 'Tablet' : 'Desktop'} - {device.orientation}
+              {currentQuestion.question_type === 'multiple_choice_grid' && (currentQuestion.options as any)?.rows && (
+                <div className="overflow-x-auto -mx-2">
+                  <table className="w-full min-w-[400px]">
+                    <thead>
+                      <tr>
+                        <th className="text-left text-gray-400 p-3 text-sm font-medium"></th>
+                        {(currentQuestion.options as any).columns.map((col: string, i: number) => (
+                          <th key={i} className="text-center text-gray-300 p-3 text-sm font-medium">{col}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(currentQuestion.options as any).rows.map((row: string, rowIdx: number) => (
+                        <tr key={rowIdx} className="border-t border-gray-700">
+                          <td className="text-white p-3 text-sm">{row}</td>
+                          {(currentQuestion.options as any).columns.map((_: string, colIdx: number) => (
+                            <td key={colIdx} className="text-center p-3">
+                              <input
+                                type="radio"
+                                name={`grid-${currentQuestion.id}-row-${rowIdx}`}
+                                checked={(answers[currentQuestion.id] || {})[String(rowIdx)] === colIdx}
+                                onChange={() => {
+                                  const current = answers[currentQuestion.id] || {};
+                                  handleAnswerSelect(currentQuestion.id, { ...current, [String(rowIdx)]: colIdx });
+                                }}
+                                className="w-5 h-5 accent-purple-500 cursor-pointer"
+                              />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {currentQuestion.question_type === 'checkbox_grid' && (currentQuestion.options as any)?.rows && (
+                <div className="overflow-x-auto -mx-2">
+                  <table className="w-full min-w-[400px]">
+                    <thead>
+                      <tr>
+                        <th className="text-left text-gray-400 p-3 text-sm font-medium"></th>
+                        {(currentQuestion.options as any).columns.map((col: string, i: number) => (
+                          <th key={i} className="text-center text-gray-300 p-3 text-sm font-medium">{col}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(currentQuestion.options as any).rows.map((row: string, rowIdx: number) => (
+                        <tr key={rowIdx} className="border-t border-gray-700">
+                          <td className="text-white p-3 text-sm">{row}</td>
+                          {(currentQuestion.options as any).columns.map((_: string, colIdx: number) => {
+                            const rowKey = String(rowIdx);
+                            const rowSelections = (answers[currentQuestion.id] || {})[rowKey] || [];
+                            const isChecked = Array.isArray(rowSelections) && rowSelections.includes(colIdx);
+                            return (
+                              <td key={colIdx} className="text-center p-3">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {
+                                    const current = answers[currentQuestion.id] || {};
+                                    const currentRow = Array.isArray(current[rowKey]) ? [...current[rowKey]] : [];
+                                    const newRow = isChecked
+                                      ? currentRow.filter((c: number) => c !== colIdx)
+                                      : [...currentRow, colIdx];
+                                    handleAnswerSelect(currentQuestion.id, { ...current, [rowKey]: newRow });
+                                  }}
+                                  className="w-5 h-5 accent-purple-500 cursor-pointer"
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
-        )}
+
+          {/* Navegación — fija abajo, nunca scrollea */}
+          <div className="flex-shrink-0 px-6 md:px-8 pb-4 pt-3 border-t border-gray-700">
+            <div className="flex gap-3">
+              <button
+                onClick={handlePreviousQuestion}
+                disabled={currentQuestionIndex === 0}
+                className={`flex-1 py-4 px-4 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
+                  currentQuestionIndex === 0
+                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                    : 'bg-gray-700 hover:bg-gray-600 text-white'
+                }`}
+              >
+                <RiArrowLeftLine />
+                <span className="hidden sm:inline">Anterior</span>
+              </button>
+
+              {currentQuestionIndex === questions.length - 1 ? (
+                <button
+                  onClick={handleSubmitQuiz}
+                  className="flex-1 py-4 px-4 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  <RiSendPlaneLine />
+                  <span>Finalizar Quiz</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleNextQuestion}
+                  className="flex-1 py-4 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  <span className="hidden sm:inline">Siguiente</span>
+                  <RiArrowRightLine />
+                </button>
+              )}
+            </div>
+
+            {/* Navegador de preguntas — desktop/tablet */}
+            {!device.isMobile && (
+              <div className="mt-3 pt-3 border-t border-gray-700">
+                <div className="flex flex-wrap gap-2">
+                  {questions.map((q, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentQuestionIndex(index)}
+                      className={`w-9 h-9 rounded-lg font-semibold text-sm transition-all ${
+                        answers[q.id]
+                          ? 'bg-green-600 text-white'
+                          : index === currentQuestionIndex
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                      }`}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

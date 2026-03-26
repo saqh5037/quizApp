@@ -63,11 +63,15 @@ export const submitPublicQuiz = async (req: Request, res: Response) => {
       if (question.question_type === 'multiple_choice') {
         // For multiple choice, check if the selected option is correct
         if (question.options && Array.isArray(question.options)) {
-          // Simple array format
-          const correctIndex = question.correct_answers?.[0];
-          const userIndex = userAnswer ? 
-            (typeof userAnswer === 'string' ? userAnswer.charCodeAt(0) - 97 : -1) : -1;
-          isCorrect = userIndex === correctIndex;
+          // Simple array format - type-safe comparison
+          const correctRaw = question.correct_answers?.[0];
+          const correctIndex = Number(correctRaw);
+          const userIndex = userAnswer
+            ? (typeof userAnswer === 'string' && /^[a-z]$/i.test(userAnswer)
+                ? userAnswer.toLowerCase().charCodeAt(0) - 97
+                : Number(userAnswer))
+            : -1;
+          isCorrect = !isNaN(correctIndex) && !isNaN(userIndex) && userIndex === correctIndex;
         } else if (question.options?.choices) {
           // Choices format
           const correctChoice = question.options.choices.find((c: any) => c.is_correct);
@@ -90,8 +94,80 @@ export const submitPublicQuiz = async (req: Request, res: Response) => {
             return answer.toLowerCase().trim() === userAnswer.toLowerCase().trim();
           });
         }
+      } else if (question.question_type === 'multiple_select') {
+      // Exact match: user must select all correct and no wrong answers
+      if (Array.isArray(userAnswer) && Array.isArray(question.correct_answers)) {
+        // Convert letter answers to indices if needed
+        const toIndex = (val: any) => {
+          if (typeof val === 'string' && /^[a-z]$/i.test(val)) {
+            return val.toLowerCase().charCodeAt(0) - 97;
+          }
+          return Number(val);
+        };
+        const sortedUser = [...userAnswer].map(toIndex).sort((a, b) => a - b);
+        const sortedCorrect = [...question.correct_answers].map(Number).sort((a, b) => a - b);
+        isCorrect = JSON.stringify(sortedUser) === JSON.stringify(sortedCorrect);
       }
-      
+    } else if (question.question_type === 'dropdown') {
+      // Same logic as multiple_choice
+      const correctRaw = question.correct_answers?.[0];
+      const correctIndex = Number(correctRaw);
+      const userIndex = userAnswer
+        ? (typeof userAnswer === 'string' && /^[a-z]$/i.test(userAnswer)
+            ? userAnswer.toLowerCase().charCodeAt(0) - 97
+            : Number(userAnswer))
+        : -1;
+      isCorrect = !isNaN(correctIndex) && !isNaN(userIndex) && userIndex === correctIndex;
+    } else if (question.question_type === 'multiple_choice_grid') {
+      // Partial credit: correct rows / total rows
+      if (typeof userAnswer === 'object' && userAnswer !== null && typeof question.correct_answers === 'object') {
+        const rows = Object.keys(question.correct_answers);
+        const correctRows = rows.filter(row =>
+          Number(userAnswer[row]) === Number(question.correct_answers[row])
+        ).length;
+        const fraction = rows.length > 0 ? correctRows / rows.length : 0;
+        const questionPoints = question.points || 10;
+        const earned = Math.round(questionPoints * fraction);
+        isCorrect = fraction === 1;
+        if (isCorrect) correctAnswerCount++;
+        earnedPoints += earned;
+        gradedAnswers[question.id] = {
+          userAnswer,
+          isCorrect,
+          points: earned,
+          questionText: question.question_text,
+          questionType: question.question_type,
+          partialCredit: { correctRows, totalRows: rows.length }
+        };
+        return; // skip common block — totalPoints already added at line 59
+      }
+    } else if (question.question_type === 'checkbox_grid') {
+      // Partial credit: correct rows / total rows (array comparison per row)
+      if (typeof userAnswer === 'object' && userAnswer !== null && typeof question.correct_answers === 'object') {
+        const rows = Object.keys(question.correct_answers);
+        const correctRows = rows.filter(row => {
+          const userRow = (userAnswer[row] || []).map(Number).sort((a: number, b: number) => a - b);
+          const correctRow = (question.correct_answers[row] || []).map(Number).sort((a: number, b: number) => a - b);
+          return JSON.stringify(userRow) === JSON.stringify(correctRow);
+        }).length;
+        const fraction = rows.length > 0 ? correctRows / rows.length : 0;
+        const questionPoints = question.points || 10;
+        const earned = Math.round(questionPoints * fraction);
+        isCorrect = fraction === 1;
+        if (isCorrect) correctAnswerCount++;
+        earnedPoints += earned;
+        gradedAnswers[question.id] = {
+          userAnswer,
+          isCorrect,
+          points: earned,
+          questionText: question.question_text,
+          questionType: question.question_type,
+          partialCredit: { correctRows, totalRows: rows.length }
+        };
+        return; // skip common block — totalPoints already added at line 59
+      }
+    }
+
       if (isCorrect) {
         earnedPoints += question.points || 10;
         correctAnswerCount++;
@@ -100,7 +176,9 @@ export const submitPublicQuiz = async (req: Request, res: Response) => {
       gradedAnswers[question.id] = {
         userAnswer,
         isCorrect,
-        points: isCorrect ? (question.points || 10) : 0
+        points: isCorrect ? (question.points || 10) : 0,
+        questionText: question.question_text,
+        questionType: question.question_type
       };
     });
 

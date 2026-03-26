@@ -8,10 +8,10 @@ import QuizPreviewModal from '../components/quiz/QuizPreviewModal';
 
 interface Question {
   id: string | number;
-  type: 'multiple_choice' | 'true_false' | 'short_answer';
+  type: 'multiple_choice' | 'true_false' | 'short_answer' | 'multiple_select' | 'dropdown' | 'multiple_choice_grid' | 'checkbox_grid';
   question: string;
-  options?: string[];
-  correctAnswer: string | number | null;
+  options?: string[] | { rows: string[]; columns: string[] };
+  correctAnswer: string | number | number[] | Record<string, number | number[]> | null;
   correct_answer?: string;
   points: number;
   timeLimit?: number;
@@ -53,10 +53,27 @@ export default function EditQuiz() {
     questions: []
   });
 
-  const categories = [
-    'General', 'Math', 'Science', 'History', 'Geography', 
-    'Literature', 'Technology', 'Languages', 'Business', 'Other'
-  ];
+  const fallbackCategories = ['General', 'Capacitacion', 'Evaluacion', 'Sistemas', 'Procesos', 'Otro'];
+  const [categories, setCategories] = useState<string[]>(fallbackCategories);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+        const response = await fetch(buildApiUrl('/categories'), { headers });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data?.length > 0) {
+            setCategories(data.data.map((c: any) => c.name));
+          }
+        }
+      } catch (e) {
+        // Use fallback categories
+      }
+    };
+    fetchCategories();
+  }, [accessToken]);
 
   useEffect(() => {
     fetchQuizData();
@@ -150,15 +167,39 @@ export default function EditQuiz() {
           } else {
             correctAnswer = q.correct_answer || '';
           }
+        } else if (q.question_type === 'multiple_select' || q.type === 'multiple_select') {
+          // For multiple select, correctAnswer is an array of indices
+          if (q.correct_answers && Array.isArray(q.correct_answers)) {
+            correctAnswer = q.correct_answers;
+          } else {
+            correctAnswer = [];
+          }
+        } else if (q.question_type === 'dropdown' || q.type === 'dropdown') {
+          // For dropdown, correctAnswer is the index of the correct option
+          if (q.correct_answers && Array.isArray(q.correct_answers) && q.correct_answers.length > 0) {
+            correctAnswer = q.correct_answers[0];
+          } else {
+            correctAnswer = null;
+          }
+        } else if (q.question_type === 'multiple_choice_grid' || q.type === 'multiple_choice_grid' ||
+                   q.question_type === 'checkbox_grid' || q.type === 'checkbox_grid') {
+          // For grid types, correctAnswer is an object keyed by row index
+          if (q.correct_answers && typeof q.correct_answers === 'object' && !Array.isArray(q.correct_answers)) {
+            correctAnswer = q.correct_answers;
+          } else {
+            correctAnswer = {};
+          }
         }
-        
+
         return {
           id: q.id,
           type: q.type || q.question_type,
           question: q.question || q.question_text,
-          options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : 
-                   (q.type === 'true_false' || q.question_type === 'true_false') ? ['True', 'False'] : 
-                   (q.type === 'multiple_choice' || q.question_type === 'multiple_choice') ? ['', '', '', ''] : undefined,
+          options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) :
+                   (q.type === 'true_false' || q.question_type === 'true_false') ? ['True', 'False'] :
+                   (q.type === 'multiple_choice' || q.question_type === 'multiple_choice') ? ['', '', '', ''] :
+                   (q.type === 'multiple_select' || q.question_type === 'multiple_select') ? ['', '', '', ''] :
+                   (q.type === 'dropdown' || q.question_type === 'dropdown') ? ['', '', '', ''] : undefined,
           correctAnswer: correctAnswer,
           points: q.points || 1,
           explanation: q.explanation || ''
@@ -290,7 +331,73 @@ export default function EditQuiz() {
       setCurrentQuestionIndex(emptyQuestions[0].index - 1);
       return;
     }
-    
+
+    // Check for questions without correct answers
+    const questionsWithoutCorrectAnswers = quiz.questions
+      .map((q, idx) => {
+        let hasNoAnswer = false;
+        if (q.type === 'multiple_select') {
+          hasNoAnswer = !Array.isArray(q.correctAnswer) || (q.correctAnswer as number[]).length === 0;
+        } else if (q.type === 'multiple_choice_grid' || q.type === 'checkbox_grid') {
+          const opts = q.options as { rows: string[]; columns: string[] } | undefined;
+          const ca = q.correctAnswer as Record<string, number | number[]> | null;
+          if (!ca || !opts) {
+            hasNoAnswer = true;
+          } else {
+            hasNoAnswer = opts.rows.some((_, rIdx) => {
+              const val = ca[rIdx];
+              return val === undefined || val === null || (Array.isArray(val) && (val as number[]).length === 0);
+            });
+          }
+        } else {
+          hasNoAnswer = q.correctAnswer === undefined || q.correctAnswer === null || q.correctAnswer === '';
+        }
+        return { index: idx + 1, hasNoAnswer };
+      })
+      .filter(q => q.hasNoAnswer);
+
+    if (questionsWithoutCorrectAnswers.length > 0) {
+      const questionNumbers = questionsWithoutCorrectAnswers.map(q => q.index).join(', ');
+      toast.error(`Please set correct answers for question(s): ${questionNumbers}`);
+      setActiveTab('questions');
+      setCurrentQuestionIndex(questionsWithoutCorrectAnswers[0].index - 1);
+      return;
+    }
+
+    // Check for empty answers in multiple choice / multiple_select / dropdown
+    const mcQuestionsWithEmptyOptions = quiz.questions
+      .map((q, idx) => ({
+        index: idx + 1,
+        question: q,
+        hasEmptyOptions: (q.type === 'multiple_choice' || q.type === 'multiple_select' || q.type === 'dropdown') &&
+          Array.isArray(q.options) && (q.options as string[]).some(opt => !opt.trim())
+      }))
+      .filter(q => q.hasEmptyOptions);
+
+    if (mcQuestionsWithEmptyOptions.length > 0) {
+      toast.error(`Please complete all answer options for question ${mcQuestionsWithEmptyOptions[0].index}`);
+      setActiveTab('questions');
+      setCurrentQuestionIndex(mcQuestionsWithEmptyOptions[0].index - 1);
+      return;
+    }
+
+    // Check for empty row/column labels in grid types
+    const gridQuestionsWithEmptyLabels = quiz.questions
+      .map((q, idx) => {
+        if (q.type !== 'multiple_choice_grid' && q.type !== 'checkbox_grid') return { index: idx + 1, hasEmpty: false };
+        const opts = q.options as { rows: string[]; columns: string[] } | undefined;
+        const hasEmpty = !opts || opts.rows.some(r => !r.trim()) || opts.columns.some(c => !c.trim());
+        return { index: idx + 1, hasEmpty };
+      })
+      .filter(q => q.hasEmpty);
+
+    if (gridQuestionsWithEmptyLabels.length > 0) {
+      toast.error(`Please complete all row and column labels for question ${gridQuestionsWithEmptyLabels[0].index}`);
+      setActiveTab('questions');
+      setCurrentQuestionIndex(gridQuestionsWithEmptyLabels[0].index - 1);
+      return;
+    }
+
     try {
       // Format questions with correct answers properly
       const formattedQuestions = quiz.questions.map(q => {
@@ -306,6 +413,12 @@ export default function EditQuiz() {
           // For short answer, split by comma for multiple acceptable answers
           const answers = (q.correctAnswer as string || '').split(',').map(a => a.trim()).filter(a => a);
           correctAnswers = answers;
+        } else if (q.type === 'multiple_select') {
+          correctAnswers = Array.isArray(q.correctAnswer) ? q.correctAnswer : [];
+        } else if (q.type === 'dropdown') {
+          correctAnswers = q.correctAnswer !== null && q.correctAnswer !== undefined ? [q.correctAnswer] : [];
+        } else if (q.type === 'multiple_choice_grid' || q.type === 'checkbox_grid') {
+          correctAnswers = q.correctAnswer || {};
         }
         
         return {
@@ -375,7 +488,7 @@ export default function EditQuiz() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => navigate(`/quizzes/${id}`)}
+              onClick={() => navigate('/quizzes')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -510,10 +623,10 @@ export default function EditQuiz() {
       )}
 
       {activeTab === 'questions' && (
-        <div className="flex space-x-6">
-          {/* Questions List */}
-          <div className="w-80 bg-white rounded-lg shadow-sm p-4">
-            <div className="flex items-center justify-between mb-4">
+        <div className="flex space-x-6" style={{ height: 'calc(100vh - 220px)' }}>
+          {/* Questions List — scroll independiente */}
+          <div className="w-80 bg-white rounded-lg shadow-sm flex flex-col min-h-0">
+            <div className="flex items-center justify-between p-4 pb-3 flex-shrink-0 border-b border-gray-100">
               <h3 className="font-semibold text-gray-900">Questions</h3>
               <button
                 onClick={addQuestion}
@@ -523,7 +636,7 @@ export default function EditQuiz() {
               </button>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 overflow-y-auto flex-1 min-h-0 p-4 pt-3">
               {quiz.questions.map((q, index) => (
                 <div
                   key={q.id}
@@ -544,7 +657,15 @@ export default function EditQuiz() {
                             <span className="ml-2 text-xs text-green-600">(New)</span>
                           )}
                         </div>
-                        <div className="text-xs text-gray-500 capitalize">{q.type.replace('_', ' ')}</div>
+                        <div className="text-xs text-gray-500 capitalize">
+                          {q.type === 'multiple_choice' ? 'Opcion multiple' :
+                           q.type === 'true_false' ? 'Verdadero / Falso' :
+                           q.type === 'short_answer' ? 'Respuesta corta' :
+                           q.type === 'multiple_select' ? 'Casillas de verificacion' :
+                           q.type === 'dropdown' ? 'Lista desplegable' :
+                           q.type === 'multiple_choice_grid' ? 'Cuadricula opcion multiple' :
+                           'Cuadricula de casillas'}
+                        </div>
                         {q.question && (
                           <div className="text-xs text-gray-600 mt-1 line-clamp-2">{q.question}</div>
                         )}
@@ -585,8 +706,8 @@ export default function EditQuiz() {
             </div>
           </div>
 
-          {/* Question Editor */}
-          <div className="flex-1 bg-white rounded-lg shadow-sm p-6">
+          {/* Question Editor — scroll independiente */}
+          <div className="flex-1 bg-white rounded-lg shadow-sm p-6 overflow-y-auto min-h-0">
             {currentQuestion ? (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -634,8 +755,20 @@ export default function EditQuiz() {
                       } else if (newType === 'short_answer') {
                         updates.options = undefined;
                         updates.correctAnswer = '';
+                      } else if (newType === 'multiple_select') {
+                        updates.options = ['', '', '', ''];
+                        updates.correctAnswer = [];
+                      } else if (newType === 'dropdown') {
+                        updates.options = ['', '', '', ''];
+                        updates.correctAnswer = null;
+                      } else if (newType === 'multiple_choice_grid') {
+                        updates.options = { rows: ['Enunciado 1', 'Enunciado 2'], columns: ['Opcion A', 'Opcion B', 'Opcion C'] };
+                        updates.correctAnswer = {};
+                      } else if (newType === 'checkbox_grid') {
+                        updates.options = { rows: ['Enunciado 1', 'Enunciado 2'], columns: ['Opcion A', 'Opcion B', 'Opcion C'] };
+                        updates.correctAnswer = {};
                       }
-                      
+
                       updateQuestion(currentQuestionIndex, updates);
                     }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
@@ -643,6 +776,10 @@ export default function EditQuiz() {
                     <option value="multiple_choice">Multiple Choice</option>
                     <option value="true_false">True/False</option>
                     <option value="short_answer">Short Answer</option>
+                    <option value="multiple_select">Casillas de Verificacion</option>
+                    <option value="dropdown">Lista Desplegable</option>
+                    <option value="multiple_choice_grid">Cuadricula de Opcion Multiple</option>
+                    <option value="checkbox_grid">Cuadricula de Casillas</option>
                   </select>
                 </div>
 
@@ -841,6 +978,527 @@ export default function EditQuiz() {
                     </div>
                   </div>
                 )}
+
+                {/* multiple_select */}
+                {currentQuestion.type === 'multiple_select' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Opciones de respuesta
+                    </label>
+                    <p className="text-xs text-blue-700 mb-3 font-medium">
+                      <AlertCircle className="w-3 h-3 inline mr-1" />
+                      Selecciona TODAS las respuestas correctas
+                    </p>
+                    <div className="space-y-3">
+                      {(currentQuestion.options as string[] || []).map((option, optIndex) => {
+                        const correctArr = (currentQuestion.correctAnswer as number[] | null) || [];
+                        const isCorrect = correctArr.includes(optIndex);
+
+                        return (
+                          <div
+                            key={optIndex}
+                            className={`flex items-center space-x-3 p-4 rounded-lg transition-all cursor-pointer border-3 ${
+                              isCorrect
+                                ? 'bg-green-50 border-green-500 shadow-md'
+                                : 'bg-white border-gray-300 hover:border-gray-400 hover:shadow-sm'
+                            }`}
+                            onClick={() => {
+                              const current = (currentQuestion.correctAnswer as number[] | null) || [];
+                              const next = isCorrect
+                                ? current.filter(i => i !== optIndex)
+                                : [...current, optIndex];
+                              updateQuestion(currentQuestionIndex, { correctAnswer: next });
+                            }}
+                          >
+                            <div className={`flex items-center justify-center w-8 h-8 rounded transition-all ${
+                              isCorrect
+                                ? 'bg-green-500 text-white scale-110'
+                                : 'bg-gray-200 hover:bg-gray-300'
+                            }`}
+                              style={{ borderRadius: '4px' }}
+                            >
+                              {isCorrect ? (
+                                <CheckCircle className="w-5 h-5" />
+                              ) : (
+                                <span className="text-gray-400 text-sm">{optIndex + 1}</span>
+                              )}
+                            </div>
+                            <input
+                              type="text"
+                              value={option}
+                              onChange={e => {
+                                const newOptions = [...(currentQuestion.options as string[] || [])];
+                                newOptions[optIndex] = e.target.value;
+                                updateQuestion(currentQuestionIndex, { options: newOptions });
+                              }}
+                              onClick={e => e.stopPropagation()}
+                              className={`flex-1 px-4 py-2 rounded-lg transition-all border-2 ${
+                                isCorrect
+                                  ? 'border-green-400 bg-white'
+                                  : 'border-gray-300 bg-white focus:ring-2 focus:ring-blue-600 focus:border-transparent'
+                              }`}
+                              placeholder={`Opcion ${optIndex + 1}`}
+                            />
+                            {isCorrect && (
+                              <div className="flex items-center space-x-2">
+                                <CheckCircle className="w-5 h-5 text-green-600" />
+                                <span className="text-green-600 font-bold text-sm">CORRECTA</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex space-x-2 mt-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const opts = currentQuestion.options as string[] || [];
+                          updateQuestion(currentQuestionIndex, { options: [...opts, ''] });
+                        }}
+                        className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        + Agregar opcion
+                      </button>
+                      {(currentQuestion.options as string[] || []).length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const opts = currentQuestion.options as string[] || [];
+                            const newOpts = opts.slice(0, -1);
+                            const correctArr = (currentQuestion.correctAnswer as number[] || []).filter(i => i < newOpts.length);
+                            updateQuestion(currentQuestionIndex, { options: newOpts, correctAnswer: correctArr });
+                          }}
+                          className="px-3 py-1.5 text-sm bg-red-50 text-red-600 border border-red-300 rounded-lg hover:bg-red-100 transition-colors"
+                        >
+                          - Eliminar ultima
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2 mt-3 p-3 bg-blue-50 rounded-lg">
+                      <AlertCircle className="w-4 h-4 text-blue-600" />
+                      <p className="text-sm text-blue-700">
+                        Haz clic en una opcion para marcarla o desmarcarla como correcta
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* dropdown */}
+                {currentQuestion.type === 'dropdown' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Opciones de respuesta
+                    </label>
+                    <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg mb-3">
+                      <p className="text-xs text-amber-700 font-medium">
+                        Se mostrara como lista desplegable al contestar
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      {(currentQuestion.options as string[] || []).map((option, optIndex) => {
+                        const isCorrect = currentQuestion.correctAnswer === optIndex;
+                        const hasCorrectAnswer = currentQuestion.correctAnswer !== null &&
+                                                 currentQuestion.correctAnswer !== undefined &&
+                                                 currentQuestion.correctAnswer !== -1;
+                        const isIncorrect = hasCorrectAnswer && !isCorrect;
+
+                        return (
+                          <div
+                            key={optIndex}
+                            className={`flex items-center space-x-3 p-4 rounded-lg transition-all cursor-pointer border-3 ${
+                              isCorrect
+                                ? 'bg-green-50 border-green-500 shadow-md'
+                                : isIncorrect
+                                ? 'bg-red-50 border-red-400 opacity-75'
+                                : 'bg-white border-gray-300 hover:border-gray-400 hover:shadow-sm'
+                            }`}
+                            onClick={() => updateQuestion(currentQuestionIndex, { correctAnswer: optIndex })}
+                          >
+                            <div className={`flex items-center justify-center w-8 h-8 rounded-full transition-all ${
+                              isCorrect
+                                ? 'bg-green-500 text-white scale-110'
+                                : isIncorrect
+                                ? 'bg-red-400 text-white'
+                                : 'bg-gray-200 hover:bg-gray-300'
+                            }`}>
+                              {isCorrect ? (
+                                <CheckCircle className="w-5 h-5" />
+                              ) : isIncorrect ? (
+                                <span className="text-lg font-bold">x</span>
+                              ) : (
+                                <span className="text-gray-400">{optIndex + 1}</span>
+                              )}
+                            </div>
+                            <input
+                              type="text"
+                              value={option}
+                              onChange={e => {
+                                const newOptions = [...(currentQuestion.options as string[] || [])];
+                                newOptions[optIndex] = e.target.value;
+                                updateQuestion(currentQuestionIndex, { options: newOptions });
+                              }}
+                              onClick={e => e.stopPropagation()}
+                              className={`flex-1 px-4 py-2 rounded-lg transition-all border-2 ${
+                                isCorrect
+                                  ? 'border-green-400 bg-white'
+                                  : isIncorrect
+                                  ? 'border-red-300 bg-white'
+                                  : 'border-gray-300 bg-white focus:ring-2 focus:ring-blue-600 focus:border-transparent'
+                              }`}
+                              placeholder={`Opcion ${optIndex + 1}`}
+                            />
+                            {isCorrect && (
+                              <div className="flex items-center space-x-2">
+                                <CheckCircle className="w-5 h-5 text-green-600" />
+                                <span className="text-green-600 font-bold text-sm">CORRECTA</span>
+                              </div>
+                            )}
+                            {isIncorrect && (
+                              <span className="text-red-500 font-medium text-sm">INCORRECTA</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex space-x-2 mt-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const opts = currentQuestion.options as string[] || [];
+                          updateQuestion(currentQuestionIndex, { options: [...opts, ''] });
+                        }}
+                        className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        + Agregar opcion
+                      </button>
+                      {(currentQuestion.options as string[] || []).length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const opts = currentQuestion.options as string[] || [];
+                            const newOpts = opts.slice(0, -1);
+                            const currentCA = currentQuestion.correctAnswer as number | null;
+                            updateQuestion(currentQuestionIndex, {
+                              options: newOpts,
+                              correctAnswer: currentCA !== null && currentCA >= newOpts.length ? null : currentCA
+                            });
+                          }}
+                          className="px-3 py-1.5 text-sm bg-red-50 text-red-600 border border-red-300 rounded-lg hover:bg-red-100 transition-colors"
+                        >
+                          - Eliminar ultima
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2 mt-3 p-3 bg-blue-50 rounded-lg">
+                      <AlertCircle className="w-4 h-4 text-blue-600" />
+                      <p className="text-sm text-blue-700">
+                        Haz clic en cualquier opcion para marcarla como respuesta correcta
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* multiple_choice_grid */}
+                {currentQuestion.type === 'multiple_choice_grid' && (() => {
+                  const gridOpts = currentQuestion.options as { rows: string[]; columns: string[] } | undefined;
+                  const rows = gridOpts?.rows || [];
+                  const columns = gridOpts?.columns || [];
+                  const correctAnswer = (currentQuestion.correctAnswer as Record<string, number> | null) || {};
+
+                  const updateRows = (newRows: string[]) =>
+                    updateQuestion(currentQuestionIndex, { options: { rows: newRows, columns } });
+                  const updateColumns = (newCols: string[]) =>
+                    updateQuestion(currentQuestionIndex, { options: { rows, columns: newCols } });
+
+                  return (
+                    <div className="space-y-5">
+                      {/* Row labels editor */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Filas (enunciados)</label>
+                        <div className="space-y-2">
+                          {rows.map((row, rIdx) => (
+                            <div key={rIdx} className="flex items-center space-x-2">
+                              <input
+                                type="text"
+                                value={row}
+                                onChange={e => {
+                                  const newRows = [...rows];
+                                  newRows[rIdx] = e.target.value;
+                                  updateRows(newRows);
+                                }}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm"
+                                placeholder={`Fila ${rIdx + 1}`}
+                              />
+                              {rows.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newRows = rows.filter((_, i) => i !== rIdx);
+                                    const newCA = { ...correctAnswer };
+                                    delete newCA[rIdx];
+                                    updateQuestion(currentQuestionIndex, { options: { rows: newRows, columns }, correctAnswer: newCA });
+                                  }}
+                                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateRows([...rows, `Enunciado ${rows.length + 1}`])}
+                          className="mt-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                          + Agregar fila
+                        </button>
+                      </div>
+
+                      {/* Column labels editor */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Columnas (opciones)</label>
+                        <div className="space-y-2">
+                          {columns.map((col, cIdx) => (
+                            <div key={cIdx} className="flex items-center space-x-2">
+                              <input
+                                type="text"
+                                value={col}
+                                onChange={e => {
+                                  const newCols = [...columns];
+                                  newCols[cIdx] = e.target.value;
+                                  updateColumns(newCols);
+                                }}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm"
+                                placeholder={`Columna ${cIdx + 1}`}
+                              />
+                              {columns.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newCols = columns.filter((_, i) => i !== cIdx);
+                                    updateColumns(newCols);
+                                  }}
+                                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateColumns([...columns, `Opcion ${columns.length + 1}`])}
+                          className="mt-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                          + Agregar columna
+                        </button>
+                      </div>
+
+                      {/* Grid preview */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Vista previa — marca la respuesta correcta por fila
+                        </label>
+                        <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-2 text-left text-gray-600 font-medium"></th>
+                                {columns.map((col, cIdx) => (
+                                  <th key={cIdx} className="px-4 py-2 text-center text-gray-600 font-medium">
+                                    {col || `Col ${cIdx + 1}`}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rows.map((row, rIdx) => (
+                                <tr key={rIdx} className="border-t border-gray-100 hover:bg-gray-50">
+                                  <td className="px-4 py-3 text-gray-700 font-medium">
+                                    {row || `Fila ${rIdx + 1}`}
+                                  </td>
+                                  {columns.map((_, cIdx) => {
+                                    const isSelected = correctAnswer[rIdx] === cIdx;
+                                    return (
+                                      <td key={cIdx} className="px-4 py-3 text-center">
+                                        <input
+                                          type="radio"
+                                          name={`grid-row-${rIdx}`}
+                                          checked={isSelected}
+                                          onChange={() => {
+                                            const newCA = { ...correctAnswer, [rIdx]: cIdx };
+                                            updateQuestion(currentQuestionIndex, { correctAnswer: newCA });
+                                          }}
+                                          className="w-4 h-4 accent-green-500 cursor-pointer"
+                                        />
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* checkbox_grid */}
+                {currentQuestion.type === 'checkbox_grid' && (() => {
+                  const gridOpts = currentQuestion.options as { rows: string[]; columns: string[] } | undefined;
+                  const rows = gridOpts?.rows || [];
+                  const columns = gridOpts?.columns || [];
+                  const correctAnswer = (currentQuestion.correctAnswer as Record<string, number[]> | null) || {};
+
+                  const updateRows = (newRows: string[]) =>
+                    updateQuestion(currentQuestionIndex, { options: { rows: newRows, columns } });
+                  const updateColumns = (newCols: string[]) =>
+                    updateQuestion(currentQuestionIndex, { options: { rows, columns: newCols } });
+
+                  return (
+                    <div className="space-y-5">
+                      {/* Row labels editor */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Filas (enunciados)</label>
+                        <div className="space-y-2">
+                          {rows.map((row, rIdx) => (
+                            <div key={rIdx} className="flex items-center space-x-2">
+                              <input
+                                type="text"
+                                value={row}
+                                onChange={e => {
+                                  const newRows = [...rows];
+                                  newRows[rIdx] = e.target.value;
+                                  updateRows(newRows);
+                                }}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm"
+                                placeholder={`Fila ${rIdx + 1}`}
+                              />
+                              {rows.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newRows = rows.filter((_, i) => i !== rIdx);
+                                    const newCA = { ...correctAnswer };
+                                    delete newCA[rIdx];
+                                    updateQuestion(currentQuestionIndex, { options: { rows: newRows, columns }, correctAnswer: newCA });
+                                  }}
+                                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateRows([...rows, `Enunciado ${rows.length + 1}`])}
+                          className="mt-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                          + Agregar fila
+                        </button>
+                      </div>
+
+                      {/* Column labels editor */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Columnas (opciones)</label>
+                        <div className="space-y-2">
+                          {columns.map((col, cIdx) => (
+                            <div key={cIdx} className="flex items-center space-x-2">
+                              <input
+                                type="text"
+                                value={col}
+                                onChange={e => {
+                                  const newCols = [...columns];
+                                  newCols[cIdx] = e.target.value;
+                                  updateColumns(newCols);
+                                }}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm"
+                                placeholder={`Columna ${cIdx + 1}`}
+                              />
+                              {columns.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newCols = columns.filter((_, i) => i !== cIdx);
+                                    updateColumns(newCols);
+                                  }}
+                                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateColumns([...columns, `Opcion ${columns.length + 1}`])}
+                          className="mt-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                          + Agregar columna
+                        </button>
+                      </div>
+
+                      {/* Grid preview */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Vista previa — marca todas las respuestas correctas por fila
+                        </label>
+                        <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-2 text-left text-gray-600 font-medium"></th>
+                                {columns.map((col, cIdx) => (
+                                  <th key={cIdx} className="px-4 py-2 text-center text-gray-600 font-medium">
+                                    {col || `Col ${cIdx + 1}`}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rows.map((row, rIdx) => {
+                                const rowSelected = (correctAnswer[rIdx] as number[] | undefined) || [];
+                                return (
+                                  <tr key={rIdx} className="border-t border-gray-100 hover:bg-gray-50">
+                                    <td className="px-4 py-3 text-gray-700 font-medium">
+                                      {row || `Fila ${rIdx + 1}`}
+                                    </td>
+                                    {columns.map((_, cIdx) => {
+                                      const isChecked = rowSelected.includes(cIdx);
+                                      return (
+                                        <td key={cIdx} className="px-4 py-3 text-center">
+                                          <input
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            onChange={() => {
+                                              const next = isChecked
+                                                ? rowSelected.filter(i => i !== cIdx)
+                                                : [...rowSelected, cIdx];
+                                              const newCA = { ...correctAnswer, [rIdx]: next };
+                                              updateQuestion(currentQuestionIndex, { correctAnswer: newCA });
+                                            }}
+                                            className="w-4 h-4 accent-green-500 cursor-pointer"
+                                          />
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Points */}
                 <div>

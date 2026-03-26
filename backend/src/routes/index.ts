@@ -74,6 +74,10 @@ router.use('/grading', gradingRoutes);
 router.use('/results', resultsRoutes);
 router.use('/videos', videoRoutes);
 
+// Quiz categories
+import categoryRoutes from './category.routes';
+router.use('/categories', categoryRoutes);
+
 // Multi-tenant routes
 router.use('/tenants', tenantRoutes);
 router.use('/classrooms', classroomRoutes);

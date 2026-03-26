@@ -66,7 +66,14 @@ export default function PublicResults() {
   const [quiz, setQuiz] = useState<any>(null);
   const [showDetails, setShowDetails] = useState<number | null>(null);
   const [filterScore, setFilterScore] = useState<'all' | 'passed' | 'failed'>('all');
+  const [filterDate, setFilterDate] = useState<'all' | '7d' | '30d' | '90d'>('all');
+  const [filterQuiz, setFilterQuiz] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'score' | 'name'>('date');
+
+  // Extract unique quiz/content titles for the filter dropdown
+  const quizTitles = Array.from(
+    new Set(results.map(r => r.content_title).filter(Boolean))
+  ).sort() as string[];
 
   useEffect(() => {
     // Temporarily disabled auth check for testing
@@ -189,14 +196,18 @@ export default function PublicResults() {
     }
   };
 
-  const formatTime = (seconds: number) => {
+  const formatTime = (seconds: number | null | undefined) => {
+    if (seconds == null || isNaN(seconds)) return '—';
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.round(seconds % 60);
     return `${mins}m ${secs}s`;
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '—';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString('es-ES', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -205,18 +216,44 @@ export default function PublicResults() {
     });
   };
 
+  const isResultPassed = (r: QuizResult) => {
+    // Use backend-computed passed boolean (respects each quiz's pass_percentage)
+    if (r.passed !== undefined && r.passed !== null) return r.passed;
+    // Fallback: use per-result passing_score, then quiz default, then 70
+    const threshold = r.passing_score ?? quiz?.pass_percentage ?? 70;
+    return parseFloat(String(r.score)) >= threshold;
+  };
+
   const getFilteredResults = () => {
     let filtered = [...results];
-    
+
+    // Filter by quiz/evaluation
+    if (filterQuiz !== 'all') {
+      filtered = filtered.filter(r => r.content_title === filterQuiz);
+    }
+
+    // Filter by pass/fail status
     if (filterScore === 'passed') {
-      filtered = filtered.filter(r => parseFloat(r.score) >= (quiz?.pass_percentage || 70));
+      filtered = filtered.filter(r => isResultPassed(r));
     } else if (filterScore === 'failed') {
-      filtered = filtered.filter(r => parseFloat(r.score) < (quiz?.pass_percentage || 70));
+      filtered = filtered.filter(r => !isResultPassed(r));
+    }
+
+    // Filter by date range
+    if (filterDate !== 'all') {
+      const now = new Date();
+      const daysMap = { '7d': 7, '30d': 30, '90d': 90 };
+      const daysAgo = daysMap[filterDate];
+      const cutoff = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+      filtered = filtered.filter(r => {
+        const d = new Date(r.completed_at);
+        return !isNaN(d.getTime()) && d >= cutoff;
+      });
     }
 
     // Sort
     if (sortBy === 'score') {
-      filtered.sort((a, b) => (parseFloat(b.score) || 0) - (parseFloat(a.score) || 0));
+      filtered.sort((a, b) => (parseFloat(String(b.score)) || 0) - (parseFloat(String(a.score)) || 0));
     } else if (sortBy === 'name') {
       filtered.sort((a, b) => {
         const nameA = a.participant_name || a.student_name || '';
@@ -231,25 +268,30 @@ export default function PublicResults() {
   };
 
   const exportToCSV = () => {
+    const filtered = getFilteredResults();
     const csvContent = [
-      ['Tipo', 'Nombre', 'Email', 'Contenido', 'Puntuación', 'Respuestas Correctas', 'Tiempo', 'Fecha'],
-      ...results.map(r => [
+      ['Tipo', 'Nombre', 'Email', 'Contenido', 'Puntuación', 'Respuestas Correctas', 'Tiempo', 'Fecha', 'Estado'],
+      ...filtered.map(r => [
         r.result_type === 'video' ? 'Video' : 'Quiz',
         r.participant_name || r.student_name || '',
         r.participant_email || r.student_email || '',
         r.content_title || quiz?.title || '',
-        parseFloat(r.score).toFixed(2),
+        parseFloat(String(r.score)).toFixed(2),
         `${r.correct_answers}/${r.total_questions}`,
-        formatTime(r.time_spent_seconds || r.time_taken || 0),
-        formatDate(r.completed_at)
+        formatTime(r.time_spent_seconds ?? r.time_taken),
+        formatDate(r.completed_at),
+        isResultPassed(r) ? 'Aprobado' : 'No Aprobado'
       ])
-    ].map(row => row.join(',')).join('\n');
+    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `results-${quiz?.title || 'quiz'}-${Date.now()}.csv`;
+    const fileName = filterQuiz !== 'all'
+      ? filterQuiz.replace(/[^a-zA-Z0-9áéíóúñ ]/gi, '').substring(0, 50)
+      : 'todas-evaluaciones';
+    a.download = `resultados-${fileName}-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
   };
 
@@ -355,7 +397,7 @@ export default function PublicResults() {
       {/* Filters and Actions */}
       <div className="bg-white rounded-lg shadow-sm p-4 mb-6 border border-gray-100">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center space-x-2">
               <Filter className="w-4 h-4 text-gray-500" />
               <select
@@ -370,7 +412,38 @@ export default function PublicResults() {
             </div>
 
             <div className="flex items-center space-x-2">
+              <Target className="w-4 h-4 text-gray-500" />
+              <select
+                value={filterQuiz}
+                onChange={(e) => setFilterQuiz(e.target.value)}
+                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all max-w-[220px]"
+              >
+                <option value="all">Todas las evaluaciones</option>
+                {quizTitles.map(title => (
+                  <option key={title} value={title}>
+                    {title.length > 40 ? title.substring(0, 40) + '…' : title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Calendar className="w-4 h-4 text-gray-500" />
+              <select
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value as any)}
+                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              >
+                <option value="all">Todas las fechas</option>
+                <option value="7d">Últimos 7 días</option>
+                <option value="30d">Últimos 30 días</option>
+                <option value="90d">Últimos 3 meses</option>
+              </select>
+            </div>
+
+            <div className="flex items-center space-x-2">
               <BarChart3 className="w-4 h-4 text-gray-500" />
+              <span className="text-xs text-gray-500">Ordenar:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
@@ -427,7 +500,7 @@ export default function PublicResults() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {getFilteredResults().map((result, index) => {
-                const passed = parseFloat(result.score) >= (quiz?.pass_percentage || 70);
+                const passed = isResultPassed(result);
                 
                 return (
                   <tr key={`result-${result.id}-${index}`} className="hover:bg-gray-50">
@@ -476,7 +549,7 @@ export default function PublicResults() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
-                      {formatTime(result.time_spent_seconds)}
+                      {formatTime(result.time_spent_seconds ?? result.time_taken)}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
                       {formatDate(result.completed_at)}
@@ -495,9 +568,11 @@ export default function PublicResults() {
                     <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => navigate(`/results/detail/${result.result_type || 'quiz'}/${result.id}`)}
-                        className="text-blue-600 hover:text-blue-700 transition-colors"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                        title="Ver detalle"
                       >
                         <Eye className="w-4 h-4" />
+                        <span className="hidden lg:inline">Ver</span>
                       </button>
                     </td>
                   </tr>
@@ -507,10 +582,14 @@ export default function PublicResults() {
           </table>
         </div>
 
-        {results.length === 0 && (
+        {getFilteredResults().length === 0 && (
           <div className="text-center py-12">
             <AlertCircle className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-500 text-sm">No hay resultados disponibles</p>
+            <p className="text-gray-500 text-sm">
+              {results.length === 0
+                ? 'No hay resultados disponibles'
+                : 'No hay resultados que coincidan con los filtros seleccionados'}
+            </p>
           </div>
         )}
       </div>

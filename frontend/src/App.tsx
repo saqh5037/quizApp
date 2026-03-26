@@ -70,6 +70,7 @@ import CreateUser from './pages/Admin/CreateUser';
 import UserManagement from './pages/Admin/UserManagement';
 import SystemActivity from './pages/Admin/SystemActivity';
 import ClassroomManagement from './pages/Admin/ClassroomManagement';
+import CategoryManagement from './pages/Admin/CategoryManagement';
 import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient({
@@ -315,6 +316,10 @@ const router = createBrowserRouter([
       {
         path: 'admin/classrooms',
         element: <ClassroomManagement />,
+      },
+      {
+        path: 'admin/categories',
+        element: <CategoryManagement />,
       },
     ],
   },

@@ -6,7 +6,7 @@ interface QuestionAttributes {
   id: number;
   quizId: number;
   questionText: string;
-  questionType: 'multiple_choice' | 'true_false' | 'short_answer' | 'multiple_select' | 'ordering' | 'matching';
+  questionType: 'multiple_choice' | 'true_false' | 'short_answer' | 'multiple_select' | 'ordering' | 'matching' | 'dropdown' | 'multiple_choice_grid' | 'checkbox_grid';
   questionImageUrl?: string;
   explanation?: string;
   hint?: string;
@@ -33,7 +33,7 @@ class Question extends Model<QuestionAttributes, QuestionCreationAttributes> imp
   public id!: number;
   public quizId!: number;
   public questionText!: string;
-  public questionType!: 'multiple_choice' | 'true_false' | 'short_answer' | 'multiple_select' | 'ordering' | 'matching';
+  public questionType!: 'multiple_choice' | 'true_false' | 'short_answer' | 'multiple_select' | 'ordering' | 'matching' | 'dropdown' | 'multiple_choice_grid' | 'checkbox_grid';
   public questionImageUrl?: string;
   public explanation?: string;
   public hint?: string;
@@ -56,14 +56,46 @@ class Question extends Model<QuestionAttributes, QuestionCreationAttributes> imp
     if (this.questionType === 'true_false') {
       return String(answer).toLowerCase() === String(this.correctAnswers).toLowerCase();
     }
-    
+
+    if (this.questionType === 'dropdown' || this.questionType === 'multiple_choice') {
+      if (Array.isArray(this.correctAnswers)) {
+        return Number(answer) === Number(this.correctAnswers[0]);
+      }
+      return String(answer).toLowerCase() === String(this.correctAnswers).toLowerCase();
+    }
+
+    if (this.questionType === 'multiple_select') {
+      if (!Array.isArray(answer) || !Array.isArray(this.correctAnswers)) return false;
+      const sortedUser = [...answer].map(Number).sort((a, b) => a - b);
+      const sortedCorrect = [...this.correctAnswers].map(Number).sort((a, b) => a - b);
+      return JSON.stringify(sortedUser) === JSON.stringify(sortedCorrect);
+    }
+
+    if (this.questionType === 'multiple_choice_grid') {
+      if (typeof answer !== 'object' || typeof this.correctAnswers !== 'object') return false;
+      const rows = Object.keys(this.correctAnswers);
+      return rows.every(row => Number(answer[row]) === Number(this.correctAnswers[row]));
+    }
+
+    if (this.questionType === 'checkbox_grid') {
+      if (typeof answer !== 'object' || typeof this.correctAnswers !== 'object') return false;
+      const rows = Object.keys(this.correctAnswers);
+      return rows.every(row => {
+        const userRow = (answer[row] || []).map(Number).sort((a: number, b: number) => a - b);
+        const correctRow = (this.correctAnswers[row] || []).map(Number).sort((a: number, b: number) => a - b);
+        return JSON.stringify(userRow) === JSON.stringify(correctRow);
+      });
+    }
+
+    // Fallback for short_answer and others
     if (Array.isArray(this.correctAnswers)) {
       if (Array.isArray(answer)) {
         return JSON.stringify(answer.sort()) === JSON.stringify(this.correctAnswers.sort());
       }
-      return false;
+      return this.correctAnswers.some((ca: any) =>
+        String(ca).toLowerCase().trim() === String(answer).toLowerCase().trim()
+      );
     }
-    
     return String(answer).toLowerCase() === String(this.correctAnswers).toLowerCase();
   }
 }
@@ -94,7 +126,7 @@ Question.init(
       },
     },
     questionType: {
-      type: DataTypes.ENUM('multiple_choice', 'true_false', 'short_answer', 'multiple_select', 'ordering', 'matching'),
+      type: DataTypes.ENUM('multiple_choice', 'true_false', 'short_answer', 'multiple_select', 'ordering', 'matching', 'dropdown', 'multiple_choice_grid', 'checkbox_grid'),
       allowNull: false,
       field: 'question_type',
     },

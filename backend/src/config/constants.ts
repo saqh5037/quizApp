@@ -4,6 +4,10 @@ export const CONSTANTS = {
     MULTIPLE_CHOICE: 'multiple_choice',
     TRUE_FALSE: 'true_false',
     SHORT_ANSWER: 'short_answer',
+    MULTIPLE_SELECT: 'multiple_select',
+    DROPDOWN: 'dropdown',
+    MULTIPLE_CHOICE_GRID: 'multiple_choice_grid',
+    CHECKBOX_GRID: 'checkbox_grid',
   },
   
   // Session Status

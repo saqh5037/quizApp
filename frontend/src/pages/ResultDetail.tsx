@@ -83,7 +83,13 @@ export default function ResultDetail() {
       }
 
       const data = await response.json();
-      setResult(data.data.result);
+      const resultData = data.data.result;
+      // Defensive: parse answers if backend returned a string
+      if (typeof resultData.answers === 'string') {
+        try { resultData.answers = JSON.parse(resultData.answers); }
+        catch (e) { resultData.answers = {}; }
+      }
+      setResult(resultData);
       setQuestions(data.data.questions || []);
     } catch (error) {
       console.error('Error fetching result:', error);
@@ -93,19 +99,23 @@ export default function ResultDetail() {
     }
   };
 
-  const formatTime = (seconds: number) => {
+  const formatTime = (seconds: number | null | undefined) => {
+    if (seconds == null || isNaN(seconds)) return '—';
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
+    const secs = Math.round(seconds % 60);
+
     if (hours > 0) {
       return `${hours}h ${minutes}m ${secs}s`;
     }
     return `${minutes}m ${secs}s`;
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '—';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString('es-ES', {
       day: '2-digit',
       month: 'long',
       year: 'numeric',
@@ -346,9 +356,13 @@ export default function ResultDetail() {
           </h3>
           <div className="space-y-4">
             {questions.map((question, index) => {
-              const userAnswer = result.answers[question.id];
-              const isCorrect = userAnswer?.correct;
-              
+              // Support both number and string key lookups
+              const answerData = result.answers?.[question.id] || result.answers?.[String(question.id)];
+              // Support both formats: {isCorrect, userAnswer, points} and {correct, answer}
+              const isCorrect = answerData?.isCorrect === true || answerData?.correct === true;
+              const userRawAnswer = answerData?.userAnswer ?? answerData?.answer;
+              const earnedPoints = answerData?.points ?? (isCorrect ? question.points : 0);
+
               return (
                 <div key={question.id} className="border-b pb-4 last:border-b-0">
                   <div className="flex items-start justify-between mb-2">
@@ -365,41 +379,96 @@ export default function ResultDetail() {
                       )}
                     </div>
                   </div>
-                  
+
                   {question.options && question.options.length > 0 && (
                     <div className="ml-4 space-y-1">
                       {question.options.map((option, optIndex) => {
-                        // Handle both array of strings and array of objects
-                        const optionText = typeof option === 'string' ? option : option?.text || option;
-                        const isUserAnswer = userAnswer?.answer === String.fromCharCode(65 + optIndex);
-                        const isCorrectOption = typeof option === 'object' && option?.is_correct 
-                          ? true 
-                          : question.correct_answers?.includes(optIndex);
-                        
+                        // Handle both array of strings and array of objects (backend may return either)
+                        const optionAny = option as any;
+                        const optionText = typeof option === 'string' ? option : optionAny?.text || option;
+                        // Match user's answer: could be letter ('a','b'), index (0,1), or uppercase ('A','B')
+                        const optLetter = String.fromCharCode(97 + optIndex); // 'a','b','c'...
+                        const optLetterUpper = String.fromCharCode(65 + optIndex); // 'A','B','C'...
+                        const isUserAnswer = Array.isArray(userRawAnswer)
+                          ? userRawAnswer.includes(optLetter) || userRawAnswer.includes(optLetterUpper) || userRawAnswer.includes(optIndex) || userRawAnswer.includes(String(optIndex))
+                          : (userRawAnswer === optLetter || userRawAnswer === optLetterUpper || userRawAnswer === optIndex || userRawAnswer === String(optIndex));
+                        const isCorrectOption = question.question_type === 'multiple_select'
+                          ? question.correct_answers?.includes(optIndex)
+                          : (typeof option !== 'string' && optionAny?.is_correct) || question.correct_answers?.includes(optIndex);
+
+                        let bgClass = '';
+                        if (isUserAnswer && isCorrect) {
+                          bgClass = 'bg-green-50 border border-green-300';
+                        } else if (isUserAnswer && !isCorrect) {
+                          bgClass = 'bg-red-50 border border-red-300';
+                        } else if (isCorrectOption && !isCorrect) {
+                          // Show correct answer when user got it wrong
+                          bgClass = 'bg-green-50 border border-green-200';
+                        }
+
                         return (
-                          <div
-                            key={optIndex}
-                            className={`p-2 rounded ${
-                              isUserAnswer
-                                ? isCorrect
-                                  ? 'bg-green-50 border border-green-300'
-                                  : 'bg-red-50 border border-red-300'
-                                : isCorrectOption
-                                ? 'bg-green-50 border border-green-200'
-                                : ''
-                            }`}
-                          >
+                          <div key={optIndex} className={`p-2 rounded ${bgClass}`}>
                             <span className="text-sm">
-                              {String.fromCharCode(65 + optIndex)}. {optionText}
+                              {optLetterUpper}. {optionText}
                             </span>
                           </div>
                         );
                       })}
                     </div>
                   )}
-                  
+
+                  {(question.question_type === 'multiple_choice_grid' || question.question_type === 'checkbox_grid') &&
+                    (question.options as any)?.rows && (
+                    <div className="ml-4 overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr>
+                            <th className="text-left p-2"></th>
+                            {(question.options as any).columns.map((col: string, i: number) => (
+                              <th key={i} className="text-center p-2 text-gray-600">{col}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(question.options as any).rows.map((row: string, rowIdx: number) => {
+                            const userRow = userRawAnswer?.[String(rowIdx)];
+                            const correctRow = question.correct_answers?.[String(rowIdx) as any];
+                            const isRowCorrect = question.question_type === 'multiple_choice_grid'
+                              ? Number(userRow) === Number(correctRow)
+                              : JSON.stringify(([...(userRow || [])] as number[]).sort()) === JSON.stringify(([...(correctRow || [])] as number[]).sort());
+                            return (
+                              <tr key={rowIdx} className={`border-t ${isRowCorrect ? 'bg-green-50' : 'bg-red-50'}`}>
+                                <td className="p-2 font-medium">{row}</td>
+                                {(question.options as any).columns.map((_: string, colIdx: number) => {
+                                  const isUserSelected = question.question_type === 'multiple_choice_grid'
+                                    ? Number(userRow) === colIdx
+                                    : Array.isArray(userRow) && userRow.includes(colIdx);
+                                  const isCorrectCol = question.question_type === 'multiple_choice_grid'
+                                    ? Number(correctRow) === colIdx
+                                    : Array.isArray(correctRow) && correctRow.includes(colIdx);
+                                  return (
+                                    <td key={colIdx} className="text-center p-2">
+                                      {isUserSelected && isCorrectCol && <span className="text-green-600">✓</span>}
+                                      {isUserSelected && !isCorrectCol && <span className="text-red-600">✗</span>}
+                                      {!isUserSelected && isCorrectCol && <span className="text-green-400">○</span>}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                      {answerData?.partialCredit && (
+                        <p className="text-sm text-gray-500 mt-1">
+                          {answerData.partialCredit.correctRows}/{answerData.partialCredit.totalRows} filas correctas
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <div className="mt-2 text-sm text-gray-600">
-                    <span>Puntos: {userAnswer?.earned || 0}/{question.points}</span>
+                    <span>Puntos: {earnedPoints}/{question.points}</span>
                   </div>
                 </div>
               );

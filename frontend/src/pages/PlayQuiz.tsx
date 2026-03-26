@@ -41,6 +41,8 @@ export default function PlayQuiz() {
   const [currentQuestion, setCurrentQuestion] = useState<QuestionState | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string>('');
   const [shortAnswer, setShortAnswer] = useState('');
+  const [multiSelectAnswers, setMultiSelectAnswers] = useState<string[]>([]);
+  const [gridAnswers, setGridAnswers] = useState<Record<string, number | number[]>>({});
   const [hasAnswered, setHasAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [score, setScore] = useState(0);
@@ -137,6 +139,8 @@ export default function PlayQuiz() {
           setHasAnswered(false);
           setSelectedAnswer('');
           setShortAnswer('');
+          setMultiSelectAnswers([]);
+          setGridAnswers({});
           setIsCorrect(null);
           
           // Set timer if question has time limit
@@ -157,9 +161,24 @@ export default function PlayQuiz() {
   const submitAnswer = async () => {
     if (!session || !currentQuestion || hasAnswered) return;
 
-    const answer = currentQuestion.question.type === 'short_answer' ? shortAnswer : selectedAnswer;
-    
-    if (!answer) {
+    let answerValue: any = selectedAnswer;
+    if (currentQuestion.question.type === 'multiple_select') {
+      answerValue = multiSelectAnswers;
+    } else if (currentQuestion.question.type === 'short_answer') {
+      answerValue = shortAnswer;
+    } else if (currentQuestion.question.type === 'multiple_choice_grid' || currentQuestion.question.type === 'checkbox_grid') {
+      answerValue = gridAnswers;
+    }
+
+    const answer = answerValue;
+
+    const hasAnswer = currentQuestion.question.type === 'multiple_select'
+      ? multiSelectAnswers.length > 0
+      : currentQuestion.question.type === 'multiple_choice_grid' || currentQuestion.question.type === 'checkbox_grid'
+      ? Object.keys(gridAnswers).length > 0
+      : Boolean(answer);
+
+    if (!hasAnswer) {
       toast.error('Please select or enter an answer');
       return;
     }
@@ -174,7 +193,7 @@ export default function PlayQuiz() {
         body: JSON.stringify({
           sessionId: session.id,
           questionId: currentQuestion.question.id,
-          answer,
+          answer: answerValue,
           participantName,
           timeSpent: currentQuestion.question.timeLimit ? 
             currentQuestion.question.timeLimit - (timer || 0) : 0
@@ -498,6 +517,137 @@ export default function PlayQuiz() {
               </div>
             )}
 
+            {question.type === 'multiple_select' && question.options && (
+              <div className="space-y-3 mb-6">
+                {(Array.isArray(question.options) ? question.options : (question.options as any)?.choices || []).map((option: any, index: number) => {
+                  const optText = typeof option === 'string' ? option : option.text;
+                  const isSelected = multiSelectAnswers.includes(String(index));
+                  return (
+                    <button key={index}
+                      onClick={() => {
+                        if (!hasAnswered) {
+                          setMultiSelectAnswers(prev =>
+                            isSelected ? prev.filter(i => i !== String(index)) : [...prev, String(index)]
+                          );
+                        }
+                      }}
+                      disabled={hasAnswered}
+                      className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                        isSelected ? 'border-primary bg-primary/10 text-primary font-medium' : 'border-gray-200 hover:border-gray-300'
+                      } ${hasAnswered ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                          isSelected ? 'bg-primary border-primary text-white' : 'border-gray-400'
+                        }`}>
+                          {isSelected && <span className="text-xs">✓</span>}
+                        </div>
+                        <span>{optText}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {question.type === 'dropdown' && question.options && (
+              <div className="mb-6">
+                <select
+                  value={selectedAnswer}
+                  onChange={(e) => { if (!hasAnswered) setSelectedAnswer(e.target.value); }}
+                  disabled={hasAnswered}
+                  className="w-full p-4 border-2 border-gray-200 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Selecciona una opcion...</option>
+                  {(Array.isArray(question.options) ? question.options : (question.options as any)?.choices || []).map((option: any, index: number) => {
+                    const optText = typeof option === 'string' ? option : option.text;
+                    return <option key={index} value={String(index)}>{optText}</option>;
+                  })}
+                </select>
+              </div>
+            )}
+
+            {question.type === 'multiple_choice_grid' && (question.options as any)?.rows && (
+              <div className="overflow-x-auto mb-6">
+                <table className="w-full min-w-[400px]">
+                  <thead>
+                    <tr>
+                      <th className="text-left p-3"></th>
+                      {(question.options as any).columns.map((col: string, i: number) => (
+                        <th key={i} className="text-center p-3 text-sm font-medium text-gray-600">{col}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(question.options as any).rows.map((row: string, rowIdx: number) => (
+                      <tr key={rowIdx} className="border-t">
+                        <td className="p-3 text-sm">{row}</td>
+                        {(question.options as any).columns.map((_: string, colIdx: number) => (
+                          <td key={colIdx} className="text-center p-3">
+                            <input type="radio"
+                              name={`grid-row-${rowIdx}`}
+                              checked={(gridAnswers as any)[String(rowIdx)] === colIdx}
+                              onChange={() => {
+                                if (!hasAnswered) setGridAnswers(prev => ({ ...prev, [String(rowIdx)]: colIdx }));
+                              }}
+                              disabled={hasAnswered}
+                              className="w-5 h-5 accent-primary cursor-pointer"
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {question.type === 'checkbox_grid' && (question.options as any)?.rows && (
+              <div className="overflow-x-auto mb-6">
+                <table className="w-full min-w-[400px]">
+                  <thead>
+                    <tr>
+                      <th className="text-left p-3"></th>
+                      {(question.options as any).columns.map((col: string, i: number) => (
+                        <th key={i} className="text-center p-3 text-sm font-medium text-gray-600">{col}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(question.options as any).rows.map((row: string, rowIdx: number) => (
+                      <tr key={rowIdx} className="border-t">
+                        <td className="p-3 text-sm">{row}</td>
+                        {(question.options as any).columns.map((_: string, colIdx: number) => {
+                          const rowSelections: number[] = ((gridAnswers as any)[String(rowIdx)] as number[]) || [];
+                          const isChecked = rowSelections.includes(colIdx);
+                          return (
+                            <td key={colIdx} className="text-center p-3">
+                              <input type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  if (!hasAnswered) {
+                                    setGridAnswers(prev => {
+                                      const current: number[] = ((prev as any)[String(rowIdx)] as number[]) || [];
+                                      const updated = isChecked
+                                        ? current.filter(c => c !== colIdx)
+                                        : [...current, colIdx];
+                                      return { ...prev, [String(rowIdx)]: updated };
+                                    });
+                                  }
+                                }}
+                                disabled={hasAnswered}
+                                className="w-5 h-5 accent-primary cursor-pointer"
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
             {/* Submit Button or Result */}
             {!hasAnswered ? (
               <button
@@ -505,7 +655,12 @@ export default function PlayQuiz() {
                   console.log('Submit clicked, answer:', selectedAnswer || shortAnswer);
                   submitAnswer();
                 }}
-                disabled={loading || (!selectedAnswer && !shortAnswer)}
+                disabled={loading || (
+                  question.type === 'multiple_select' ? multiSelectAnswers.length === 0 :
+                  question.type === 'multiple_choice_grid' || question.type === 'checkbox_grid' ? Object.keys(gridAnswers).length === 0 :
+                  question.type === 'short_answer' ? !shortAnswer :
+                  !selectedAnswer
+                )}
                 className="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center space-x-2"
               >
                 <Send className="w-5 h-5" />
