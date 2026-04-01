@@ -479,98 +479,348 @@ export default function ResultDetail() {
 
       {/* Hidden Certificate for PDF Generation */}
       {showCertificate && (
-        <div className="fixed top-0 left-0 w-full h-full bg-white z-50 overflow-hidden">
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: '#f0f0f0', zIndex: 9999, overflow: 'hidden' }}>
           <div
             ref={certificateRef}
-            className="w-[1050px] h-[750px] mx-auto mt-4"
             style={{
-              backgroundColor: '#667eea',
-              backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              width: '1050px',
+              height: '750px',
+              backgroundColor: '#ffffff',
               position: 'relative',
-              fontFamily: 'Arial, sans-serif'
+              fontFamily: 'Georgia, serif',
+              overflow: 'hidden',
+              margin: '0 auto'
             }}
           >
-            {/* Certificate Border */}
-            <div 
-              className="absolute"
-              style={{
-                top: '32px',
-                left: '32px',
-                right: '32px',
-                bottom: '32px',
-                border: '4px solid white',
-                borderRadius: '8px'
-              }}
-            ></div>
-            
-            {/* Certificate Content */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-16">
-              <div className="mb-8">
-                <h1 style={{ fontSize: '72px', fontWeight: 'bold', marginBottom: '8px', lineHeight: '1' }}>
-                  CERTIFICADO
-                </h1>
-                <p style={{ fontSize: '24px', marginTop: '8px' }}>
-                  {passed ? 'DE APROBACIÓN' : 'DE PARTICIPACIÓN'}
-                </p>
-              </div>
-              
-              <div className="mb-8">
-                <p style={{ fontSize: '20px', marginBottom: '16px' }}>Se certifica que</p>
-                <h2 style={{ fontSize: '48px', fontWeight: 'bold', marginBottom: '16px', lineHeight: '1.1' }}>
-                  {result.participant_name || result.student_name}
-                </h2>
-                <p style={{ fontSize: '18px', marginBottom: '8px' }}>{result.participant_email || result.student_email}</p>
-                {result.participant_organization && (
-                  <p style={{ fontSize: '18px' }}>{result.participant_organization}</p>
-                )}
-              </div>
-              
-              <div className="mb-8">
-                <p style={{ fontSize: '20px', marginBottom: '8px' }}>
-                  {passed 
-                    ? 'Ha aprobado satisfactoriamente la evaluación'
-                    : 'Ha completado la evaluación'}
-                </p>
-                <h3 style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '16px', lineHeight: '1.2' }}>
-                  "{result.content_title}"
-                </h3>
-                <p style={{ fontSize: '18px' }}>
-                  Con una puntuación de <span style={{ fontWeight: 'bold', fontSize: '24px' }}>
-                    {scorePercentage.toFixed(1)}%
-                  </span>
-                </p>
-                <p style={{ fontSize: '18px', marginTop: '8px' }}>
-                  {result.correct_answers} de {result.total_questions} respuestas correctas
-                </p>
-              </div>
-              
-              <div style={{ marginTop: '48px' }}>
-                <p style={{ fontSize: '18px' }}>
-                  {formatDate(result.completed_at)}
-                </p>
-                <p style={{ fontSize: '14px', marginTop: '8px', opacity: '0.8' }}>
-                  ID de Certificado: #{result.id}-{Date.now()}
-                </p>
-              </div>
-              
-              {passed && (
-                <div style={{ marginTop: '32px' }}>
-                  <div style={{ 
-                    width: '80px', 
-                    height: '80px', 
-                    backgroundColor: '#ffd700', 
-                    borderRadius: '50%',
-                    margin: '0 auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '40px'
-                  }}>
-                    🏆
+
+            {/* Top-left navy triangle accent */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: 0,
+              height: 0,
+              borderStyle: 'solid',
+              borderWidth: '220px 220px 0 0',
+              borderColor: '#1a365d transparent transparent transparent'
+            }} />
+
+            {/* Top-left secondary triangle (lighter) */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: 0,
+              height: 0,
+              borderStyle: 'solid',
+              borderWidth: '170px 170px 0 0',
+              borderColor: '#2a4a7f transparent transparent transparent'
+            }} />
+
+            {/* Bottom-right navy triangle accent */}
+            <div style={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              width: 0,
+              height: 0,
+              borderStyle: 'solid',
+              borderWidth: '0 0 220px 220px',
+              borderColor: 'transparent transparent #1a365d transparent'
+            }} />
+
+            {/* Bottom-right secondary triangle (lighter) */}
+            <div style={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              width: 0,
+              height: 0,
+              borderStyle: 'solid',
+              borderWidth: '0 0 170px 170px',
+              borderColor: 'transparent transparent #2a4a7f transparent'
+            }} />
+
+            {/* Thin gold border frame inside */}
+            <div style={{
+              position: 'absolute',
+              top: '24px',
+              left: '24px',
+              right: '24px',
+              bottom: '24px',
+              border: '2px solid #c9a84c',
+              pointerEvents: 'none'
+            }} />
+
+            {/* Gold seal — top-right corner */}
+            <div style={{
+              position: 'absolute',
+              top: '36px',
+              right: '52px',
+              width: '90px',
+              height: '90px',
+              zIndex: 10
+            }}>
+              {/* Outer ring */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '90px',
+                height: '90px',
+                borderRadius: '50%',
+                backgroundColor: '#c9a84c',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {/* Inner ring */}
+                <div style={{
+                  width: '72px',
+                  height: '72px',
+                  borderRadius: '50%',
+                  backgroundColor: '#f5d878',
+                  border: '3px solid #c9a84c',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'column'
+                }}>
+                  <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#1a365d', fontFamily: 'Georgia, serif', lineHeight: 1, textAlign: 'center', letterSpacing: '0.5px' }}>
+                    {passed ? 'APRO' : 'PART'}
+                  </div>
+                  <div style={{ fontSize: '22px', color: '#1a365d', lineHeight: 1 }}>
+                    {passed ? '*' : '·'}
+                  </div>
+                  <div style={{ fontSize: '9px', fontWeight: 'bold', color: '#1a365d', fontFamily: 'Arial, sans-serif', lineHeight: 1, textAlign: 'center', letterSpacing: '0.5px' }}>
+                    {new Date(result.completed_at).getFullYear()}
                   </div>
                 </div>
-              )}
+              </div>
+              {/* Ribbon tabs below seal */}
+              <div style={{
+                position: 'absolute',
+                bottom: '-18px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                gap: '4px'
+              }}>
+                <div style={{ width: '12px', height: '20px', backgroundColor: '#c9a84c', clipPath: 'polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%)' }} />
+                <div style={{ width: '12px', height: '20px', backgroundColor: '#1a365d', clipPath: 'polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%)' }} />
+              </div>
             </div>
+
+            {/* dt dynamtek logo — top-left area, after triangle */}
+            <div style={{
+              position: 'absolute',
+              top: '40px',
+              left: '180px',
+              zIndex: 10
+            }}>
+              <span style={{ fontSize: '13px', fontFamily: 'Arial, sans-serif', color: '#1a365d', fontWeight: 'bold', letterSpacing: '1px' }}>
+                dt
+              </span>
+              <span style={{ fontSize: '13px', fontFamily: 'Arial, sans-serif', color: '#555', fontWeight: 'normal', letterSpacing: '2px', marginLeft: '4px' }}>
+                dynamtek
+              </span>
+            </div>
+
+            {/* Main content area */}
+            <div style={{
+              position: 'absolute',
+              top: '60px',
+              left: '60px',
+              right: '60px',
+              bottom: '60px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center'
+            }}>
+
+              {/* Certificate title */}
+              <div style={{ marginBottom: '6px' }}>
+                <div style={{
+                  fontSize: '13px',
+                  fontFamily: 'Arial, sans-serif',
+                  fontWeight: 'bold',
+                  color: '#888',
+                  letterSpacing: '6px',
+                  textTransform: 'uppercase',
+                  marginBottom: '4px'
+                }}>
+                  CERTIFICATE OF
+                </div>
+                <div style={{
+                  fontSize: '46px',
+                  fontFamily: 'Georgia, serif',
+                  fontWeight: 'bold',
+                  color: '#1a365d',
+                  letterSpacing: '8px',
+                  textTransform: 'uppercase',
+                  lineHeight: 1
+                }}>
+                  {passed ? 'APPROVAL' : 'PARTICIPATION'}
+                </div>
+              </div>
+
+              {/* Gold divider line */}
+              <div style={{
+                width: '200px',
+                height: '2px',
+                backgroundColor: '#c9a84c',
+                margin: '12px auto'
+              }} />
+
+              {/* "Se certifica que" */}
+              <div style={{
+                fontSize: '14px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#777',
+                letterSpacing: '3px',
+                textTransform: 'uppercase',
+                marginBottom: '8px'
+              }}>
+                Se certifica que
+              </div>
+
+              {/* Participant name — prominent, cursive-like */}
+              <div style={{
+                fontSize: '44px',
+                fontFamily: 'Georgia, serif',
+                fontStyle: 'italic',
+                color: '#1a365d',
+                marginBottom: '10px',
+                lineHeight: 1.1,
+                maxWidth: '700px',
+                wordBreak: 'break-word'
+              }}>
+                {result.participant_name || result.student_name}
+              </div>
+
+              {/* Gold line under name */}
+              <div style={{
+                width: '400px',
+                height: '1px',
+                backgroundColor: '#c9a84c',
+                margin: '0 auto 12px auto'
+              }} />
+
+              {/* Body text */}
+              <div style={{
+                fontSize: '14px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#555',
+                marginBottom: '6px',
+                letterSpacing: '0.5px'
+              }}>
+                {passed
+                  ? 'Ha aprobado satisfactoriamente la evaluación'
+                  : 'Ha completado satisfactoriamente la evaluación'}
+              </div>
+
+              {/* Quiz title */}
+              <div style={{
+                fontSize: '18px',
+                fontFamily: 'Georgia, serif',
+                fontWeight: 'bold',
+                color: '#1a365d',
+                marginBottom: '10px',
+                maxWidth: '650px',
+                lineHeight: 1.3
+              }}>
+                "{result.content_title}"
+              </div>
+
+              {/* Score badge */}
+              <div style={{
+                display: 'inline-block',
+                backgroundColor: '#1a365d',
+                color: '#f5d878',
+                padding: '5px 24px',
+                borderRadius: '20px',
+                fontSize: '15px',
+                fontFamily: 'Arial, sans-serif',
+                fontWeight: 'bold',
+                letterSpacing: '1px',
+                marginBottom: '14px'
+              }}>
+                {scorePercentage.toFixed(1)}% &nbsp;·&nbsp; {result.correct_answers}/{result.total_questions} respuestas correctas
+              </div>
+
+              {/* Date */}
+              <div style={{
+                fontSize: '12px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#999',
+                letterSpacing: '1px',
+                marginBottom: '20px'
+              }}>
+                {formatDate(result.completed_at)}
+              </div>
+
+              {/* Signatures row */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '80px',
+                width: '100%',
+                maxWidth: '620px'
+              }}>
+                {/* Signature 1 */}
+                <div style={{ textAlign: 'center', minWidth: '180px' }}>
+                  <div style={{ fontSize: '13px', fontFamily: 'Georgia, serif', fontStyle: 'italic', color: '#1a365d', marginBottom: '4px' }}>
+                    Firma Autorizada
+                  </div>
+                  <div style={{ width: '100%', height: '1px', backgroundColor: '#1a365d', marginBottom: '4px' }} />
+                  <div style={{ fontSize: '10px', fontFamily: 'Arial, sans-serif', color: '#777', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                    Project Manager
+                  </div>
+                </div>
+                {/* Signature 2 */}
+                <div style={{ textAlign: 'center', minWidth: '180px' }}>
+                  <div style={{ fontSize: '13px', fontFamily: 'Georgia, serif', fontStyle: 'italic', color: '#1a365d', marginBottom: '4px' }}>
+                    Firma Autorizada
+                  </div>
+                  <div style={{ width: '100%', height: '1px', backgroundColor: '#1a365d', marginBottom: '4px' }} />
+                  <div style={{ fontSize: '10px', fontFamily: 'Arial, sans-serif', color: '#777', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                    Supervisor
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* QR placeholder — bottom-left inside border */}
+            <div style={{
+              position: 'absolute',
+              bottom: '40px',
+              left: '52px',
+              zIndex: 10
+            }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                border: '2px solid #1a365d',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#f8f8f8'
+              }}>
+                {/* Fake QR pattern */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', padding: '4px', width: '100%', height: '100%' }}>
+                  {[1,1,1,1,1, 1,0,0,0,1, 1,0,1,0,1, 1,0,0,0,1, 1,1,1,1,1].map((cell, i) => (
+                    <div key={i} style={{ backgroundColor: cell ? '#1a365d' : '#ffffff', borderRadius: '1px' }} />
+                  ))}
+                </div>
+              </div>
+              <div style={{ fontSize: '7px', fontFamily: 'Arial, sans-serif', color: '#999', textAlign: 'center', marginTop: '2px', letterSpacing: '0.5px' }}>
+                #{result.id}
+              </div>
+            </div>
+
           </div>
         </div>
       )}

@@ -10,7 +10,8 @@ import PublicQuizShare from '../components/quiz/PublicQuizShare';
 import { 
   FiPlus, FiSearch, FiEdit2, FiTrash2, FiPlay, FiCopy, FiBarChart, 
   FiShare2, FiX, FiBookOpen, FiUsers, FiGlobe, FiGrid, FiList,
-  FiEye, FiDownload, FiActivity, FiAward, FiClock, FiLayers
+  FiEye, FiDownload, FiActivity, FiAward, FiClock, FiLayers, FiFilter,
+  FiChevronLeft, FiChevronRight
 } from 'react-icons/fi';
 import { HiOutlineSparkles, HiOutlineDuplicate, HiOutlinePencilAlt, HiOutlineTrash, HiOutlineEye, HiOutlineShare } from 'react-icons/hi';
 import toast from 'react-hot-toast';
@@ -36,12 +37,33 @@ export default function Quizzes() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<'all' | 'public' | 'private'>('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [categories, setCategories] = useState<{ id: number; name: string; color?: string }[]>([]);
   const [shareModalQuiz, setShareModalQuiz] = useState<Quiz | null>(null);
-  const [viewType, setViewType] = useState<'list' | 'grid'>('list'); // Default to list view
+  const [viewType, setViewType] = useState<'list' | 'grid'>('list');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     fetchQuizzes();
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(buildApiUrl('/categories'), {
+        headers: {
+          'Authorization': `Bearer ${useAuthStore.getState().accessToken}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchQuizzes = async () => {
     try {
@@ -208,16 +230,32 @@ export default function Quizzes() {
   };
 
   const filteredQuizzes = quizzes.filter(quiz => {
-    const matchesSearch = quiz.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          quiz.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          quiz.category.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesFilter = filter === 'all' || 
+    const search = searchTerm.toLowerCase();
+    const matchesSearch = !searchTerm ||
+                          (quiz.title || '').toLowerCase().includes(search) ||
+                          (quiz.description || '').toLowerCase().includes(search) ||
+                          (quiz.category || '').toLowerCase().includes(search);
+
+    const matchesFilter = filter === 'all' ||
                           (filter === 'public' && quiz.isPublic) ||
                           (filter === 'private' && !quiz.isPublic);
-    
-    return matchesSearch && matchesFilter;
+
+    const matchesCategory = categoryFilter === 'all' || quiz.category === categoryFilter;
+
+    return matchesSearch && matchesFilter && matchesCategory;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredQuizzes.length / ITEMS_PER_PAGE);
+  const paginatedQuizzes = filteredQuizzes.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filter, categoryFilter]);
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -293,8 +331,8 @@ export default function Quizzes() {
               </button>
               <button
                 className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                  filter === 'private' 
-                    ? 'bg-blue-600 text-white' 
+                  filter === 'private'
+                    ? 'bg-blue-600 text-white'
                     : 'border border-gray-300 text-gray-700 hover:border-blue-600 hover:bg-blue-50'
                 }`}
                 onClick={() => setFilter('private')}
@@ -302,6 +340,22 @@ export default function Quizzes() {
                 Privadas
               </button>
             </div>
+            {/* Category Filter */}
+            {categories.length > 0 && (
+              <div className="relative">
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="appearance-none pl-8 pr-8 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:border-blue-600 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 cursor-pointer"
+                >
+                  <option value="all">Todas las categorías</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                </select>
+                <FiFilter className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+              </div>
+            )}
           </div>
           
           {/* View Toggle */}
@@ -416,7 +470,7 @@ export default function Quizzes() {
       ) : viewType === 'grid' ? (
         // Grid View
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredQuizzes.map((quiz) => (
+          {paginatedQuizzes.map((quiz) => (
             <div key={quiz.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100">
               <div className="p-5">
                 {/* Quiz Header */}
@@ -531,7 +585,7 @@ export default function Quizzes() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredQuizzes.map((quiz) => (
+                {paginatedQuizzes.map((quiz) => (
                   <tr key={quiz.id} className="hover:bg-blue-50/30 transition-colors bg-gradient-to-r from-blue-50/50 via-white via-50% to-blue-50/50">
                     {/* Columna Evaluación */}
                     <td className="px-4 py-3 w-2/5">
@@ -659,6 +713,44 @@ export default function Quizzes() {
         </div>
       )}
       
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-6 bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3">
+          <p className="text-sm text-gray-600">
+            Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredQuizzes.length)} de {filteredQuizzes.length} evaluaciones
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <FiChevronLeft size={16} />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                  page === currentPage
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <FiChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Share Modal */}
       {shareModalQuiz && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

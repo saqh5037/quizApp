@@ -11,9 +11,12 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
-  ArrowRightLeft
+  ArrowRightLeft,
+  X
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { useAuthStore } from '../../stores/authStore';
 
 interface User {
   id: number;
@@ -54,7 +57,28 @@ interface UsersResponse {
   };
 }
 
+interface CreateUserForm {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  tenant_id: string;
+  send_welcome_email: boolean;
+}
+
+const INITIAL_CREATE_FORM: CreateUserForm = {
+  email: '',
+  password: '',
+  first_name: '',
+  last_name: '',
+  role: 'student',
+  tenant_id: '',
+  send_welcome_email: false,
+};
+
 const UserManagement: React.FC = () => {
+  const { user: currentUser } = useAuthStore();
   const [users, setUsers] = useState<User[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,6 +96,10 @@ const UserManagement: React.FC = () => {
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [userToTransfer, setUserToTransfer] = useState<User | null>(null);
   const [targetTenant, setTargetTenant] = useState('');
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createForm, setCreateForm] = useState<CreateUserForm>(INITIAL_CREATE_FORM);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState('');
 
   useEffect(() => {
     fetchUsers();
@@ -138,6 +166,200 @@ const UserManagement: React.FC = () => {
     setCurrentPage(1);
     fetchUsers();
   };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateError('');
+
+    if (createForm.password.length < 6) {
+      setCreateError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    try {
+      setCreateLoading(true);
+      const payload: Record<string, unknown> = {
+        email: createForm.email,
+        password: createForm.password,
+        first_name: createForm.first_name,
+        last_name: createForm.last_name,
+        role: createForm.role,
+        send_welcome_email: createForm.send_welcome_email,
+      };
+
+      if (currentUser?.role === 'super_admin' && createForm.tenant_id) {
+        payload.tenant_id = parseInt(createForm.tenant_id);
+      }
+
+      await api.post('/admin/users', payload);
+      toast.success('Usuario creado exitosamente');
+      setCreateModalOpen(false);
+      setCreateForm(INITIAL_CREATE_FORM);
+      fetchUsers();
+    } catch (err: any) {
+      const msg = err.response?.data?.error?.message || err.response?.data?.message || 'Error al crear usuario';
+      setCreateError(msg);
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const CreateUserModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Crear Usuario
+          </h3>
+          <button
+            onClick={() => {
+              setCreateModalOpen(false);
+              setCreateForm(INITIAL_CREATE_FORM);
+              setCreateError('');
+            }}
+            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {createError && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 p-3 rounded-lg mb-4 text-sm">
+            {createError}
+          </div>
+        )}
+
+        <form onSubmit={handleCreateUser} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              required
+              value={createForm.email}
+              onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="usuario@ejemplo.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Contraseña <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={createForm.password}
+              onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="Mínimo 6 caracteres"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Nombre <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={createForm.first_name}
+                onChange={(e) => setCreateForm({ ...createForm, first_name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Juan"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Apellido
+              </label>
+              <input
+                type="text"
+                value={createForm.last_name}
+                onChange={(e) => setCreateForm({ ...createForm, last_name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Pérez"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Rol
+            </label>
+            <select
+              value={createForm.role}
+              onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="student">Estudiante</option>
+              <option value="instructor">Instructor</option>
+              <option value="tenant_admin">Admin Tenant</option>
+              <option value="super_admin">Super Admin</option>
+            </select>
+          </div>
+
+          {currentUser?.role === 'super_admin' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Tenant
+              </label>
+              <select
+                value={createForm.tenant_id}
+                onChange={(e) => setCreateForm({ ...createForm, tenant_id: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value="">Seleccionar tenant...</option>
+                {tenants.map(tenant => (
+                  <option key={tenant.id} value={tenant.id}>
+                    {tenant.name} ({tenant.type})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="send_welcome_email"
+              checked={createForm.send_welcome_email}
+              onChange={(e) => setCreateForm({ ...createForm, send_welcome_email: e.target.checked })}
+              className="rounded border-gray-300 dark:border-gray-600"
+            />
+            <label htmlFor="send_welcome_email" className="text-sm text-gray-700 dark:text-gray-300">
+              Enviar correo de bienvenida
+            </label>
+          </div>
+
+          <div className="flex gap-3 justify-end pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setCreateModalOpen(false);
+                setCreateForm(INITIAL_CREATE_FORM);
+                setCreateError('');
+              }}
+              className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={createLoading}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg"
+            >
+              {createLoading ? 'Creando...' : 'Crear Usuario'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
@@ -324,13 +546,13 @@ const UserManagement: React.FC = () => {
               Manage users across all tenants and handle tenant assignments
             </p>
           </div>
-          <Link
-            to="/admin/users/create"
+          <button
+            onClick={() => setCreateModalOpen(true)}
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            Create User
-          </Link>
+            Crear Usuario
+          </button>
         </div>
 
         {/* Filters */}
@@ -416,13 +638,13 @@ const UserManagement: React.FC = () => {
                 ? 'Try adjusting your search criteria'
                 : 'Get started by creating your first user'}
             </p>
-            <Link
-              to="/admin/users/create"
+            <button
+              onClick={() => setCreateModalOpen(true)}
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
-              Create First User
-            </Link>
+              Crear Primer Usuario
+            </button>
           </div>
         )}
 
@@ -459,6 +681,9 @@ const UserManagement: React.FC = () => {
 
       {/* Transfer Modal */}
       {transferModalOpen && <TransferModal />}
+
+      {/* Create User Modal */}
+      {createModalOpen && <CreateUserModal />}
     </div>
   );
 };
