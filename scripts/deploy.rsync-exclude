@@ -1,0 +1,16 @@
+node_modules
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+logs
+*.log
+storage/minio-data
+backend/uploads
+backend/dist
+.DS_Store
+coverage
+.nyc_output
+*.pem
+*.key

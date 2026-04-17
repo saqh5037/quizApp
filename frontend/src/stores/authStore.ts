@@ -223,24 +223,37 @@ axios.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    
+
     // Don't retry for login or refresh endpoints
-    const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
-                          originalRequest.url?.includes('/auth/refresh');
-    
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+    const isAuthEndpoint = originalRequest?.url?.includes('/auth/login') ||
+                          originalRequest?.url?.includes('/auth/refresh');
+
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
-      
+
       try {
         await useAuthStore.getState().refreshAccessToken();
         return axios(originalRequest);
       } catch (refreshError) {
+        // Session truly expired. Tell the user before redirecting so it's not abrupt.
         useAuthStore.getState().clearAuth();
-        window.location.href = '/login';
+        try {
+          toast.error('Tu sesión expiró. Vuelve a iniciar sesión.');
+        } catch {
+          // toast module may not be available in non-browser contexts
+        }
+
+        // Defer redirect slightly so the toast becomes visible and avoid
+        // navigating if we're already on /login.
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 600);
+        }
         return Promise.reject(refreshError);
       }
     }
-    
+
     return Promise.reject(error);
   }
 );

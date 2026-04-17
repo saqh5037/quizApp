@@ -98,19 +98,32 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   error: null,
 
   connectSocket: (token?: string) => {
+    // Singleton: reuse the existing socket if one is already alive instead of
+    // spinning up a second connection. This prevents the leak that happened
+    // when HotReload or remounts called connectSocket multiple times.
+    const existing = get().socket;
+    if (existing && existing.connected) {
+      return;
+    }
+    if (existing) {
+      existing.disconnect();
+    }
+
     const socket = io(apiConfig.socketURL, {
       auth: token ? { token } : undefined,
       transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     });
 
     socket.on('connect', () => {
       set({ isConnected: true });
-      console.log('Socket connected');
     });
 
     socket.on('disconnect', () => {
       set({ isConnected: false });
-      console.log('Socket disconnected');
     });
 
     // Session events
@@ -158,9 +171,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       set({ leaderboard: data.leaderboard });
     });
 
-    socket.on('show_results', (data) => {
-      // Handle showing results
-      console.log('Results:', data);
+    socket.on('show_results', () => {
+      // show_results ack is handled by individual components via their own
+      // socket.on listeners; nothing to do at the store level.
     });
 
     socket.on('final_results', (data) => {
@@ -203,19 +216,27 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
 
   joinSession: (sessionCode: string, nickname: string) => {
-    const { socket } = get();
+    let { socket } = get();
     if (!socket) {
       get().connectSocket();
+      socket = get().socket;
     }
-    
+
     set({ isLoading: true, isHost: false });
-    
-    setTimeout(() => {
-      const { socket } = get();
-      if (socket) {
-        socket.emit('join_session', { sessionCode, nickname });
-      }
-    }, 100);
+
+    const emit = () => {
+      const current = get().socket;
+      if (!current) return;
+      current.emit('join_session', { sessionCode, nickname });
+    };
+
+    // If the socket is already connected, emit immediately; otherwise defer
+    // until the 'connect' event so we don't drop the join.
+    if (socket && socket.connected) {
+      emit();
+    } else if (socket) {
+      socket.once('connect', emit);
+    }
   },
 
   leaveSession: () => {

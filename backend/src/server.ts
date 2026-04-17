@@ -21,6 +21,7 @@ import { env, isDevelopment } from './config/environment';
 import { connectDatabase } from './config/database';
 import { setupAssociations } from './models/associations';
 import logger, { stream } from './utils/logger';
+import { initGcpLogging } from './utils/gcpLogging';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import { generalRateLimiter } from './middleware/rateLimiter.middleware';
 import routes from './routes';
@@ -81,14 +82,38 @@ app.use(generalRateLimiter);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/storage', express.static(path.join(__dirname, '../storage')));
 
-// Health check
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: env.NODE_ENV,
-  });
+// Health endpoints.
+//
+// /health        — legacy alias, kept for backwards compatibility. Liveness only.
+// /health/live   — liveness probe: process is up. No DB/MinIO calls.
+// /health/ready  — readiness probe: validates DB + MinIO (+ Redis if configured).
+//                  Returns 503 if any hard dependency is down so load balancers
+//                  and PM2 can stop routing to the instance.
+import { runReadinessChecks } from './utils/healthCheck';
+
+const livenessPayload = () => ({
+  status: 'healthy',
+  timestamp: new Date().toISOString(),
+  uptime: process.uptime(),
+  environment: env.NODE_ENV,
+});
+
+app.get('/health', (_req, res) => res.status(200).json(livenessPayload()));
+app.get('/health/live', (_req, res) => res.status(200).json(livenessPayload()));
+
+app.get('/health/ready', async (_req, res) => {
+  try {
+    const report = await runReadinessChecks();
+    const statusCode = report.status === 'down' ? 503 : 200;
+    res.status(statusCode).json(report);
+  } catch (err: any) {
+    logger.error('Readiness check crashed', { error: err?.message || err });
+    res.status(503).json({
+      status: 'down',
+      timestamp: new Date().toISOString(),
+      error: 'Readiness check failed',
+    });
+  }
 });
 
 // API routes
@@ -104,21 +129,29 @@ setupSocketServer(io);
 // Start server
 const startServer = async () => {
   try {
+    // Initialize optional observability (no-op if GCP env vars are missing)
+    await initGcpLogging();
+
     // Connect to database
     await connectDatabase();
-    
+
     // Start HTTP server
     httpServer.listen(env.PORT, env.HOST, () => {
-      logger.info(`
-        🚀 Server is running!
-        🔊 Listening on http://${env.HOST}:${env.PORT}
-        📝 API Prefix: ${env.API_PREFIX}
-        🌍 Environment: ${env.NODE_ENV}
-        🔌 Socket.IO enabled
-      `);
+      logger.info(`Server listening`, {
+        host: env.HOST,
+        port: env.PORT,
+        apiPrefix: env.API_PREFIX,
+        environment: env.NODE_ENV,
+      });
+
+      // Let PM2 know we're ready to accept traffic (ecosystem.prod.config.js
+      // sets wait_ready: true)
+      if (typeof process.send === 'function') {
+        process.send('ready');
+      }
     });
   } catch (error) {
-    logger.error('Failed to start server:', error);
+    logger.error('Failed to start server', { error });
     process.exit(1);
   }
 };

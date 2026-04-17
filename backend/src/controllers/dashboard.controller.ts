@@ -1,45 +1,46 @@
 import { Request, Response } from 'express';
 import { sequelize } from '../config/database';
 import { QueryTypes } from 'sequelize';
+import logger from '../utils/logger';
 
 export const getDashboardStats = async (req: Request, res: Response) => {
   const userId = req.user?.id;
   const userRole = req.user?.role;
+  const tenantId = req.user?.tenant_id;
+
+  if (!userId || !tenantId) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
 
   try {
     let stats: any = {};
 
-    if (userRole === 'teacher' || userRole === 'admin' || userRole === 'super_admin') {
-      // Comprehensive Admin/Teacher Dashboard Stats
+    if (userRole === 'teacher' || userRole === 'admin' || userRole === 'super_admin' || userRole === 'instructor' || userRole === 'tenant_admin') {
+      // Tenant-scoped Admin/Teacher Dashboard Stats
       const [basicStats]: any = await sequelize.query(
-        `SELECT 
-          -- Quiz Statistics
-          (SELECT COUNT(*) FROM quizzes) as total_quizzes,
-          (SELECT COUNT(*) FROM quizzes WHERE is_active = true) as active_quizzes,
-          (SELECT COUNT(*) FROM quizzes WHERE is_public = true) as public_quizzes,
-          (SELECT COUNT(*) FROM quizzes WHERE creator_id = $1) as my_quizzes,
-          
-          -- Session Statistics
-          (SELECT COUNT(*) FROM quiz_sessions) as total_sessions,
-          (SELECT COUNT(*) FROM quiz_sessions WHERE status = 'completed') as completed_sessions,
-          (SELECT COUNT(*) FROM quiz_sessions WHERE status = 'in_progress') as active_sessions,
-          (SELECT COUNT(*) FROM quiz_sessions WHERE status = 'scheduled' AND scheduled_for > NOW()) as upcoming_sessions,
-          
-          -- Participation Statistics  
-          (SELECT COUNT(DISTINCT participant_email) FROM public_quiz_results) as total_participants,
-          (SELECT COUNT(*) FROM public_quiz_results) as total_responses,
-          (SELECT COUNT(*) FROM public_quiz_results WHERE score >= (total_points * 0.7)) as passed_responses,
-          
-          -- Performance Metrics
-          (SELECT AVG(score) FROM public_quiz_results) as average_score,
-          (SELECT AVG(total_points) FROM public_quiz_results) as average_total_points,
-          (SELECT MAX(score) FROM public_quiz_results) as highest_score,
-          
-          -- Recent Activity (Last 7 days)
-          (SELECT COUNT(*) FROM public_quiz_results WHERE completed_at >= NOW() - INTERVAL '7 days') as recent_responses,
-          (SELECT COUNT(*) FROM quizzes WHERE created_at >= NOW() - INTERVAL '7 days') as recent_quizzes`,
+        `SELECT
+          (SELECT COUNT(*) FROM quizzes WHERE tenant_id = $2) as total_quizzes,
+          (SELECT COUNT(*) FROM quizzes WHERE tenant_id = $2 AND is_active = true) as active_quizzes,
+          (SELECT COUNT(*) FROM quizzes WHERE tenant_id = $2 AND is_public = true) as public_quizzes,
+          (SELECT COUNT(*) FROM quizzes WHERE tenant_id = $2 AND creator_id = $1) as my_quizzes,
+
+          (SELECT COUNT(*) FROM quiz_sessions s JOIN quizzes q ON s.quiz_id = q.id WHERE q.tenant_id = $2) as total_sessions,
+          (SELECT COUNT(*) FROM quiz_sessions s JOIN quizzes q ON s.quiz_id = q.id WHERE q.tenant_id = $2 AND s.status = 'completed') as completed_sessions,
+          (SELECT COUNT(*) FROM quiz_sessions s JOIN quizzes q ON s.quiz_id = q.id WHERE q.tenant_id = $2 AND s.status = 'in_progress') as active_sessions,
+          (SELECT COUNT(*) FROM quiz_sessions s JOIN quizzes q ON s.quiz_id = q.id WHERE q.tenant_id = $2 AND s.status = 'scheduled' AND s.scheduled_for > NOW()) as upcoming_sessions,
+
+          (SELECT COUNT(DISTINCT pr.participant_email) FROM public_quiz_results pr JOIN quizzes q ON pr.quiz_id = q.id WHERE q.tenant_id = $2) as total_participants,
+          (SELECT COUNT(*) FROM public_quiz_results pr JOIN quizzes q ON pr.quiz_id = q.id WHERE q.tenant_id = $2) as total_responses,
+          (SELECT COUNT(*) FROM public_quiz_results pr JOIN quizzes q ON pr.quiz_id = q.id WHERE q.tenant_id = $2 AND pr.score >= (pr.total_points * 0.7)) as passed_responses,
+
+          (SELECT AVG(pr.score) FROM public_quiz_results pr JOIN quizzes q ON pr.quiz_id = q.id WHERE q.tenant_id = $2) as average_score,
+          (SELECT AVG(pr.total_points) FROM public_quiz_results pr JOIN quizzes q ON pr.quiz_id = q.id WHERE q.tenant_id = $2) as average_total_points,
+          (SELECT MAX(pr.score) FROM public_quiz_results pr JOIN quizzes q ON pr.quiz_id = q.id WHERE q.tenant_id = $2) as highest_score,
+
+          (SELECT COUNT(*) FROM public_quiz_results pr JOIN quizzes q ON pr.quiz_id = q.id WHERE q.tenant_id = $2 AND pr.completed_at >= NOW() - INTERVAL '7 days') as recent_responses,
+          (SELECT COUNT(*) FROM quizzes WHERE tenant_id = $2 AND created_at >= NOW() - INTERVAL '7 days') as recent_quizzes`,
         {
-          bind: [userId],
+          bind: [userId, tenantId],
           type: QueryTypes.SELECT,
         }
       );
@@ -51,19 +52,19 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       const recentActivity = parseInt(basicStats.recent_responses) || 0;
       const weeklyQuizGrowth = parseInt(basicStats.recent_quizzes) || 0;
 
-      // Category Statistics
+      // Category Statistics (tenant-scoped)
       const [categoryStats] = await sequelize.query(
-        `SELECT 
+        `SELECT
           category,
           COUNT(*) as quiz_count,
           AVG(pqr.score) as avg_score
          FROM quizzes q
          LEFT JOIN public_quiz_results pqr ON q.id = pqr.quiz_id
-         WHERE q.category IS NOT NULL
+         WHERE q.category IS NOT NULL AND q.tenant_id = $1
          GROUP BY category
          ORDER BY quiz_count DESC
          LIMIT 5`,
-        { type: QueryTypes.SELECT }
+        { bind: [tenantId], type: QueryTypes.SELECT }
       );
 
       stats = {
@@ -100,17 +101,18 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         topCategories: categoryStats,
       };
     } else {
-      // Student statistics
+      // Student statistics (tenant-scoped via joined quiz)
       const [studentStats]: any = await sequelize.query(
-        `SELECT 
+        `SELECT
           COUNT(DISTINCT qs.quiz_id) as total_quizzes,
           COUNT(DISTINCT sp.session_id) as total_sessions,
           AVG(sp.score) as average_score
          FROM session_participants sp
          LEFT JOIN quiz_sessions qs ON sp.session_id = qs.id
-         WHERE sp.user_id = $1`,
+         LEFT JOIN quizzes q ON qs.quiz_id = q.id
+         WHERE sp.user_id = $1 AND q.tenant_id = $2`,
         {
-          bind: [userId],
+          bind: [userId, tenantId],
           type: QueryTypes.SELECT,
         }
       );
@@ -134,50 +136,57 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       data: stats,
     });
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
+    logger.error('Error fetching dashboard stats', { error });
     res.status(500).json({ success: false, message: 'Failed to fetch dashboard stats' });
   }
 };
 
 export const getDashboardActivities = async (req: Request, res: Response) => {
   const userId = req.user?.id;
+  const tenantId = req.user?.tenant_id;
+
+  if (!userId || !tenantId) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
 
   try {
     const activities = await sequelize.query(
-      `(SELECT 
+      `(SELECT
           'quiz_created' as type,
           q.title as title,
           'Created a new quiz' as description,
           q.created_at as timestamp
         FROM quizzes q
-        WHERE q.creator_id = $1
+        WHERE q.creator_id = $1 AND q.tenant_id = $2
         ORDER BY q.created_at DESC
         LIMIT 5)
        UNION ALL
-       (SELECT 
+       (SELECT
           'session_hosted' as type,
           qs.name as title,
           'Hosted a quiz session' as description,
           qs.created_at as timestamp
         FROM quiz_sessions qs
-        WHERE qs.host_id = $1
+        JOIN quizzes q ON qs.quiz_id = q.id
+        WHERE qs.host_id = $1 AND q.tenant_id = $2
         ORDER BY qs.created_at DESC
         LIMIT 5)
        UNION ALL
-       (SELECT 
+       (SELECT
           'session_joined' as type,
           qs.name as title,
           'Joined a quiz session' as description,
           sp.joined_at as timestamp
         FROM session_participants sp
         JOIN quiz_sessions qs ON sp.session_id = qs.id
-        WHERE sp.user_id = $1
+        JOIN quizzes q ON qs.quiz_id = q.id
+        WHERE sp.user_id = $1 AND q.tenant_id = $2
         ORDER BY sp.joined_at DESC
         LIMIT 5)
        ORDER BY timestamp DESC
        LIMIT 10`,
       {
-        bind: [userId],
+        bind: [userId, tenantId],
         type: QueryTypes.SELECT,
       }
     );
@@ -193,7 +202,7 @@ export const getDashboardActivities = async (req: Request, res: Response) => {
       data: formattedActivities,
     });
   } catch (error) {
-    console.error('Error fetching dashboard activities:', error);
+    logger.error('Error fetching dashboard activities', { error });
     res.status(500).json({ success: false, message: 'Failed to fetch activities' });
   }
 };
@@ -201,59 +210,66 @@ export const getDashboardActivities = async (req: Request, res: Response) => {
 export const getUpcomingSessions = async (req: Request, res: Response) => {
   const userId = req.user?.id;
   const userRole = req.user?.role;
+  const tenantId = req.user?.tenant_id;
+
+  if (!userId || !tenantId) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
 
   try {
     let sessions;
 
-    if (userRole === 'teacher' || userRole === 'admin' || userRole === 'super_admin') {
-      // Get teacher's upcoming sessions
+    if (userRole === 'teacher' || userRole === 'admin' || userRole === 'super_admin' || userRole === 'instructor' || userRole === 'tenant_admin') {
+      // Get teacher's upcoming sessions (tenant-scoped)
       sessions = await sequelize.query(
-        `SELECT 
+        `SELECT
           qs.id,
           qs.name as title,
           q.title as quiz_title,
           qs.scheduled_for,
           (SELECT COUNT(*) FROM session_participants WHERE session_id = qs.id) as participants_count,
-          CASE 
+          CASE
             WHEN qs.status = 'in_progress' THEN 'in_progress'
             WHEN qs.scheduled_for <= NOW() + INTERVAL '15 minutes' THEN 'starting_soon'
             ELSE 'scheduled'
           END as status
          FROM quiz_sessions qs
          JOIN quizzes q ON qs.quiz_id = q.id
-         WHERE qs.host_id = $1 
+         WHERE qs.host_id = $1
+           AND q.tenant_id = $2
            AND qs.status IN ('scheduled', 'waiting', 'in_progress')
          ORDER BY qs.scheduled_for ASC
          LIMIT 5`,
         {
-          bind: [userId],
+          bind: [userId, tenantId],
           type: QueryTypes.SELECT,
         }
       );
     } else {
-      // Get sessions the student can join
+      // Get sessions the student can join (tenant-scoped)
       sessions = await sequelize.query(
-        `SELECT 
+        `SELECT
           qs.id,
           qs.name as title,
           q.title as quiz_title,
           qs.scheduled_for,
           (SELECT COUNT(*) FROM session_participants WHERE session_id = qs.id) as participants_count,
-          CASE 
+          CASE
             WHEN qs.status = 'in_progress' THEN 'in_progress'
             WHEN qs.scheduled_for <= NOW() + INTERVAL '15 minutes' THEN 'starting_soon'
             ELSE 'scheduled'
           END as status
          FROM quiz_sessions qs
          JOIN quizzes q ON qs.quiz_id = q.id
-         WHERE qs.status IN ('scheduled', 'waiting', 'in_progress')
+         WHERE q.tenant_id = $2
+           AND qs.status IN ('scheduled', 'waiting', 'in_progress')
            AND qs.id NOT IN (
              SELECT session_id FROM session_participants WHERE user_id = $1
            )
          ORDER BY qs.scheduled_for ASC
          LIMIT 5`,
         {
-          bind: [userId],
+          bind: [userId, tenantId],
           type: QueryTypes.SELECT,
         }
       );
@@ -274,13 +290,16 @@ export const getUpcomingSessions = async (req: Request, res: Response) => {
       data: formattedSessions,
     });
   } catch (error) {
-    console.error('Error fetching upcoming sessions:', error);
+    logger.error('Error fetching upcoming sessions', { error });
     res.status(500).json({ success: false, message: 'Failed to fetch upcoming sessions' });
   }
 };
 
 export const getDashboardNotifications = async (req: Request, res: Response) => {
   const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
 
   try {
     // Mock notifications for now (you can implement a real notification system later)
@@ -324,70 +343,79 @@ export const getDashboardNotifications = async (req: Request, res: Response) => 
       data: notifications,
     });
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    logger.error('Error fetching notifications', { error });
     res.status(500).json({ success: false, message: 'Failed to fetch notifications' });
   }
 };
 
 export const getDashboardPerformance = async (req: Request, res: Response) => {
   const userId = req.user?.id;
+  const tenantId = req.user?.tenant_id;
+
+  if (!userId || !tenantId) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
 
   try {
-    // Real performance data from database
-    
-    // Weekly activity data (last 7 days)
+    // Weekly activity data (last 7 days, tenant-scoped)
     const weeklyData = await sequelize.query(
-      `SELECT 
-        TO_CHAR(completed_at, 'Dy') as day,
-        DATE(completed_at) as date,
+      `SELECT
+        TO_CHAR(pr.completed_at, 'Dy') as day,
+        DATE(pr.completed_at) as date,
         COUNT(*) as responses,
-        COUNT(DISTINCT participant_email) as participants,
-        AVG(score) as avg_score
-       FROM public_quiz_results 
-       WHERE completed_at >= NOW() - INTERVAL '7 days'
-       GROUP BY DATE(completed_at), TO_CHAR(completed_at, 'Dy')
+        COUNT(DISTINCT pr.participant_email) as participants,
+        AVG(pr.score) as avg_score
+       FROM public_quiz_results pr
+       JOIN quizzes q ON pr.quiz_id = q.id
+       WHERE pr.completed_at >= NOW() - INTERVAL '7 days'
+         AND q.tenant_id = $1
+       GROUP BY DATE(pr.completed_at), TO_CHAR(pr.completed_at, 'Dy')
        ORDER BY date`,
-      { type: QueryTypes.SELECT }
+      { bind: [tenantId], type: QueryTypes.SELECT }
     );
 
-    // Quiz performance by category
+    // Quiz performance by category (tenant-scoped)
     const categoryPerformance = await sequelize.query(
-      `SELECT 
+      `SELECT
         COALESCE(q.category, 'Uncategorized') as category,
         COUNT(pqr.id) as total_attempts,
         AVG(pqr.score) as avg_score,
         COUNT(CASE WHEN pqr.score >= (pqr.total_points * 0.7) THEN 1 END) as passed
        FROM quizzes q
        LEFT JOIN public_quiz_results pqr ON q.id = pqr.quiz_id
-       WHERE pqr.id IS NOT NULL
+       WHERE pqr.id IS NOT NULL AND q.tenant_id = $1
        GROUP BY q.category
        ORDER BY total_attempts DESC
        LIMIT 5`,
-      { type: QueryTypes.SELECT }
+      { bind: [tenantId], type: QueryTypes.SELECT }
     );
 
-    // Overall completion statistics
+    // Overall completion statistics (tenant-scoped)
     const [completionStats]: any = await sequelize.query(
-      `SELECT 
-        COUNT(CASE WHEN score >= (total_points * 0.7) THEN 1 END) as passed,
-        COUNT(CASE WHEN score < (total_points * 0.7) THEN 1 END) as failed,
+      `SELECT
+        COUNT(CASE WHEN pr.score >= (pr.total_points * 0.7) THEN 1 END) as passed,
+        COUNT(CASE WHEN pr.score < (pr.total_points * 0.7) THEN 1 END) as failed,
         COUNT(*) as total
-       FROM public_quiz_results`,
-      { type: QueryTypes.SELECT }
+       FROM public_quiz_results pr
+       JOIN quizzes q ON pr.quiz_id = q.id
+       WHERE q.tenant_id = $1`,
+      { bind: [tenantId], type: QueryTypes.SELECT }
     );
 
-    // Monthly trends (last 6 months)
+    // Monthly trends (last 6 months, tenant-scoped)
     const monthlyTrends = await sequelize.query(
-      `SELECT 
-        TO_CHAR(completed_at, 'Mon YYYY') as month,
+      `SELECT
+        TO_CHAR(pr.completed_at, 'Mon YYYY') as month,
         COUNT(*) as total_responses,
-        COUNT(DISTINCT participant_email) as unique_participants,
-        AVG(score) as avg_score
-       FROM public_quiz_results 
-       WHERE completed_at >= NOW() - INTERVAL '6 months'
-       GROUP BY TO_CHAR(completed_at, 'Mon YYYY'), DATE_TRUNC('month', completed_at)
-       ORDER BY DATE_TRUNC('month', completed_at)`,
-      { type: QueryTypes.SELECT }
+        COUNT(DISTINCT pr.participant_email) as unique_participants,
+        AVG(pr.score) as avg_score
+       FROM public_quiz_results pr
+       JOIN quizzes q ON pr.quiz_id = q.id
+       WHERE pr.completed_at >= NOW() - INTERVAL '6 months'
+         AND q.tenant_id = $1
+       GROUP BY TO_CHAR(pr.completed_at, 'Mon YYYY'), DATE_TRUNC('month', pr.completed_at)
+       ORDER BY DATE_TRUNC('month', pr.completed_at)`,
+      { bind: [tenantId], type: QueryTypes.SELECT }
     );
 
     // Format data for charts - ensure arrays
@@ -444,7 +472,7 @@ export const getDashboardPerformance = async (req: Request, res: Response) => {
       data: performanceData,
     });
   } catch (error) {
-    console.error('Error fetching performance data:', error);
+    logger.error('Error fetching performance data', { error });
     res.status(500).json({ success: false, message: 'Failed to fetch performance data' });
   }
 };

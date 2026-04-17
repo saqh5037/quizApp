@@ -296,44 +296,51 @@ export const getUserStats = async (req: Request, res: Response) => {
 
 export const getUserActivity = async (req: Request, res: Response) => {
   const userId = req.user?.id;
+  const tenantId = req.user?.tenant_id;
+
+  if (!userId || !tenantId) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
 
   try {
-    // Get recent activities (you can customize this based on your activity tracking)
+    // Activities are user-owned AND tenant-scoped (defense in depth)
     const activities = await sequelize.query(
-      `(SELECT 
+      `(SELECT
           'quiz_created' as type,
           q.title as title,
           'Created a new quiz' as description,
           q.created_at as timestamp
         FROM quizzes q
-        WHERE q.creator_id = $1
+        WHERE q.creator_id = $1 AND q.tenant_id = $2
         ORDER BY q.created_at DESC
         LIMIT 3)
        UNION ALL
-       (SELECT 
+       (SELECT
           'session_hosted' as type,
           qs.name as title,
           'Hosted a quiz session' as description,
           qs.created_at as timestamp
         FROM quiz_sessions qs
-        WHERE qs.host_id = $1
+        JOIN quizzes q ON qs.quiz_id = q.id
+        WHERE qs.host_id = $1 AND q.tenant_id = $2
         ORDER BY qs.created_at DESC
         LIMIT 3)
        UNION ALL
-       (SELECT 
+       (SELECT
           'session_joined' as type,
           qs.name as title,
           'Joined a quiz session' as description,
           sp.joined_at as timestamp
         FROM session_participants sp
         JOIN quiz_sessions qs ON sp.session_id = qs.id
-        WHERE sp.user_id = $1
+        JOIN quizzes q ON qs.quiz_id = q.id
+        WHERE sp.user_id = $1 AND q.tenant_id = $2
         ORDER BY sp.joined_at DESC
         LIMIT 3)
        ORDER BY timestamp DESC
        LIMIT 10`,
       {
-        bind: [userId],
+        bind: [userId, tenantId],
         type: QueryTypes.SELECT,
       }
     );
@@ -384,25 +391,31 @@ export const updateUserPreferences = async (req: Request, res: Response) => {
 
 export const deleteUserAccount = async (req: Request, res: Response) => {
   const userId = req.user?.id;
+  const tenantId = req.user?.tenant_id;
+
+  if (!userId || !tenantId) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
 
   try {
-    // Start transaction
     await sequelize.transaction(async (t) => {
-      // Delete user's quiz sessions
+      // Delete user's quiz sessions (scoped to their tenant)
       await sequelize.query(
-        `DELETE FROM quiz_sessions WHERE host_id = $1`,
+        `DELETE FROM quiz_sessions
+         WHERE host_id = $1
+           AND quiz_id IN (SELECT id FROM quizzes WHERE tenant_id = $2)`,
         {
-          bind: [userId],
+          bind: [userId, tenantId],
           type: QueryTypes.DELETE,
           transaction: t,
         }
       );
 
-      // Delete user's quizzes
+      // Delete user's quizzes (tenant-scoped)
       await sequelize.query(
-        `DELETE FROM quizzes WHERE creator_id = $1`,
+        `DELETE FROM quizzes WHERE creator_id = $1 AND tenant_id = $2`,
         {
-          bind: [userId],
+          bind: [userId, tenantId],
           type: QueryTypes.DELETE,
           transaction: t,
         }

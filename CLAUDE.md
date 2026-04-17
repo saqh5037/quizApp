@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Status
+- Estado: PAUSADO
+- Última actividad: 2026-01-22
+- Branch activo: main
+- En producción: NO
+
+## Contexto para retomar
+**Última sesión:** 2026-01-22
+**Qué hice:** Pendiente de documentar
+**Qué falta:** Pendiente de definir en próxima sesión
+**Bloqueadores:** Ninguno
+
 ## Project Overview
 
 AristoTest is a multi-tenant interactive learning and assessment platform built with TypeScript, React, Node.js, and PostgreSQL. It features real-time quiz sessions using Socket.io, AI-powered content generation with Google Gemini, video streaming with MinIO, interactive video layers with auto-evaluation, PDF manual processing, and comprehensive educational resource management including study guides and flash cards.

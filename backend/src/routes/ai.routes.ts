@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { 
+import {
   startChatSession,
   sendChatMessage,
   getChatHistory,
@@ -10,15 +10,27 @@ import {
   exportQuiz,
   importQuizToEvaluations
 } from '../controllers/ai-gemini.controller';
-import { 
+import {
   importAIQuizToEvaluations,
-  createQuizFromManual 
+  createQuizFromManual
 } from '../controllers/ai-quiz-import.controller';
-import { auth } from '../middleware/auth.middleware';
+import {
+  generateFromText,
+  generateFromManual,
+  getGenerated as getGeneratedV2,
+} from '../controllers/ai-quiz.controller';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
-// Chat routes (temporary no auth for testing)
+// ---- Fase 5: tenant-isolated, persisted AI quiz generation ----------------
+// These endpoints require auth and persist results to ai_generated_quizzes.
+router.post('/generate-quiz-from-text', authenticate, generateFromText);
+router.post('/generate-quiz-from-manual', authenticate, generateFromManual);
+router.get('/generated-quiz/:id', authenticate, getGeneratedV2);
+
+// ---- Legacy AI endpoints (kept for backwards compatibility) ---------------
+// Chat routes
 router.post('/manuals/:manualId/chat/start', startChatSession);
 router.post('/manuals/:manualId/chat/:sessionId/message', sendChatMessage);
 router.get('/manuals/:manualId/chat/:sessionId/history', getChatHistory);

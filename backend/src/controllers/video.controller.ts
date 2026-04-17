@@ -771,14 +771,25 @@ export class VideoController {
         return res.status(400).json({ message: 'Student information required' });
       }
 
+      // Validate the video exists and is publicly available before accepting
+      // anonymous completion data. Closes a leak where any numeric id would
+      // happily insert a row in public_video_completions.
+      const video = await Video.findOne({
+        where: { id, isPublic: true, status: 'ready' },
+      });
+      if (!video) {
+        return res.status(404).json({ message: 'Video not found or not public' });
+      }
+
       const info = JSON.parse(studentInfo);
       const ipAddress = req.ip || req.connection.remoteAddress;
       const userAgent = req.get('user-agent');
-      
-      // Store in database
+
       const { sequelize } = require('../config/database');
+      // tenant_id included via the JOIN check above; raw SQL retained because
+      // public_video_completions is a tracking-only table without a model.
       await sequelize.query(
-        `INSERT INTO public_video_completions 
+        `INSERT INTO public_video_completions
         (video_id, student_name, student_email, student_phone, completed, completed_at, ip_address, user_agent, created_at)
         VALUES (:videoId, :name, :email, :phone, true, NOW(), :ip, :agent, NOW())`,
         {
@@ -792,13 +803,7 @@ export class VideoController {
           }
         }
       );
-      
-      console.log('Video completion tracked:', {
-        videoId: id,
-        student: info,
-        completedAt: new Date()
-      });
-      
+
       res.json({ success: true, message: 'Completion tracked' });
     } catch (error) {
       next(error);
@@ -810,19 +815,30 @@ export class VideoController {
     try {
       const { id } = req.params;
       const { studentInfo, results, completedAt } = req.body;
-      
+
+      if (!studentInfo || !studentInfo.name) {
+        return res.status(400).json({ message: 'Student information required' });
+      }
+
+      // Validate the video is public before accepting anonymous results
+      const video = await Video.findOne({
+        where: { id, isPublic: true, status: 'ready' },
+      });
+      if (!video) {
+        return res.status(404).json({ message: 'Video not found or not public' });
+      }
+
       const ipAddress = req.ip || req.connection.remoteAddress;
       const userAgent = req.get('user-agent');
-      
-      // Store in database
+
       const { sequelize } = require('../config/database');
       const [result] = await sequelize.query(
-        `INSERT INTO public_interactive_video_results 
-        (video_id, student_name, student_email, student_phone, score, total_questions, 
-         correct_answers, passed, passing_score, answers, completed_at, ip_address, 
+        `INSERT INTO public_interactive_video_results
+        (video_id, student_name, student_email, student_phone, score, total_questions,
+         correct_answers, passed, passing_score, answers, completed_at, ip_address,
          user_agent, created_at, updated_at)
-        VALUES (:videoId, :name, :email, :phone, :score, :totalQuestions, 
-                :correctAnswers, :passed, :passingScore, :answers, :completedAt, 
+        VALUES (:videoId, :name, :email, :phone, :score, :totalQuestions,
+                :correctAnswers, :passed, :passingScore, :answers, :completedAt,
                 :ip, :agent, NOW(), NOW())
         RETURNING id`,
         {
@@ -843,16 +859,9 @@ export class VideoController {
           }
         }
       );
-      
-      console.log('Interactive video results saved:', {
-        videoId: id,
-        student: studentInfo,
-        results,
-        resultId: result[0].id
-      });
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         message: 'Results saved successfully',
         resultId: result[0].id
       });
