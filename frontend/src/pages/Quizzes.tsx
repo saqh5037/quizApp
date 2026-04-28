@@ -85,7 +85,7 @@ export default function Quizzes() {
           category: quiz.category || 'General',
           difficulty: quiz.difficulty || 'medium',
           questionsCount: quiz.totalQuestions || quiz.question_count || 0, // Usar totalQuestions del API
-          timeLimit: (quiz.estimatedTimeMinutes || quiz.time_limit || quiz.timeLimit || 10) * 60, // Convertir minutos a segundos, usar 10 min por defecto si es null
+          timeLimit: (quiz.timeLimitMinutes || quiz.estimatedTimeMinutes || quiz.time_limit || quiz.timeLimit || 10) * 60, // Convertir minutos a segundos, fallback 10 si nada configurado
           isPublic: quiz.isPublic !== undefined ? quiz.isPublic : quiz.is_public,
           createdAt: quiz.createdAt || quiz.created_at,
           lastUsed: quiz.lastUsed || quiz.last_used,
