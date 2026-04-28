@@ -611,19 +611,18 @@ export default function ResultDetail() {
               </div>
             </div>
 
-            {/* dt dynamtek logo — top-left area, after triangle */}
+            {/* Dynamtek logo — top-left area, after triangle */}
             <div style={{
               position: 'absolute',
-              top: '40px',
+              top: '36px',
               left: '180px',
               zIndex: 10
             }}>
-              <span style={{ fontSize: '13px', fontFamily: 'Arial, sans-serif', color: '#1a365d', fontWeight: 'bold', letterSpacing: '1px' }}>
-                dt
-              </span>
-              <span style={{ fontSize: '13px', fontFamily: 'Arial, sans-serif', color: '#555', fontWeight: 'normal', letterSpacing: '2px', marginLeft: '4px' }}>
-                dynamtek
-              </span>
+              <img
+                src="/images/logo-dynamtek.png"
+                alt="Dynamtek"
+                style={{ height: '28px', width: 'auto', display: 'block' }}
+              />
             </div>
 
             {/* Main content area */}
