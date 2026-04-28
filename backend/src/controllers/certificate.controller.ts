@@ -13,7 +13,10 @@ import {
 import { getTenantContext } from '@middleware/tenant.middleware';
 import { sequelize } from '@config/database';
 import { Op } from 'sequelize';
-// import PDFDocument from 'pdfkit';  // Commented out for now, will implement later
+import {
+  generateCertificatePDF as renderCertificatePDF,
+  CertificateData,
+} from '../services/certificate-generator.service';
 import fs from 'fs';
 import path from 'path';
 
@@ -383,101 +386,46 @@ export class CertificateController {
         });
       }
 
-      // Create PDF - Temporarily return JSON until pdfkit is properly configured
-      return res.json({
-        success: true,
-        data: {
-          certificate,
-          message: 'PDF generation will be implemented soon'
-        }
-      });
-      
-      /* const doc = new PDFDocument({
-        size: 'A4',
-        layout: 'landscape',
-        margin: 50
-      });
+      const certAny = certificate as any;
+      const userObj = certAny.user || {};
+      const traineeName =
+        certAny.metadata?.traineeName ||
+        userObj.fullName ||
+        [userObj.firstName, userObj.lastName].filter(Boolean).join(' ') ||
+        userObj.email ||
+        'Participante';
 
-      // Set response headers
+      const trainingTitle =
+        certAny.metadata?.trainingTitle ||
+        certAny.name ||
+        'Entrenamiento';
+
+      const data: CertificateData = {
+        traineeName,
+        trainingTitle,
+        issuedDate: certAny.issued_date ? new Date(certAny.issued_date) : new Date(),
+        verificationCode: certAny.verification_code,
+        primarySignatory: certAny.metadata?.primarySignatory || {
+          name: 'QSP. Merced de la Graziña',
+          role: 'Gerente de Operaciones',
+          signatureFile: 'firma-samuel.png',
+        },
+        secondarySignatory: certAny.metadata?.secondarySignatory || {
+          name: 'Ing. Carlos Ángel Rendón',
+          role: 'Capacitador',
+        },
+        logoFile: certAny.metadata?.logoFile || 'logo-labsis.png',
+      };
+
+      const pdfBuffer = await renderCertificatePDF(data);
+
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename=certificate-${certificate.verification_code}.pdf`);
-
-      // Pipe to response
-      doc.pipe(res);
-
-      // Get branding
-      const branding = certificate.tenant.branding as any;
-      const primaryColor = branding.primaryColor || '#0066CC';
-
-      // Add border
-      doc.rect(30, 30, doc.page.width - 60, doc.page.height - 60)
-         .lineWidth(2)
-         .stroke(primaryColor);
-
-      // Add inner border
-      doc.rect(40, 40, doc.page.width - 80, doc.page.height - 80)
-         .lineWidth(1)
-         .stroke(primaryColor);
-
-      // Title
-      doc.fontSize(36)
-         .fillColor(primaryColor)
-         .text('CERTIFICATE', 0, 100, { align: 'center' });
-
-      doc.fontSize(24)
-         .fillColor('#333333')
-         .text('OF ' + certificate.certificate_type.toUpperCase(), 0, 150, { align: 'center' });
-
-      // Recipient name
-      doc.fontSize(16)
-         .fillColor('#666666')
-         .text('This is to certify that', 0, 220, { align: 'center' });
-
-      doc.fontSize(28)
-         .fillColor('#000000')
-         .text(certificate.user.fullName || `${certificate.user.firstName} ${certificate.user.lastName}`, 0, 250, { align: 'center' });
-
-      // Certificate name
-      doc.fontSize(16)
-         .fillColor('#666666')
-         .text('has successfully completed', 0, 300, { align: 'center' });
-
-      doc.fontSize(20)
-         .fillColor(primaryColor)
-         .text(certificate.name, 0, 330, { align: 'center' });
-
-      // Date
-      doc.fontSize(14)
-         .fillColor('#666666')
-         .text(`Issued on ${new Date(certificate.issued_date).toLocaleDateString('en-US', {
-           year: 'numeric',
-           month: 'long',
-           day: 'numeric'
-         })}`, 0, 380, { align: 'center' });
-
-      // Organization
-      doc.fontSize(18)
-         .fillColor('#000000')
-         .text(certificate.tenant.name, 0, 420, { align: 'center' });
-
-      // Verification code
-      doc.fontSize(10)
-         .fillColor('#999999')
-         .text(`Verification Code: ${certificate.verification_code}`, 0, 480, { align: 'center' });
-
-      doc.fontSize(10)
-         .text(`Verify at: ${process.env.FRONTEND_URL || 'http://localhost:5173'}/certificates/verify`, 0, 495, { align: 'center' });
-
-      // Metadata (if quiz certificate with score)
-      const metadata = certificate.metadata as any;
-      if (certificate.certificate_type === 'quiz' && metadata.score) {
-        doc.fontSize(12)
-           .fillColor('#666666')
-           .text(`Score: ${metadata.score}%`, 0, 520, { align: 'center' });
-      }
-
-      // Finalize PDF
-      doc.end(); */
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=certificate-${certAny.verification_code}.pdf`
+      );
+      res.setHeader('Content-Length', pdfBuffer.length);
+      return res.send(pdfBuffer);
 
     } catch (error) {
       console.error('Error generating certificate PDF:', error);

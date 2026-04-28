@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, ArrowLeft, Save, X, Eye, EyeOff } from 'lucide-react';
 import api from '../../services/api';
+import { useAuthStore } from '../../stores/authStore';
 
 interface UserFormData {
   email: string;
@@ -24,6 +25,7 @@ interface Tenant {
 
 const CreateUser: React.FC = () => {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -117,14 +119,43 @@ const CreateUser: React.FC = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const roleOptions = [
-    { value: 'super_admin', label: 'Super Administrador', description: 'Acceso completo al sistema' },
-    { value: 'tenant_admin', label: 'Administrador de Tenant', description: 'Administra su organización' },
-    { value: 'admin', label: 'Administrador', description: 'Administra contenido y usuarios' },
-    { value: 'instructor', label: 'Instructor', description: 'Crea y gestiona contenido educativo' },
-    { value: 'teacher', label: 'Profesor', description: 'Crea quizzes y sesiones' },
-    { value: 'student', label: 'Estudiante', description: 'Participa en quizzes y sesiones' }
+  const ALL_ROLE_OPTIONS = [
+    {
+      value: 'super_admin',
+      label: 'Super Administrador',
+      description: 'Acceso total al sistema. Puede ver y gestionar todos los tenants, crear otros super-admins, e impersonar usuarios. Reservar para personal técnico.',
+    },
+    {
+      value: 'tenant_admin',
+      label: 'Administrador de Tenant',
+      description: 'Administra completamente una organización: crea usuarios, quizzes, certificados y configura el branding. NO puede ver otros tenants.',
+    },
+    {
+      value: 'admin',
+      label: 'Administrador',
+      description: 'Gestiona usuarios, contenido y reportes dentro del tenant. Mismos permisos prácticos que tenant_admin para operación diaria.',
+    },
+    {
+      value: 'instructor',
+      label: 'Instructor',
+      description: 'Crea y publica quizzes, manuales y videos interactivos. Hostea sesiones en vivo y revisa resultados de sus alumnos.',
+    },
+    {
+      value: 'teacher',
+      label: 'Profesor',
+      description: 'Crea quizzes y sesiones. Variante de instructor — usar instructor por defecto para nuevos usuarios.',
+    },
+    {
+      value: 'student',
+      label: 'Estudiante',
+      description: 'Participa en quizzes y sesiones, ve sus resultados y certificados. NO puede crear contenido ni administrar usuarios.',
+    },
   ];
+
+  // Solo super_admins pueden crear otros super_admins
+  const roleOptions = currentUser?.role === 'super_admin'
+    ? ALL_ROLE_OPTIONS
+    : ALL_ROLE_OPTIONS.filter(r => r.value !== 'super_admin');
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 lg:p-8">
