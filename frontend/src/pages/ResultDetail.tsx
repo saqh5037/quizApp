@@ -7,6 +7,7 @@ import {
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import toast from 'react-hot-toast';
+import { QRCodeSVG } from 'qrcode.react';
 import { useAuthStore } from '../stores/authStore';
 import { buildApiUrl } from '../config/api.config';
 
@@ -821,32 +822,41 @@ export default function ResultDetail() {
               </div>
             </div>
 
-            {/* QR placeholder — bottom-left inside border */}
+            {/* QR — verification link to public result page */}
             <div style={{
               position: 'absolute',
               bottom: '40px',
               left: '52px',
-              zIndex: 10
+              zIndex: 10,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
             }}>
               <div style={{
-                width: '56px',
-                height: '56px',
-                border: '2px solid #1a365d',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#f8f8f8'
+                padding: '5px',
+                backgroundColor: '#ffffff',
+                border: '1px solid #c9a84c',
+                lineHeight: 0
               }}>
-                {/* Fake QR pattern */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', padding: '4px', width: '100%', height: '100%' }}>
-                  {[1,1,1,1,1, 1,0,0,0,1, 1,0,1,0,1, 1,0,0,0,1, 1,1,1,1,1].map((cell, i) => (
-                    <div key={i} style={{ backgroundColor: cell ? '#1a365d' : '#ffffff', borderRadius: '1px' }} />
-                  ))}
-                </div>
+                <QRCodeSVG
+                  value={`${window.location.origin}/public-results/${resultType || 'quiz'}/${result.id}`}
+                  size={64}
+                  level="M"
+                  bgColor="#ffffff"
+                  fgColor="#0d1f3d"
+                  includeMargin={false}
+                />
               </div>
-              <div style={{ fontSize: '7px', fontFamily: 'Arial, sans-serif', color: '#999', textAlign: 'center', marginTop: '2px', letterSpacing: '0.5px' }}>
-                #{result.id}
+              <div style={{
+                fontSize: '8px',
+                fontFamily: '"Cormorant Garamond", Georgia, serif',
+                fontStyle: 'italic',
+                color: '#7a7a7a',
+                textAlign: 'center',
+                marginTop: '4px',
+                letterSpacing: '1px'
+              }}>
+                Verificar · #{result.id}
               </div>
             </div>
 
