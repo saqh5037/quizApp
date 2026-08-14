@@ -143,6 +143,7 @@ export const getQuizzes = async (req: Request, res: Response) => {
         category: q.category,
         coverImageUrl: q.cover_image_url,
         difficulty: q.difficulty,
+        timeLimitMinutes: q.time_limit_minutes,
         estimatedTimeMinutes: q.estimated_time_minutes,
         passPercentage: q.pass_percentage,
         isPublic: q.is_public,

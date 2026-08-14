@@ -222,6 +222,7 @@ export const listQuizzesForUser = async (
       q.category,
       q.cover_image_url,
       q.difficulty,
+      q.time_limit_minutes,
       q.estimated_time_minutes,
       q.pass_percentage,
       q.is_public,
@@ -310,6 +311,9 @@ export const listQuizzesForUser = async (
       category: 'AI Generated',
       cover_image_url: null,
       difficulty: q.difficulty || 'medium',
+      // AI-generated quizzes have no configured time limit; the client falls
+      // back to estimated_time_minutes when this is null (see A9 fix).
+      time_limit_minutes: null,
       estimated_time_minutes: 10,
       pass_percentage: 70,
       is_public: true,

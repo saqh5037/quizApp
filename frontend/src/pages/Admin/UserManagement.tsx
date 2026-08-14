@@ -77,8 +77,34 @@ const INITIAL_CREATE_FORM: CreateUserForm = {
   send_welcome_email: false,
 };
 
+const ALL_ROLE_OPTIONS = [
+  {
+    value: 'super_admin',
+    label: 'Super Admin',
+    description: 'Acceso total al sistema. Puede gestionar todos los tenants e impersonar usuarios. Solo personal técnico.',
+  },
+  {
+    value: 'tenant_admin',
+    label: 'Admin Tenant',
+    description: 'Administra completamente la organización: usuarios, quizzes, certificados, branding. No ve otros tenants.',
+  },
+  {
+    value: 'instructor',
+    label: 'Instructor',
+    description: 'Crea y publica quizzes, manuales y videos. Hostea sesiones en vivo y revisa resultados.',
+  },
+  {
+    value: 'student',
+    label: 'Estudiante',
+    description: 'Participa en quizzes y ve sus resultados/certificados. No crea contenido ni administra.',
+  },
+];
+
 const UserManagement: React.FC = () => {
   const { user: currentUser } = useAuthStore();
+  const roleOptions = currentUser?.role === 'super_admin'
+    ? ALL_ROLE_OPTIONS
+    : ALL_ROLE_OPTIONS.filter(r => r.value !== 'super_admin');
   const [users, setUsers] = useState<User[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -296,11 +322,15 @@ const UserManagement: React.FC = () => {
               onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
-              <option value="student">Estudiante</option>
-              <option value="instructor">Instructor</option>
-              <option value="tenant_admin">Admin Tenant</option>
-              <option value="super_admin">Super Admin</option>
+              {roleOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {roleOptions.find(r => r.value === createForm.role)?.description}
+            </p>
           </div>
 
           {currentUser?.role === 'super_admin' && (
