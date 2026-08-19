@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Download, Award, Clock, Calendar, CheckCircle, 
-  XCircle, Target, TrendingUp, FileText, Share2 
+import {
+  ArrowLeft, Download, Award, Calendar, CheckCircle,
+  XCircle, Target, FileText
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
-import { useAuthStore } from '../stores/authStore';
 import { buildApiUrl } from '../config/api.config';
 
 interface ResultDetail {
@@ -55,7 +54,6 @@ interface Question {
 export default function ResultDetail() {
   const { id, resultType } = useParams();
   const navigate = useNavigate();
-  const { accessToken } = useAuthStore();
   const certificateRef = useRef<HTMLDivElement>(null);
   
   const [loading, setLoading] = useState(true);
@@ -122,6 +120,18 @@ export default function ResultDetail() {
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
+    });
+  };
+
+  // Certificate date: "15 de noviembre de 2023" (registration date of the evaluation)
+  const formatCertDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '—';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString('es-MX', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
     });
   };
 
@@ -207,6 +217,10 @@ export default function ResultDetail() {
     ? result.passed
     : parseFloat(result.score.toString()) >= (result.pass_percentage || 70);
   const scorePercentage = parseFloat(result.score.toString());
+
+  // Certificate: participant name exactly as registered at quiz start; shrink long names
+  const certName = result.participant_name || result.student_name || 'Participante';
+  const certNameFontSize = certName.length > 26 ? 40 : certName.length > 18 ? 52 : 64;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -486,374 +500,273 @@ export default function ResultDetail() {
             style={{
               width: '1050px',
               height: '750px',
-              backgroundColor: '#ffffff',
+              backgroundColor: '#f0eee7',
               position: 'relative',
-              fontFamily: 'Georgia, serif',
+              fontFamily: '"Cormorant Garamond", Georgia, serif',
               overflow: 'hidden',
               margin: '0 auto'
             }}
           >
 
-            {/* Top-left navy triangle accent */}
-            <div style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: 0,
-              height: 0,
-              borderStyle: 'solid',
-              borderWidth: '220px 220px 0 0',
-              borderColor: '#1a365d transparent transparent transparent'
-            }} />
+            {/* Left black ornament: angular panel + gold rosette medal */}
+            <svg viewBox="0 0 430 750" width="430" height="750" style={{ position: 'absolute', top: 0, left: 0, display: 'block' }}>
+              <defs>
+                <radialGradient id="medalGrad" cx="42%" cy="36%" r="65%">
+                  <stop offset="0%" stopColor="#f3dc9a" />
+                  <stop offset="45%" stopColor="#d9b45e" />
+                  <stop offset="80%" stopColor="#b18a38" />
+                  <stop offset="100%" stopColor="#8f6e2a" />
+                </radialGradient>
+                <radialGradient id="medalCore" cx="45%" cy="38%" r="70%">
+                  <stop offset="0%" stopColor="#e8c977" />
+                  <stop offset="60%" stopColor="#c69d47" />
+                  <stop offset="100%" stopColor="#9a7830" />
+                </radialGradient>
+              </defs>
+              {/* top-left square tab */}
+              <rect x="22" y="22" width="74" height="74" fill="#111111" />
+              {/* far-left thin strip */}
+              <rect x="22" y="120" width="32" height="536" fill="#111111" />
+              {/* bottom foot */}
+              <rect x="22" y="656" width="210" height="44" fill="#111111" />
+              {/* main wedge */}
+              <polygon points="120,22 436,22 436,128 268,378 312,470 240,688 120,620" fill="#111111" />
+              {/* medal ribbons (behind medal) */}
+              <polygon points="244,246 264,258 226,352 222,324 200,334" fill="#b8923f" />
+              <polygon points="280,246 260,258 298,352 302,324 324,334" fill="#99762f" />
+              {/* scalloped rosette edge */}
+              {Array.from({ length: 20 }).map((_, i) => {
+                const a = (i * 2 * Math.PI) / 20;
+                return (
+                  <circle
+                    key={i}
+                    cx={262 + Math.cos(a) * 62}
+                    cy={205 + Math.sin(a) * 62}
+                    r="10"
+                    fill="url(#medalGrad)"
+                  />
+                );
+              })}
+              {/* medal body */}
+              <circle cx="262" cy="205" r="64" fill="url(#medalGrad)" />
+              <circle cx="262" cy="205" r="50" fill="url(#medalCore)" stroke="#8f6e2a" strokeWidth="1" />
+              <circle cx="262" cy="205" r="44" fill="none" stroke="#f3dc9a" strokeWidth="1.2" opacity="0.8" />
+              <circle cx="262" cy="205" r="34" fill="url(#medalGrad)" stroke="#8f6e2a" strokeWidth="0.8" />
+            </svg>
 
-            {/* Top-left secondary triangle (lighter) */}
-            <div style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: 0,
-              height: 0,
-              borderStyle: 'solid',
-              borderWidth: '170px 170px 0 0',
-              borderColor: '#2a4a7f transparent transparent transparent'
-            }} />
+            {/* Main content column (right of the black wedge) */}
+            <div style={{ position: 'absolute', top: 0, left: '450px', width: '550px', height: '750px' }}>
 
-            {/* Bottom-right navy triangle accent */}
-            <div style={{
-              position: 'absolute',
-              bottom: 0,
-              right: 0,
-              width: 0,
-              height: 0,
-              borderStyle: 'solid',
-              borderWidth: '0 0 220px 220px',
-              borderColor: 'transparent transparent #1a365d transparent'
-            }} />
-
-            {/* Bottom-right secondary triangle (lighter) */}
-            <div style={{
-              position: 'absolute',
-              bottom: 0,
-              right: 0,
-              width: 0,
-              height: 0,
-              borderStyle: 'solid',
-              borderWidth: '0 0 170px 170px',
-              borderColor: 'transparent transparent #2a4a7f transparent'
-            }} />
-
-            {/* Thin gold border frame inside */}
-            <div style={{
-              position: 'absolute',
-              top: '24px',
-              left: '24px',
-              right: '24px',
-              bottom: '24px',
-              border: '2px solid #c9a84c',
-              pointerEvents: 'none'
-            }} />
-
-            {/* Gold seal — top-right corner (refined: laurel + monogram) */}
-            <div style={{
-              position: 'absolute',
-              top: '40px',
-              right: '60px',
-              width: '110px',
-              height: '110px',
-              zIndex: 10
-            }}>
-              <svg viewBox="0 0 110 110" width="110" height="110" style={{ display: 'block' }}>
-                <defs>
-                  <radialGradient id="sealGrad" cx="50%" cy="40%" r="60%">
-                    <stop offset="0%" stopColor="#e8c66f" />
-                    <stop offset="55%" stopColor="#c9a84c" />
-                    <stop offset="100%" stopColor="#9c7e2f" />
-                  </radialGradient>
-                </defs>
-                {/* Outer rays */}
-                {Array.from({ length: 24 }).map((_, i) => {
-                  const a = (i * Math.PI) / 12;
-                  const x1 = 55 + Math.cos(a) * 47;
-                  const y1 = 55 + Math.sin(a) * 47;
-                  const x2 = 55 + Math.cos(a) * 53;
-                  const y2 = 55 + Math.sin(a) * 53;
-                  return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#c9a84c" strokeWidth="1.4" />;
-                })}
-                {/* Outer ring */}
-                <circle cx="55" cy="55" r="46" fill="url(#sealGrad)" stroke="#9c7e2f" strokeWidth="1.5" />
-                {/* Inner medallion */}
-                <circle cx="55" cy="55" r="36" fill="#0d1f3d" stroke="#c9a84c" strokeWidth="1.2" />
-                {/* Hairline ring */}
-                <circle cx="55" cy="55" r="32" fill="none" stroke="#c9a84c" strokeWidth="0.5" opacity="0.6" />
-                {/* Laurel branches */}
-                <path d="M 30 60 Q 28 50 32 42 M 32 42 Q 36 38 40 38 M 28 50 Q 24 48 22 44 M 32 56 Q 28 56 26 52" stroke="#c9a84c" strokeWidth="1" fill="none" opacity="0.85" />
-                <path d="M 80 60 Q 82 50 78 42 M 78 42 Q 74 38 70 38 M 82 50 Q 86 48 88 44 M 78 56 Q 82 56 84 52" stroke="#c9a84c" strokeWidth="1" fill="none" opacity="0.85" />
-                {/* Center text: monogram */}
-                <text x="55" y="49" textAnchor="middle" fontFamily="Georgia, serif" fontSize="11" fontWeight="700" fill="#c9a84c" letterSpacing="2">
-                  {passed ? 'APRO' : 'PART'}
-                </text>
-                <text x="55" y="63" textAnchor="middle" fontFamily="Georgia, serif" fontSize="14" fontWeight="700" fill="#e8c66f">
-                  ★
-                </text>
-                <text x="55" y="76" textAnchor="middle" fontFamily="Georgia, serif" fontSize="9" fontWeight="700" fill="#c9a84c" letterSpacing="1.5">
-                  {new Date(result.completed_at).getFullYear()}
-                </text>
-              </svg>
-              {/* Ribbon tabs below seal */}
+              {/* Title */}
               <div style={{
                 position: 'absolute',
-                bottom: '-14px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                display: 'flex',
-                gap: '5px'
+                top: '88px',
+                left: 0,
+                width: '100%',
+                textAlign: 'center',
+                fontFamily: '"Cinzel", "Cormorant Garamond", Georgia, serif',
+                fontWeight: 700,
+                fontSize: '58px',
+                color: '#1b1b1b',
+                letterSpacing: '6px',
+                lineHeight: 1
               }}>
-                <div style={{ width: '13px', height: '22px', backgroundColor: '#c9a84c', clipPath: 'polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%)' }} />
-                <div style={{ width: '13px', height: '22px', backgroundColor: '#1a365d', clipPath: 'polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%)' }} />
+                CERTIFICADO
               </div>
-            </div>
-
-            {/* Dynamtek logo — top-left area, after triangle */}
-            <div style={{
-              position: 'absolute',
-              top: '36px',
-              left: '188px',
-              zIndex: 10
-            }}>
-              <img
-                src="/images/logo-dynamtek.png"
-                alt="Dynamtek"
-                style={{
-                  height: '38px',
-                  width: 'auto',
-                  display: 'block',
-                  imageRendering: '-webkit-optimize-contrast',
-                }}
-              />
-            </div>
-
-            {/* Main content area */}
-            <div style={{
-              position: 'absolute',
-              top: '60px',
-              left: '60px',
-              right: '60px',
-              bottom: '60px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center'
-            }}>
-
-              {/* Certificate title */}
-              <div style={{ marginBottom: '6px' }}>
-                <div style={{
-                  fontSize: '12px',
-                  fontFamily: '"Cormorant Garamond", Georgia, serif',
-                  fontWeight: 600,
-                  color: '#8a7a4a',
-                  letterSpacing: '8px',
-                  textTransform: 'uppercase',
-                  marginBottom: '6px'
-                }}>
-                  Certificado de
-                </div>
-                <div style={{
-                  fontSize: '52px',
-                  fontFamily: '"Cormorant Garamond", "Playfair Display", Georgia, serif',
-                  fontWeight: 700,
-                  color: '#0d1f3d',
-                  letterSpacing: '10px',
-                  textTransform: 'uppercase',
-                  lineHeight: 1
-                }}>
-                  {passed ? 'Aprobación' : 'Participación'}
-                </div>
-              </div>
-
-              {/* Gold divider line */}
               <div style={{
-                width: '200px',
+                position: 'absolute',
+                top: '152px',
+                left: 0,
+                width: '100%',
+                textAlign: 'center',
+                fontFamily: '"Cinzel", "Cormorant Garamond", Georgia, serif',
+                fontWeight: 600,
+                fontSize: '27px',
+                color: '#1b1b1b',
+                letterSpacing: '7px',
+                lineHeight: 1
+              }}>
+                DE RECONOCIMIENTO
+              </div>
+
+              {/* OTORGADO A */}
+              <div style={{
+                position: 'absolute',
+                top: '222px',
+                left: 0,
+                width: '100%',
+                textAlign: 'center',
+                fontFamily: '"Cinzel", "Cormorant Garamond", Georgia, serif',
+                fontWeight: 500,
+                fontSize: '15px',
+                color: '#2b2b2b',
+                letterSpacing: '6px'
+              }}>
+                OTORGADO A
+              </div>
+
+              {/* Participant name — script, exactly as registered in the quiz */}
+              <div style={{
+                position: 'absolute',
+                top: '248px',
+                left: 0,
+                width: '100%',
+                height: '104px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: '"Great Vibes", "Cormorant Garamond", cursive',
+                fontSize: `${certNameFontSize}px`,
+                color: '#161616',
+                lineHeight: 1.15,
+                whiteSpace: 'nowrap'
+              }}>
+                {certName}
+              </div>
+
+              {/* Gold rule under name */}
+              <div style={{
+                position: 'absolute',
+                top: '352px',
+                left: '15px',
+                width: '520px',
                 height: '2px',
-                backgroundColor: '#c9a84c',
-                margin: '12px auto'
+                backgroundColor: '#c9a250'
               }} />
 
-              {/* "Se certifica que" */}
+              {/* Body text (fixed wording requested by the client) */}
               <div style={{
-                fontSize: '12px',
+                position: 'absolute',
+                top: '378px',
+                left: 0,
+                width: '535px',
+                textAlign: 'right',
                 fontFamily: '"Cormorant Garamond", Georgia, serif',
                 fontWeight: 600,
-                color: '#8a7a4a',
-                letterSpacing: '6px',
-                textTransform: 'uppercase',
-                marginBottom: '12px',
-                marginTop: '4px'
+                fontSize: '17.5px',
+                color: '#2f2f2f',
+                letterSpacing: '1.6px',
+                lineHeight: 1.6
               }}>
-                Se certifica que
+                Por haber recibido el entrenamiento completo en el<br />
+                manejo de la Herramienta Toma Turnos vinculada al<br />
+                Sistema Informático de Laboratorios LABSIS®
               </div>
 
-              {/* Participant name — script, prominent */}
+              {/* Date — registration date of the evaluation in AristoTest */}
               <div style={{
-                fontSize: '46px',
-                fontFamily: '"Great Vibes", "Allura", "Cormorant Garamond", Georgia, serif',
-                fontStyle: 'italic',
-                fontWeight: 500,
-                color: '#0d1f3d',
-                marginBottom: '10px',
-                lineHeight: 1.1,
-                maxWidth: '720px',
-                wordBreak: 'break-word'
-              }}>
-                {result.participant_name || result.student_name}
-              </div>
-
-              {/* Gold line under name */}
-              <div style={{
-                width: '420px',
-                height: '1px',
-                background: 'linear-gradient(to right, transparent 0%, #c9a84c 20%, #c9a84c 80%, transparent 100%)',
-                margin: '0 auto 18px auto'
-              }} />
-
-              {/* Body text */}
-              <div style={{
-                fontSize: '13.5px',
-                fontFamily: '"Cormorant Garamond", Georgia, serif',
-                color: '#5a5a5a',
-                marginBottom: '6px',
-                letterSpacing: '1px',
-                fontStyle: 'italic'
-              }}>
-                {passed
-                  ? 'ha aprobado satisfactoriamente la evaluación'
-                  : 'ha completado satisfactoriamente la evaluación'}
-              </div>
-
-              {/* Quiz title */}
-              <div style={{
-                fontSize: '20px',
+                position: 'absolute',
+                top: '492px',
+                left: 0,
+                width: '535px',
+                textAlign: 'right',
                 fontFamily: '"Cormorant Garamond", Georgia, serif',
                 fontWeight: 700,
-                color: '#0d1f3d',
-                marginBottom: '14px',
-                maxWidth: '680px',
-                lineHeight: 1.3,
-                letterSpacing: '0.5px'
+                fontSize: '19px',
+                color: '#b9924a',
+                letterSpacing: '1.5px'
               }}>
-                «{result.content_title}»
-              </div>
-
-              {/* Score badge — refined: thin gold border, navy text on cream bg */}
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '14px',
-                backgroundColor: '#fbf6e8',
-                color: '#0d1f3d',
-                padding: '7px 28px',
-                borderRadius: '24px',
-                border: '1px solid #c9a84c',
-                fontSize: '13px',
-                fontFamily: '"Cormorant Garamond", Georgia, serif',
-                fontWeight: 700,
-                letterSpacing: '2px',
-                textTransform: 'uppercase',
-                marginBottom: '14px'
-              }}>
-                <span style={{ fontSize: '16px' }}>{scorePercentage.toFixed(1)}%</span>
-                <span style={{ color: '#c9a84c' }}>•</span>
-                <span style={{ fontSize: '11px', color: '#5a5a5a', letterSpacing: '1.5px' }}>
-                  {result.correct_answers}/{result.total_questions} respuestas correctas
-                </span>
-              </div>
-
-              {/* Date */}
-              <div style={{
-                fontSize: '11px',
-                fontFamily: '"Cormorant Garamond", Georgia, serif',
-                fontStyle: 'italic',
-                color: '#9a9a9a',
-                letterSpacing: '2px',
-                marginBottom: '22px'
-              }}>
-                {formatDate(result.completed_at)}
+                {formatCertDate(result.completed_at)}
               </div>
 
               {/* Signatures row */}
               <div style={{
+                position: 'absolute',
+                top: '566px',
+                left: 0,
+                width: '100%',
                 display: 'flex',
                 justifyContent: 'center',
-                gap: '90px',
-                width: '100%',
-                maxWidth: '680px',
-                marginTop: '4px'
+                alignItems: 'flex-start',
+                gap: '36px'
               }}>
-                {/* Primary signatory — Merced de la Graziña, with embedded signature */}
-                <div style={{ textAlign: 'center', minWidth: '210px', position: 'relative' }}>
-                  <div style={{ height: '46px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', marginBottom: '2px' }}>
+                {/* Primary signatory — Merced, with embedded signature */}
+                <div style={{ textAlign: 'center', width: '200px', position: 'relative' }}>
+                  <div style={{ height: '48px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', marginBottom: '2px' }}>
                     <img
                       src="/images/firma-merced.png"
                       alt=""
                       aria-hidden="true"
-                      style={{ height: '46px', width: 'auto', objectFit: 'contain', filter: 'contrast(1.05)' }}
+                      style={{ height: '48px', width: 'auto', objectFit: 'contain', filter: 'contrast(1.05)' }}
                     />
                   </div>
-                  <div style={{ width: '100%', height: '1px', backgroundColor: '#0d1f3d', marginBottom: '6px' }} />
-                  <div style={{ fontSize: '12px', fontFamily: 'Georgia, serif', fontWeight: 600, color: '#0d1f3d', letterSpacing: '0.3px' }}>
-                    QSP. Merced de la Graziña
+                  <div style={{ width: '100%', height: '1.5px', backgroundColor: '#c9a250', marginBottom: '7px' }} />
+                  <div style={{ fontFamily: '"Cinzel", "Cormorant Garamond", Georgia, serif', fontWeight: 600, fontSize: '13.5px', color: '#1b1b1b', letterSpacing: '1.5px', whiteSpace: 'nowrap' }}>
+                    QBP. MERCED DE LA GRAZZIA
                   </div>
-                  <div style={{ fontSize: '9.5px', fontFamily: 'Arial, sans-serif', color: '#7a7a7a', letterSpacing: '1.2px', textTransform: 'uppercase', marginTop: '2px' }}>
+                  <div style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontWeight: 500, fontSize: '13px', color: '#3d3d3d', letterSpacing: '1px', marginTop: '3px' }}>
                     Gerente de Operaciones
                   </div>
                 </div>
-                {/* Secondary signatory — Carlos Ángel Rendón, name + role only (no signature) */}
-                <div style={{ textAlign: 'center', minWidth: '210px' }}>
-                  <div style={{ height: '46px' }} />
-                  <div style={{ width: '100%', height: '1px', backgroundColor: '#0d1f3d', marginBottom: '6px' }} />
-                  <div style={{ fontSize: '12px', fontFamily: 'Georgia, serif', fontWeight: 600, color: '#0d1f3d', letterSpacing: '0.3px' }}>
-                    Ing. Carlos Ángel Rendón
+
+                {/* Gold laurel wreath emblem */}
+                <svg viewBox="0 0 90 90" width="72" height="72" style={{ display: 'block', marginTop: '16px' }}>
+                  <circle cx="45" cy="47" r="15" fill="none" stroke="#c9a250" strokeWidth="1.3" />
+                  {Array.from({ length: 9 }).map((_, i) => {
+                    const deg = -55 + (i * 290) / 8;
+                    const rad = (deg * Math.PI) / 180;
+                    const cx = 45 + Math.cos(rad) * 27;
+                    const cy = 47 + Math.sin(rad) * 27;
+                    return [-30, 30].map((tilt) => (
+                      <ellipse
+                        key={`${i}-${tilt}`}
+                        cx={cx}
+                        cy={cy}
+                        rx="8"
+                        ry="2.3"
+                        fill="#c9a250"
+                        transform={`rotate(${deg + 90 + tilt} ${cx} ${cy})`}
+                      />
+                    ));
+                  })}
+                </svg>
+
+                {/* Secondary signatory — trainer, name + role only */}
+                <div style={{ textAlign: 'center', width: '200px' }}>
+                  <div style={{ height: '48px' }} />
+                  <div style={{ width: '100%', height: '1.5px', backgroundColor: '#c9a250', marginBottom: '7px' }} />
+                  <div style={{ fontFamily: '"Cinzel", "Cormorant Garamond", Georgia, serif', fontWeight: 600, fontSize: '13.5px', color: '#1b1b1b', letterSpacing: '1.5px', whiteSpace: 'nowrap' }}>
+                    ING. CARLOS ANGEL RENDÓN
                   </div>
-                  <div style={{ fontSize: '9.5px', fontFamily: 'Arial, sans-serif', color: '#7a7a7a', letterSpacing: '1.2px', textTransform: 'uppercase', marginTop: '2px' }}>
+                  <div style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontWeight: 500, fontSize: '13px', color: '#3d3d3d', letterSpacing: '1px', marginTop: '3px' }}>
                     Capacitador
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* QR — verification link to public result page */}
+            {/* QR — verification link to public result page (bottom-right, discreet) */}
             <div style={{
               position: 'absolute',
-              bottom: '40px',
-              left: '52px',
+              bottom: '18px',
+              right: '22px',
               zIndex: 10,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center'
             }}>
               <div style={{
-                padding: '5px',
+                padding: '4px',
                 backgroundColor: '#ffffff',
-                border: '1px solid #c9a84c',
+                border: '1px solid #c9a250',
                 lineHeight: 0
               }}>
                 <QRCodeSVG
                   value={`${window.location.origin}/public-results/${resultType || 'quiz'}/${result.id}`}
-                  size={64}
+                  size={46}
                   level="M"
                   bgColor="#ffffff"
-                  fgColor="#0d1f3d"
+                  fgColor="#161616"
                   includeMargin={false}
                 />
               </div>
               <div style={{
-                fontSize: '8px',
+                fontSize: '8.5px',
                 fontFamily: '"Cormorant Garamond", Georgia, serif',
                 fontStyle: 'italic',
-                color: '#7a7a7a',
+                color: '#6f6f6f',
                 textAlign: 'center',
-                marginTop: '4px',
+                marginTop: '3px',
                 letterSpacing: '1px'
               }}>
                 Verificar · #{result.id}
