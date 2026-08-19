@@ -51,6 +51,11 @@ interface Question {
   points: number;
 }
 
+// Lowercase particles for Spanish/Portuguese name title-casing
+const NAME_PARTICLES = new Set([
+  'de', 'del', 'la', 'las', 'los', 'y', 'e', 'da', 'do', 'dos', 'van', 'von', 'mac', 'mc', 'di'
+]);
+
 export default function ResultDetail() {
   const { id, resultType } = useParams();
   const navigate = useNavigate();
@@ -60,6 +65,8 @@ export default function ResultDetail() {
   const [result, setResult] = useState<ResultDetail | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [showCertificate, setShowCertificate] = useState(false);
+  const [certNameFontSize, setCertNameFontSize] = useState(64);
+  const [certNameWrap, setCertNameWrap] = useState(false);
 
   useEffect(() => {
     fetchResultDetail();
@@ -135,6 +142,21 @@ export default function ResultDetail() {
     });
   };
 
+  // Script fonts are unreadable in ALL CAPS, so the certificate shows the
+  // registered name in title case (Spanish particles stay lowercase).
+  const toDisplayName = (raw: string) => {
+    const cleaned = raw.trim().replace(/\s+/g, ' ');
+    if (!cleaned) return cleaned;
+    return cleaned
+      .split(' ')
+      .map((word, i) => {
+        const lower = word.toLocaleLowerCase('es-MX');
+        if (i > 0 && NAME_PARTICLES.has(lower)) return lower;
+        return lower.charAt(0).toLocaleUpperCase('es-MX') + lower.slice(1);
+      })
+      .join(' ');
+  };
+
   const generatePDF = async () => {
     if (!result) {
       toast.error('No hay datos de resultado para generar el certificado');
@@ -143,9 +165,37 @@ export default function ResultDetail() {
 
     try {
       console.log('Generating PDF for result:', result.participant_name || result.student_name);
+      // Fit the script name to the 520px column by measured width — a
+      // character-count rule breaks with wide (all-caps) registered names
+      const displayName = toDisplayName(
+        result.participant_name || result.student_name || 'Participante'
+      );
+      try {
+        await document.fonts.load('64px "Great Vibes"');
+      } catch {
+        // measure with the fallback font if the webfont is unavailable
+      }
+      const measureCtx = document.createElement('canvas').getContext('2d');
+      let fittedSize = 64;
+      if (measureCtx) {
+        measureCtx.font = '64px "Great Vibes", cursive';
+        const nameWidth = measureCtx.measureText(displayName).width;
+        if (nameWidth > 520) fittedSize = Math.floor((64 * 520) / nameWidth);
+      }
+      setCertNameWrap(fittedSize < 26);
+      setCertNameFontSize(fittedSize < 26 ? 30 : fittedSize);
+
       setShowCertificate(true);
-      
-      // Wait for the certificate to render
+
+      // Wait for webfonts and render before capturing
+      try {
+        await Promise.race([
+          document.fonts.ready,
+          new Promise(resolve => setTimeout(resolve, 3000))
+        ]);
+      } catch {
+        // capture with whatever fonts are loaded
+      }
       await new Promise(resolve => setTimeout(resolve, 500));
       
       if (!certificateRef.current) {
@@ -218,9 +268,8 @@ export default function ResultDetail() {
     : parseFloat(result.score.toString()) >= (result.pass_percentage || 70);
   const scorePercentage = parseFloat(result.score.toString());
 
-  // Certificate: participant name exactly as registered at quiz start; shrink long names
-  const certName = result.participant_name || result.student_name || 'Participante';
-  const certNameFontSize = certName.length > 26 ? 40 : certName.length > 18 ? 52 : 64;
+  // Certificate: registered participant name, normalized for the script font
+  const certName = toDisplayName(result.participant_name || result.student_name || 'Participante');
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -615,11 +664,12 @@ export default function ResultDetail() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                textAlign: 'center',
                 fontFamily: '"Great Vibes", "Cormorant Garamond", cursive',
                 fontSize: `${certNameFontSize}px`,
                 color: '#161616',
-                lineHeight: 1.15,
-                whiteSpace: 'nowrap'
+                lineHeight: certNameWrap ? 1.05 : 1.15,
+                whiteSpace: certNameWrap ? 'normal' : 'nowrap'
               }}>
                 {certName}
               </div>
@@ -682,12 +732,12 @@ export default function ResultDetail() {
               }}>
                 {/* Primary signatory — Merced, with embedded signature */}
                 <div style={{ textAlign: 'center', width: '200px', position: 'relative' }}>
-                  <div style={{ height: '48px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', marginBottom: '2px' }}>
+                  <div style={{ height: '56px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', marginBottom: '-6px' }}>
                     <img
                       src="/images/firma-merced.png"
                       alt=""
                       aria-hidden="true"
-                      style={{ height: '48px', width: 'auto', objectFit: 'contain', filter: 'contrast(1.05)' }}
+                      style={{ height: '60px', width: 'auto', objectFit: 'contain' }}
                     />
                   </div>
                   <div style={{ width: '100%', height: '1.5px', backgroundColor: '#c9a250', marginBottom: '7px' }} />
@@ -723,7 +773,7 @@ export default function ResultDetail() {
 
                 {/* Secondary signatory — trainer, name + role only */}
                 <div style={{ textAlign: 'center', width: '200px' }}>
-                  <div style={{ height: '48px' }} />
+                  <div style={{ height: '50px' }} />
                   <div style={{ width: '100%', height: '1.5px', backgroundColor: '#c9a250', marginBottom: '7px' }} />
                   <div style={{ fontFamily: '"Cinzel", "Cormorant Garamond", Georgia, serif', fontWeight: 600, fontSize: '13.5px', color: '#1b1b1b', letterSpacing: '1.5px', whiteSpace: 'nowrap' }}>
                     ING. CARLOS ANGEL RENDÓN
