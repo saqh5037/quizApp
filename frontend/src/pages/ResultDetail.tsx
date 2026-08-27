@@ -771,9 +771,16 @@ export default function ResultDetail() {
                   })}
                 </svg>
 
-                {/* Secondary signatory — trainer, name + role only */}
-                <div style={{ textAlign: 'center', width: '200px' }}>
-                  <div style={{ height: '50px' }} />
+                {/* Secondary signatory — trainer, with embedded signature */}
+                <div style={{ textAlign: 'center', width: '200px', position: 'relative' }}>
+                  <div style={{ height: '56px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', marginBottom: '-6px' }}>
+                    <img
+                      src="/images/firma-carlos.png"
+                      alt=""
+                      aria-hidden="true"
+                      style={{ height: '60px', width: 'auto', objectFit: 'contain' }}
+                    />
+                  </div>
                   <div style={{ width: '100%', height: '1.5px', backgroundColor: '#c9a250', marginBottom: '7px' }} />
                   <div style={{ fontFamily: '"Cinzel", "Cormorant Garamond", Georgia, serif', fontWeight: 600, fontSize: '13.5px', color: '#1b1b1b', letterSpacing: '1.5px', whiteSpace: 'nowrap' }}>
                     ING. CARLOS ANGEL RENDÓN
