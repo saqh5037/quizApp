@@ -1,50 +1,24 @@
 import { Router } from 'express';
-import { simpleAuth } from '../middleware/auth.simple.middleware';
+import { authenticate, optionalAuth } from '../middleware/auth.middleware';
 import * as sessionController from '../controllers/session.controller';
-import * as resultsController from '../controllers/results.controller';
 
 const router = Router();
 
-// Get all sessions (with pagination and filters)
-router.get('/', simpleAuth, sessionController.getAllSessions);
+// Authenticated endpoints (host / admin operations)
+router.get('/', authenticate, sessionController.getAllSessions);
+router.get('/active', authenticate, sessionController.getActiveSessions);
+router.get('/my', authenticate, sessionController.getMySessions);
+router.post('/', authenticate, sessionController.createSession);
+router.post('/:id/join', authenticate, sessionController.joinSession);
+router.put('/:id/status', authenticate, sessionController.updateSessionStatus);
 
-// Get active sessions
-router.get('/active', simpleAuth, sessionController.getActiveSessions);
-
-// Get user's hosted sessions
-router.get('/my', simpleAuth, sessionController.getMySessions);
-
-// Create a new session
-router.post('/', simpleAuth, sessionController.createSession);
-
-// Create a public session (no auth required)
+// Public participant endpoints (anonymous players). optionalAuth lets hosts
+// that do pass a token get tenant-scoped lookup while still allowing anonymous
+// players joining by session code.
 router.post('/public', sessionController.createPublicSession);
-
-// Get session by ID or code
-router.get('/:id', sessionController.getSession);
-
-// Join session
-router.post('/:id/join', simpleAuth, sessionController.joinSession);
-
-// Update session status (start, next question, end)
-router.put('/:id/status', simpleAuth, sessionController.updateSessionStatus);
-
-// Get current question for session
-router.get('/:id/current-question', sessionController.getCurrentQuestion);
-
-// Submit answer
-router.post('/answer', sessionController.submitAnswer);
-
-// Get session results
-// router.get('/:id/results', simpleAuth, resultsController.getSessionResults);
-
-// Export results as PDF
-// router.get('/:id/export/pdf', simpleAuth, resultsController.exportSessionResultsPDF);
-
-// Export results as Excel
-// router.get('/:id/export/excel', simpleAuth, resultsController.exportSessionResultsExcel);
-
-// Email results to participants
-// router.post('/:id/email-results', simpleAuth, resultsController.emailSessionResults);
+router.get('/:id', optionalAuth, sessionController.getSession);
+router.get('/:id/current-question', optionalAuth, sessionController.getCurrentQuestion);
+router.get('/:id/results', optionalAuth, sessionController.getSessionResults);
+router.post('/answer', optionalAuth, sessionController.submitAnswer);
 
 export default router;

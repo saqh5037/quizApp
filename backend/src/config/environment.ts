@@ -1,11 +1,14 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-const envFile = process.env.NODE_ENV === 'production' 
-  ? '.env.production' 
-  : '.env.development';
-
-dotenv.config({ path: path.resolve(process.cwd(), envFile) });
+// In test mode we rely on env vars injected by jest.setup.ts and never touch
+// any .env file — keeps unit tests deterministic.
+if (process.env.NODE_ENV !== 'test') {
+  const envFile = process.env.NODE_ENV === 'production'
+    ? '.env.production'
+    : '.env.development';
+  dotenv.config({ path: path.resolve(process.cwd(), envFile) });
+}
 
 interface Environment {
   NODE_ENV: string;
@@ -78,12 +81,30 @@ const requiredEnvVars = [
   'DB_PASSWORD',
   'JWT_SECRET',
   'JWT_REFRESH_SECRET',
+  'SESSION_SECRET',
+  'MINIO_ACCESS_KEY',
+  'MINIO_SECRET_KEY',
 ];
 
 // Validate required environment variables
 requiredEnvVars.forEach((varName) => {
   if (!process.env[varName]) {
     throw new Error(`Missing required environment variable: ${varName}`);
+  }
+});
+
+// Warn (not throw) on secrets with weak/obvious values
+const weakSecretPatterns = [
+  /^default-?/i,
+  /^change-?this/i,
+  /^your-/i,
+  /secret-key$/i,
+];
+['JWT_SECRET', 'JWT_REFRESH_SECRET', 'SESSION_SECRET'].forEach((key) => {
+  const value = process.env[key] || '';
+  if (weakSecretPatterns.some((re) => re.test(value)) || value.length < 32) {
+    // eslint-disable-next-line no-console
+    console.warn(`[security] ${key} looks weak or short. Use a random 32+ char secret in production.`);
   }
 });
 
@@ -141,7 +162,7 @@ export const env: Environment = {
   LOG_DIR: process.env.LOG_DIR || './logs',
   
   // Session
-  SESSION_SECRET: process.env.SESSION_SECRET || 'default-session-secret',
+  SESSION_SECRET: process.env.SESSION_SECRET!,
   SESSION_MAX_AGE: parseInt(process.env.SESSION_MAX_AGE || '86400000', 10),
   
   // API

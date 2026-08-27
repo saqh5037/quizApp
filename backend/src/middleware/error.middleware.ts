@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../utils/errorHandler';
 import logger from '../utils/logger';
 import { env, isProduction } from '../config/environment';
+import { reportError } from '../utils/gcpLogging';
 
 export const errorHandler = (
   err: Error | AppError,
@@ -20,6 +21,22 @@ export const errorHandler = (
     ip: req.ip,
     user: req.user?.id,
   });
+
+  // Forward to Google Cloud Error Reporting if configured. Wrapped so a
+  // broken reporter can never mask the original error from the client.
+  try {
+    reportError(err, {
+      user: req.user?.id ? String(req.user.id) : undefined,
+      httpRequest: {
+        method: req.method,
+        url: req.url,
+        userAgent: req.get('user-agent'),
+        remoteIp: req.ip,
+      },
+    });
+  } catch {
+    // intentionally swallowed
+  }
 
   // Default error values
   let statusCode = 500;

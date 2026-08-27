@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { Tenant } from '@models/index';
-import jwt from 'jsonwebtoken';
+import logger from '../utils/logger';
 
 // Extend Request type to include tenant information
 declare global {
@@ -19,65 +19,50 @@ declare global {
  */
 export const tenantMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Extract user from JWT token (should already be done by auth middleware)
     const user = (req as any).user;
-    
-    console.log('TenantMiddleware - User from token:', user);
-    
+
     if (!user || !user.tenant_id) {
-      // For public endpoints, we might not have a tenant
+      // Public endpoints are allowed through without a tenant
       if (req.path.startsWith('/public') || req.path.startsWith('/auth')) {
         return next();
       }
-      
-      console.log('TenantMiddleware - No tenant_id found. User:', user);
-      
-      return res.status(403).json({ 
+
+      return res.status(403).json({
         error: 'Tenant not identified',
-        message: 'User must belong to a tenant to access this resource'
+        message: 'User must belong to a tenant to access this resource',
       });
     }
-    
-    // Attach tenant_id to request
+
     req.tenantId = user.tenant_id;
     req.userRole = user.role;
-    
-    // Load tenant details (optional, for branding/settings)
+
     try {
       const tenant = await Tenant.findByPk(user.tenant_id);
-      console.log('TenantMiddleware - Looking for tenant ID:', user.tenant_id);
-      console.log('TenantMiddleware - Tenant found:', tenant ? 'Yes' : 'No');
-      
-      // Use .get() to access Sequelize model properties properly
       const isActive = tenant ? tenant.get('is_active') : false;
-      console.log('TenantMiddleware - Tenant is_active (using .get()):', isActive);
-      console.log('TenantMiddleware - Tenant data:', tenant?.toJSON ? tenant.toJSON() : tenant);
-      
+
       if (!tenant || !isActive) {
-        return res.status(403).json({ 
+        return res.status(403).json({
           error: 'Tenant inactive',
-          message: 'Your organization account is not active'
+          message: 'Your organization account is not active',
         });
       }
       req.tenant = tenant;
     } catch (error) {
-      console.error('Error loading tenant:', error);
+      logger.error('Error loading tenant', { error, tenantId: user.tenant_id });
     }
-    
-    // Set tenant context for Sequelize hooks
-    // This will be used by models to auto-filter queries
+
     if (req.app && req.app.locals) {
       req.app.locals.currentTenantId = user.tenant_id;
       req.app.locals.currentUserId = user.id;
       req.app.locals.currentUserRole = user.role;
     }
-    
+
     next();
   } catch (error) {
-    console.error('Tenant middleware error:', error);
-    res.status(500).json({ 
+    logger.error('Tenant middleware error', { error });
+    res.status(500).json({
       error: 'Tenant isolation failed',
-      message: 'Failed to establish tenant context'
+      message: 'Failed to establish tenant context',
     });
   }
 };
@@ -88,34 +73,29 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
 export const superAdminOnly = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = (req as any).user;
-    
+
     if (!user || user.role !== 'super_admin') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Forbidden',
-        message: 'This action requires super admin privileges'
+        message: 'This action requires super admin privileges',
       });
     }
-    
-    // Verify tenant is internal (Dynamtek)
+
     const tenant = await Tenant.findByPk(user.tenant_id);
-    console.log('SuperAdminOnly - User tenant_id:', user.tenant_id);
-    console.log('SuperAdminOnly - Tenant found:', tenant ? 'Yes' : 'No');
-    console.log('SuperAdminOnly - Tenant type:', tenant ? tenant.get('type') : 'N/A');
-    console.log('SuperAdminOnly - Tenant data:', tenant ? tenant.toJSON() : 'N/A');
-    
+
     if (!tenant || tenant.get('type') !== 'internal') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Forbidden',
-        message: 'This action is restricted to internal users'
+        message: 'This action is restricted to internal users',
       });
     }
-    
+
     next();
   } catch (error) {
-    console.error('Super admin check error:', error);
-    res.status(500).json({ 
+    logger.error('Super admin check error', { error });
+    res.status(500).json({
       error: 'Authorization failed',
-      message: 'Failed to verify super admin privileges'
+      message: 'Failed to verify super admin privileges',
     });
   }
 };
@@ -127,20 +107,20 @@ export const tenantAdminOnly = async (req: Request, res: Response, next: NextFun
   try {
     const user = (req as any).user;
     const allowedRoles = ['super_admin', 'tenant_admin', 'admin'];
-    
+
     if (!user || !allowedRoles.includes(user.role)) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Forbidden',
-        message: 'This action requires admin privileges'
+        message: 'This action requires admin privileges',
       });
     }
-    
+
     next();
   } catch (error) {
-    console.error('Tenant admin check error:', error);
-    res.status(500).json({ 
+    logger.error('Tenant admin check error', { error });
+    res.status(500).json({
       error: 'Authorization failed',
-      message: 'Failed to verify admin privileges'
+      message: 'Failed to verify admin privileges',
     });
   }
 };
@@ -152,25 +132,20 @@ export const instructorOnly = async (req: Request, res: Response, next: NextFunc
   try {
     const user = (req as any).user;
     const allowedRoles = ['super_admin', 'tenant_admin', 'admin', 'instructor', 'teacher'];
-    
-    console.log('InstructorOnly - User:', user);
-    console.log('InstructorOnly - User role:', user?.role);
-    console.log('InstructorOnly - Allowed roles:', allowedRoles);
-    console.log('InstructorOnly - Role included?:', user?.role ? allowedRoles.includes(user.role) : false);
-    
+
     if (!user || !allowedRoles.includes(user.role)) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Forbidden',
-        message: 'This action requires instructor privileges'
+        message: 'This action requires instructor privileges',
       });
     }
-    
+
     next();
   } catch (error) {
-    console.error('Instructor check error:', error);
-    res.status(500).json({ 
+    logger.error('Instructor check error', { error });
+    res.status(500).json({
       error: 'Authorization failed',
-      message: 'Failed to verify instructor privileges'
+      message: 'Failed to verify instructor privileges',
     });
   }
 };
@@ -182,43 +157,39 @@ export const instructorOnly = async (req: Request, res: Response, next: NextFunc
 export const crossTenantAccess = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = (req as any).user;
-    
-    // Only super admins can perform cross-tenant operations
+
     if (!user || user.role !== 'super_admin') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Forbidden',
-        message: 'Cross-tenant operations require super admin privileges'
+        message: 'Cross-tenant operations require super admin privileges',
       });
     }
-    
-    // Check if a specific tenant is requested
+
     const requestedTenantId = req.body.tenant_id || req.query.tenant_id || req.params.tenant_id;
-    
+
     if (requestedTenantId) {
-      // Verify the tenant exists and is active
       const tenant = await Tenant.findByPk(requestedTenantId);
-      if (!tenant || !tenant.is_active) {
-        return res.status(404).json({ 
+      if (!tenant || !tenant.get('is_active')) {
+        return res.status(404).json({
           error: 'Tenant not found',
-          message: 'The specified tenant does not exist or is inactive'
+          message: 'The specified tenant does not exist or is inactive',
         });
       }
-      
-      // Override the tenant context
+
       req.tenantId = parseInt(requestedTenantId);
       req.tenant = tenant;
-      
+
       if (req.app && req.app.locals) {
         req.app.locals.currentTenantId = parseInt(requestedTenantId);
       }
     }
-    
+
     next();
   } catch (error) {
-    console.error('Cross-tenant access error:', error);
-    res.status(500).json({ 
+    logger.error('Cross-tenant access error', { error });
+    res.status(500).json({
       error: 'Authorization failed',
-      message: 'Failed to establish cross-tenant context'
+      message: 'Failed to establish cross-tenant context',
     });
   }
 };
@@ -234,7 +205,7 @@ export const getTenantContext = (req: Request): {
   return {
     tenantId: req.tenantId || req.app?.locals?.currentTenantId,
     userId: (req as any).user?.id || req.app?.locals?.currentUserId,
-    userRole: req.userRole || req.app?.locals?.currentUserRole
+    userRole: req.userRole || req.app?.locals?.currentUserRole,
   };
 };
 
@@ -247,49 +218,46 @@ export const validateTenantOwnership = (modelName: string) => {
     try {
       const { tenantId } = getTenantContext(req);
       const resourceId = req.params.id;
-      
+
       if (!tenantId || !resourceId) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Invalid request',
-          message: 'Missing required parameters'
+          message: 'Missing required parameters',
         });
       }
-      
-      // Dynamically get the model
+
       const models = require('@models/index');
       const Model = models[modelName];
-      
+
       if (!Model) {
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: 'Configuration error',
-          message: 'Invalid model specified'
+          message: 'Invalid model specified',
         });
       }
-      
-      // Check if the resource belongs to the current tenant
+
       const resource = await Model.findOne({
         where: {
           id: resourceId,
-          tenant_id: tenantId
-        }
+          tenant_id: tenantId,
+        },
       });
-      
+
       if (!resource) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           error: 'Resource not found',
-          message: 'The requested resource does not exist or you do not have access to it'
+          message: 'The requested resource does not exist or you do not have access to it',
         });
       }
-      
-      // Attach the resource to the request for use in the controller
+
       (req as any).resource = resource;
-      
+
       next();
     } catch (error) {
-      console.error('Tenant ownership validation error:', error);
-      res.status(500).json({ 
+      logger.error('Tenant ownership validation error', { error });
+      res.status(500).json({
         error: 'Validation failed',
-        message: 'Failed to validate resource ownership'
+        message: 'Failed to validate resource ownership',
       });
     }
   };

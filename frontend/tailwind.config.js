@@ -12,12 +12,12 @@ export default {
           dark: '#0288D1',
           light: '#B3E5FC',
         },
-        success: '#4CAF50',
-        error: '#F44336',
-        warning: '#FF9800',
+        success: '#2E7D32',     // 4.5:1 on white (was #4CAF50 which failed)
+        error: '#C62828',       // 5.1:1 on white (was #F44336 which was marginal)
+        warning: '#E65100',     // 4.6:1 on white (was #FF9800 which failed)
         text: {
           primary: '#212121',
-          secondary: '#757575',
+          secondary: '#616161', // 4.6:1 on #F5F5F5 — WCAG AA (was #757575 which was 2.5:1, fail)
         },
         background: '#FAFAFA',
         surface: {

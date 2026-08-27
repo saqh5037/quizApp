@@ -6,9 +6,15 @@ import { QueryTypes } from 'sequelize';
 export const getPublicQuizResults = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
+    const tenantId = req.user?.tenant_id;
+    const role = req.user?.role;
+    if (!userId || !tenantId) {
+      return res.status(403).json({ success: false, error: 'Missing auth context' });
+    }
     const { quizId, videoId, type, startDate, endDate, limit = 50, offset = 0 } = req.query;
 
-    // Combined query for both quiz and video results
+    // Combined query for both quiz and video results. Always filters by tenant_id;
+    // non-super-admin users are additionally restricted to their own content.
     let query = `
       WITH combined_results AS (
         -- Quiz Results
@@ -36,10 +42,11 @@ export const getPublicQuizResults = async (req: Request, res: Response) => {
           q.pass_percentage as passing_score
         FROM public_quiz_results pr
         INNER JOIN quizzes q ON pr.quiz_id = q.id
-        WHERE q.creator_id = :userId
-        
+        WHERE q.tenant_id = :tenantId
+          AND (q.creator_id = :userId OR :role = 'super_admin')
+
         UNION ALL
-        
+
         -- Interactive Video Results
         SELECT
           'video' as result_type,
@@ -65,13 +72,14 @@ export const getPublicQuizResults = async (req: Request, res: Response) => {
           pvr.passing_score
         FROM public_interactive_video_results pvr
         INNER JOIN videos v ON pvr.video_id = v.id
-        WHERE v.creator_id = :userId
+        WHERE v.tenant_id = :tenantId
+          AND (v.creator_id = :userId OR :role = 'super_admin')
       )
       SELECT * FROM combined_results
       WHERE 1=1
     `;
 
-    const replacements: any = { userId };
+    const replacements: any = { userId, tenantId, role: role || '' };
 
     // Filter by type (quiz or video)
     if (type === 'quiz') {
@@ -109,19 +117,21 @@ export const getPublicQuizResults = async (req: Request, res: Response) => {
       type: QueryTypes.SELECT
     });
 
-    // Get total count
+    // Get total count (tenant-scoped)
     let countQuery = `
-      SELECT 
+      SELECT
         (SELECT COUNT(*) FROM public_quiz_results pr
          INNER JOIN quizzes q ON pr.quiz_id = q.id
-         WHERE q.creator_id = :userId) +
+         WHERE q.tenant_id = :tenantId
+           AND (q.creator_id = :userId OR :role = 'super_admin')) +
         (SELECT COUNT(*) FROM public_interactive_video_results pvr
          INNER JOIN videos v ON pvr.video_id = v.id
-         WHERE v.creator_id = :userId) as total
+         WHERE v.tenant_id = :tenantId
+           AND (v.creator_id = :userId OR :role = 'super_admin')) as total
     `;
 
     const [{ total }] = await sequelize.query(countQuery, {
-      replacements: { userId },
+      replacements: { userId, tenantId, role: role || '' },
       type: QueryTypes.SELECT
     }) as any;
 
@@ -150,13 +160,21 @@ export const getPublicQuizResultsByQuizId = async (req: Request, res: Response) 
   try {
     const { quizId } = req.params;
     const userId = req.user?.id;
+    const tenantId = req.user?.tenant_id;
+    const role = req.user?.role;
+    if (!userId || !tenantId) {
+      return res.status(403).json({ success: false, error: 'Missing auth context' });
+    }
     const { startDate, endDate, minScore, maxScore } = req.query;
 
-    // Verify the quiz belongs to the user
+    // Verify the quiz belongs to the user's tenant (and to them unless super_admin)
     const [quiz] = await sequelize.query(
-      'SELECT * FROM quizzes WHERE id = :quizId AND creator_id = :userId',
+      `SELECT * FROM quizzes
+       WHERE id = :quizId
+         AND tenant_id = :tenantId
+         AND (creator_id = :userId OR :role = 'super_admin')`,
       {
-        replacements: { quizId, userId },
+        replacements: { quizId, userId, tenantId, role: role || '' },
         type: QueryTypes.SELECT
       }
     ) as any;
@@ -227,10 +245,15 @@ export const getPublicQuizResultDetail = async (req: Request, res: Response) => 
   try {
     const { resultId } = req.params;
     const userId = req.user?.id;
+    const tenantId = req.user?.tenant_id;
+    const role = req.user?.role;
+    if (!userId || !tenantId) {
+      return res.status(403).json({ success: false, error: 'Missing auth context' });
+    }
 
-    // Get result with quiz verification
+    // Get result with tenant + quiz ownership verification
     const [result] = await sequelize.query(`
-      SELECT 
+      SELECT
         pr.*,
         q.title as quiz_title,
         q.category,
@@ -239,9 +262,11 @@ export const getPublicQuizResultDetail = async (req: Request, res: Response) => 
         q.creator_id
       FROM public_quiz_results pr
       INNER JOIN quizzes q ON pr.quiz_id = q.id
-      WHERE pr.id = :resultId AND q.creator_id = :userId
+      WHERE pr.id = :resultId
+        AND q.tenant_id = :tenantId
+        AND (q.creator_id = :userId OR :role = 'super_admin')
     `, {
-      replacements: { resultId, userId },
+      replacements: { resultId, userId, tenantId, role: role || '' },
       type: QueryTypes.SELECT
     }) as any;
 
@@ -285,18 +310,22 @@ export const getPublicQuizResultDetail = async (req: Request, res: Response) => 
   }
 };
 
-// Get results for a quiz by ID (admin access - no ownership check)
+// Get results for a quiz by ID (tenant-scoped; admin/instructor access)
 export const getResultsByQuizId = async (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;
+    const tenantId = req.user?.tenant_id;
+    if (!tenantId) {
+      return res.status(403).json({ success: false, error: 'Missing tenant context' });
+    }
     const { page = 1, limit = 20 } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
 
-    // Get quiz info
+    // Quiz must belong to the caller's tenant
     const [quiz] = await sequelize.query(
-      'SELECT id, title, category, difficulty, pass_percentage FROM quizzes WHERE id = :quizId',
+      'SELECT id, title, category, difficulty, pass_percentage FROM quizzes WHERE id = :quizId AND tenant_id = :tenantId',
       {
-        replacements: { quizId },
+        replacements: { quizId, tenantId },
         type: QueryTypes.SELECT
       }
     ) as any;
@@ -387,12 +416,20 @@ export const getResultsStatistics = async (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;
     const userId = req.user?.id;
+    const tenantId = req.user?.tenant_id;
+    const role = req.user?.role;
+    if (!userId || !tenantId) {
+      return res.status(403).json({ success: false, error: 'Missing auth context' });
+    }
 
-    // Verify quiz ownership
+    // Verify quiz belongs to the caller's tenant (owner or super_admin)
     const [quiz] = await sequelize.query(
-      'SELECT * FROM quizzes WHERE id = :quizId AND creator_id = :userId',
+      `SELECT * FROM quizzes
+       WHERE id = :quizId
+         AND tenant_id = :tenantId
+         AND (creator_id = :userId OR :role = 'super_admin')`,
       {
-        replacements: { quizId, userId },
+        replacements: { quizId, userId, tenantId, role: role || '' },
         type: QueryTypes.SELECT
       }
     ) as any;

@@ -1,8 +1,10 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import Manual from '../models/Manual.model';
+import { authenticate } from '../middleware/auth.middleware';
+import logger from '../utils/logger';
 import authRoutes from './auth.routes';
 import quizRoutes from './quiz.routes';
 import sessionRoutes from './session.routes';
@@ -97,21 +99,30 @@ router.use('/interactive-video', interactiveVideoRoutes);
 import educationalResourcesRoutes from './educational-resources.routes';
 router.use('/educational-resources', educationalResourcesRoutes);
 
+// Analytics routes (Fase 5)
+import analyticsRoutes from './analytics.routes';
+router.use('/analytics', analyticsRoutes);
+
 // Manual routes - direct implementation
 router.get('/manuals/test', (req: Request, res: Response) => {
   res.json({ success: true, message: 'Manual routes working' });
 });
 
-// Manual upload endpoint  
-router.post('/manuals/upload', upload.single('file'), async (req: Request, res: Response) => {
+// Manual upload endpoint (authenticated, tenant-scoped)
+router.post('/manuals/upload', authenticate, upload.single('file'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No se proporcionó ningún archivo' });
     }
 
     const { title, description } = req.body;
-    const userId = 1; // Default admin user for testing
-    const tenantId = 1; // Default tenant for testing
+    const userId = req.user?.id;
+    const tenantId = req.user?.tenant_id;
+
+    if (!userId || !tenantId) {
+      if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
 
     if (!title) {
       // Delete uploaded file if validation fails
@@ -155,13 +166,13 @@ router.post('/manuals/upload', upload.single('file'), async (req: Request, res: 
     });
 
   } catch (error: any) {
-    console.error('Error uploading manual:', error);
-    
+    logger.error('Error uploading manual', { error });
+
     // Clean up uploaded file on error
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
-    
+
     res.status(500).json({
       success: false,
       error: 'Error interno del servidor'
@@ -169,14 +180,19 @@ router.post('/manuals/upload', upload.single('file'), async (req: Request, res: 
   }
 });
 
-// Get manuals endpoint
-router.get('/manuals', async (req: Request, res: Response) => {
+// Get manuals endpoint (authenticated, tenant-scoped)
+router.get('/manuals', authenticate, async (req: Request, res: Response) => {
   try {
-    // Get all manuals from database
+    const tenantId = req.user?.tenant_id;
+    if (!tenantId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
     const manuals = await Manual.findAll({
+      where: { tenant_id: tenantId },
       order: [['created_at', 'DESC']],
       attributes: [
-        'id', 'title', 'description', 'file_size', 'mime_type', 
+        'id', 'title', 'description', 'file_size', 'mime_type',
         'status', 'user_id', 'tenant_id', 'metadata', 'created_at', 'file_path'
       ]
     });
@@ -202,7 +218,7 @@ router.get('/manuals', async (req: Request, res: Response) => {
       message: 'Lista de manuales'
     });
   } catch (error: any) {
-    console.error('Error fetching manuals:', error);
+    logger.error('Error fetching manuals', { error });
     res.status(500).json({
       success: false,
       error: 'Error interno del servidor'
@@ -210,11 +226,16 @@ router.get('/manuals', async (req: Request, res: Response) => {
   }
 });
 
-// Get single manual
-router.get('/manuals/:id', async (req: Request, res: Response) => {
+// Get single manual (tenant-scoped)
+router.get('/manuals/:id', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const manual = await Manual.findByPk(id);
+    const tenantId = req.user?.tenant_id;
+    if (!tenantId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const manual = await Manual.findOne({ where: { id, tenant_id: tenantId } });
 
     if (!manual) {
       return res.status(404).json({
@@ -241,7 +262,7 @@ router.get('/manuals/:id', async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    console.error('Error fetching manual:', error);
+    logger.error('Error fetching manual', { error });
     res.status(500).json({
       success: false,
       error: 'Error interno del servidor'
@@ -249,11 +270,16 @@ router.get('/manuals/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Serve manual PDF file
-router.get('/manuals/:id/view', async (req: Request, res: Response) => {
+// Serve manual PDF file (tenant-scoped)
+router.get('/manuals/:id/view', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const manual = await Manual.findByPk(id);
+    const tenantId = req.user?.tenant_id;
+    if (!tenantId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const manual = await Manual.findOne({ where: { id, tenant_id: tenantId } });
 
     if (!manual) {
       return res.status(404).json({
@@ -277,7 +303,7 @@ router.get('/manuals/:id/view', async (req: Request, res: Response) => {
     const fileStream = fs.createReadStream(manual.file_path);
     fileStream.pipe(res);
   } catch (error: any) {
-    console.error('Error serving manual file:', error);
+    logger.error('Error serving manual file', { error });
     res.status(500).json({
       success: false,
       error: 'Error interno del servidor'
@@ -285,13 +311,17 @@ router.get('/manuals/:id/view', async (req: Request, res: Response) => {
   }
 });
 
-// Update manual
-router.put('/manuals/:id', async (req: Request, res: Response) => {
+// Update manual (tenant-scoped)
+router.put('/manuals/:id', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { title, description } = req.body;
-    
-    const manual = await Manual.findByPk(id);
+    const tenantId = req.user?.tenant_id;
+    if (!tenantId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const manual = await Manual.findOne({ where: { id, tenant_id: tenantId } });
     if (!manual) {
       return res.status(404).json({
         success: false,
@@ -323,7 +353,7 @@ router.put('/manuals/:id', async (req: Request, res: Response) => {
       message: 'Manual actualizado exitosamente'
     });
   } catch (error: any) {
-    console.error('Error updating manual:', error);
+    logger.error('Error updating manual', { error });
     res.status(500).json({
       success: false,
       error: 'Error al actualizar el manual'
@@ -331,12 +361,16 @@ router.put('/manuals/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Delete manual
-router.delete('/manuals/:id', async (req: Request, res: Response) => {
+// Delete manual (tenant-scoped)
+router.delete('/manuals/:id', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    
-    const manual = await Manual.findByPk(id);
+    const tenantId = req.user?.tenant_id;
+    if (!tenantId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const manual = await Manual.findOne({ where: { id, tenant_id: tenantId } });
     if (!manual) {
       return res.status(404).json({
         success: false,
@@ -344,7 +378,6 @@ router.delete('/manuals/:id', async (req: Request, res: Response) => {
       });
     }
 
-    // Delete file from filesystem
     if (manual.file_path && fs.existsSync(manual.file_path)) {
       fs.unlinkSync(manual.file_path);
     }
@@ -356,7 +389,7 @@ router.delete('/manuals/:id', async (req: Request, res: Response) => {
       message: 'Manual eliminado exitosamente'
     });
   } catch (error: any) {
-    console.error('Error deleting manual:', error);
+    logger.error('Error deleting manual', { error });
     res.status(500).json({
       success: false,
       error: 'Error al eliminar el manual'

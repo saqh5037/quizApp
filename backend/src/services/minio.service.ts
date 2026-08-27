@@ -2,18 +2,33 @@ import * as Minio from 'minio';
 import { config } from '../config/config';
 import fs from 'fs';
 import path from 'path';
+import logger from '../utils/logger';
+
+const requireEnv = (key: string): string => {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+  return value;
+};
 
 class MinioService {
   private client: Minio.Client;
   private bucketName: string;
 
   constructor() {
+    // Fail fast if credentials are missing — no weak defaults in any environment.
+    const accessKey = requireEnv('MINIO_ACCESS_KEY');
+    const secretKey = requireEnv('MINIO_SECRET_KEY');
+    const endPoint = process.env.MINIO_ENDPOINT || 'localhost';
+    const port = parseInt(process.env.MINIO_PORT || '9000', 10);
+
     this.client = new Minio.Client({
-      endPoint: process.env.MINIO_ENDPOINT || 'localhost',
-      port: parseInt(process.env.MINIO_PORT || '9000'),
+      endPoint,
+      port,
       useSSL: process.env.MINIO_USE_SSL === 'true',
-      accessKey: process.env.MINIO_ACCESS_KEY || 'aristotest',
-      secretKey: process.env.MINIO_SECRET_KEY || 'AristoTest2024!'
+      accessKey,
+      secretKey,
     });
 
     this.bucketName = process.env.MINIO_BUCKET_NAME || 'aristotest-videos';
@@ -25,7 +40,7 @@ class MinioService {
       const exists = await this.client.bucketExists(this.bucketName);
       if (!exists) {
         await this.client.makeBucket(this.bucketName, 'us-east-1');
-        console.log(`Bucket ${this.bucketName} created successfully`);
+        logger.info(`Bucket ${this.bucketName} created successfully`);
 
         // Set bucket policy for public read access (optional)
         const policy = {
@@ -46,7 +61,7 @@ class MinioService {
         );
       }
     } catch (error) {
-      console.error('Error initializing MinIO bucket:', error);
+      logger.error('Error initializing MinIO bucket', { error });
     }
   }
 

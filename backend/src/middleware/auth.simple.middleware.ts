@@ -1,52 +1,63 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import logger from '../utils/logger';
 
+/**
+ * Lightweight auth middleware. Verifies a real JWT and attaches the decoded
+ * payload to req.user. No default-user fallback — missing/invalid tokens are
+ * rejected with 401. This middleware is kept as a drop-in replacement for
+ * routes that still use it; new routes should use `authenticate` from
+ * auth.middleware.ts which also loads the full User row.
+ */
 export const simpleAuth = (req: Request, res: Response, next: NextFunction) => {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    logger.error('JWT_SECRET is not configured');
+    return res.status(500).json({
+      success: false,
+      error: 'Server misconfiguration',
+    });
+  }
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required',
+    });
+  }
+
+  const token = authHeader.substring(7).trim();
+  if (!token || token === 'undefined' || token === 'null') {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required',
+    });
+  }
+
   try {
-    const authHeader = req.headers.authorization;
-    
-    // Default user for development
-    const defaultUser = { 
-      id: 2, 
-      email: 'admin@aristotest.com', 
-      role: 'super_admin', 
-      tenant_id: 1 
-    };
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      // Continue without auth for now - use admin for testing with tenant_id
-      console.log('SimpleAuth: No auth header, using default user');
-      (req as any).user = defaultUser;
-      return next();
+    const decoded = jwt.verify(token, jwtSecret) as any;
+    if (!decoded || typeof decoded !== 'object' || !decoded.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid token payload',
+      });
     }
 
-    const token = authHeader.substring(7);
-    
-    // If token is empty or just "undefined" string, use default
-    if (!token || token === 'undefined' || token === 'null') {
-      console.log('SimpleAuth: Invalid token, using default user');
-      (req as any).user = defaultUser;
-      return next();
+    // Tenant is mandatory for every authenticated request — no silent default.
+    if (!decoded.tenant_id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Token does not contain a tenant context',
+      });
     }
-    
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key') as any;
-      // Ensure tenant_id is always set
-      if (!decoded.tenant_id) {
-        decoded.tenant_id = 1;
-      }
-      (req as any).user = decoded;
-      next();
-    } catch (err) {
-      // Use default admin user if token is invalid with tenant_id
-      console.log('SimpleAuth: JWT verification failed, using default user');
-      (req as any).user = defaultUser;
-      next();
-    }
-  } catch (error) {
-    res.status(500).json({
+
+    (req as any).user = decoded;
+    return next();
+  } catch (err) {
+    return res.status(401).json({
       success: false,
-      error: 'Internal server error'
+      error: 'Invalid or expired token',
     });
   }
 };
