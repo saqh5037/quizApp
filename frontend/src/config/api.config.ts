@@ -6,14 +6,17 @@
 // Get environment variables with fallbacks
 // Use dynamic URL detection for production
 const getApiUrl = () => {
-  // ALWAYS use the hostname from the browser for network access
-  const hostname = window.location.hostname;
-  
-  // If accessing from any IP that's not localhost, use that IP for backend
+  const { hostname, origin } = window.location;
+
+  // For any non-local host, reuse the page's own origin (protocol + host + port).
+  // Hardcoding http://<hostname>:3001 breaks once the SPA is served over HTTPS
+  // (mixed content is blocked by browsers). nginx (QA) and the Vite dev server
+  // both proxy /api and /socket.io to the backend on the same origin, so the
+  // page origin is always the correct base.
   if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-    return `http://${hostname}:3001`;
+    return origin;
   }
-  
+
   // Only use localhost when actually accessing from localhost
   return 'http://localhost:3001';
 };

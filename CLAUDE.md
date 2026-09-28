@@ -356,6 +356,11 @@ npm run migrate
 
 ### Production Deployment (AWS)
 - EC2 Instance: ec2-52-55-189-120.compute-1.amazonaws.com
+- QA URL (HTTPS): https://aristotest.52-55-189-120.sslip.io — share this hostname, never the bare EC2 one
+  - nginx vhost `aristotest-https` (repo copy: `nginx-qa-https.conf`), Let's Encrypt certificate via certbot with auto-renew. No CA issues certificates for `amazonaws.com` hostnames, hence sslip.io.
+  - `/api` and `/socket.io` are proxied to the backend on 3001, so the frontend derives its API base from the page origin (`frontend/src/config/api.config.ts`). Never hardcode `http://<host>:3001` again: it is mixed content under HTTPS.
+  - The backend `.env` on QA lists this origin in `CORS_ORIGIN` and `SOCKET_CORS_ORIGIN`; a new hostname needs a new entry there plus a backend restart.
+  - Legacy links on the EC2 hostname (ports 80 and 443, repo copy: `nginx-qa-legacy-redirect.conf`) return 301 to the HTTPS hostname. Port 443 on the EC2 hostname still shows a certificate warning first (no valid cert is possible there).
 - RDS Database: ec2-3-91-26-178.compute-1.amazonaws.com
 - Database Name: aristotest1
 - Database User: labsis
